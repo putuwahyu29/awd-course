@@ -1,0 +1,634 @@
+---
+interface Props {
+  taskId: string;
+  title?: string;
+  subtitle?: string;
+}
+
+const {
+  taskId,
+  title = 'Pembahasan & Kunci Jawaban',
+  subtitle = 'Panduan penyelesaian tugas untuk pengajar.',
+} = Astro.props;
+
+const uniqueId = `admin-sol-${taskId}-${Math.random().toString(36).substring(2, 7)}`;
+---
+
+<div class="admin-solution-wrapper my-8" id={uniqueId} data-task-id={taskId}>
+  <!-- Unified Header Bar (Changes state dynamically) -->
+  <div class="admin-header-bar" id={`${uniqueId}-header-bar`}>
+    <div class="admin-header-left">
+      <div class="admin-icon-box" id={`${uniqueId}-icon-box`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+      </div>
+      <div class="admin-header-titles">
+        <div class="title-row">
+          <span class="admin-main-title" id={`${uniqueId}-title`}>{title}</span>
+          <span class="badge badge-primary hidden" id={`${uniqueId}-badge`}>Terverifikasi</span>
+        </div>
+        <span class="admin-sub-title" id={`${uniqueId}-subtitle`}>{subtitle}</span>
+      </div>
+    </div>
+    
+    <div class="admin-header-actions">
+      <!-- Default state: Unlock Button -->
+      <button type="button" class="btn btn-outline btn-sm admin-unlock-btn" id={`${uniqueId}-unlock-btn`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Lihat Solusi</span>
+      </button>
+
+      <!-- Active state actions: Copy & Hide -->
+      <div class="active-actions hidden" id={`${uniqueId}-active-actions`}>
+        <button type="button" class="btn btn-outline btn-sm copy-solution-btn" id={`${uniqueId}-copy-btn`}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span class="copy-text">Salin Kode</span>
+        </button>
+        <button type="button" class="btn btn-outline btn-sm close-solution-btn" id={`${uniqueId}-close-btn`}>
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inline Verification Prompt (If not yet authenticated) -->
+  <div class="admin-auth-prompt hidden" id={`${uniqueId}-auth-box`}>
+    <div class="auth-prompt-inner">
+      <div class="auth-prompt-header">
+        <h4 class="auth-prompt-title">Verifikasi Hak Akses Pengajar</h4>
+        <button type="button" class="auth-prompt-close" id={`${uniqueId}-auth-close`} aria-label="Tutup">&times;</button>
+      </div>
+      <p class="auth-prompt-desc">
+        Halaman ini memerlukan verifikasi pengajar. Masukkan kunci akses atau login menggunakan akun Google Admin.
+      </p>
+      
+      <form class="auth-prompt-form" id={`${uniqueId}-form`}>
+        <div class="auth-input-group">
+          <input
+            type="password"
+            class="auth-input"
+            id={`${uniqueId}-passkey`}
+            placeholder="Masukkan kunci akses pengajar..."
+            autocomplete="current-password"
+            required
+          />
+          <button type="submit" class="btn btn-primary btn-sm auth-submit-btn">
+            Konfirmasi
+          </button>
+        </div>
+        <div class="auth-error-msg hidden" id={`${uniqueId}-error`}></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Solution Content Body -->
+  <div class="admin-solution-content hidden" id={`${uniqueId}-content`}>
+    <div class="solution-body">
+      <div class="solution-explanation-card">
+        <p class="solution-explanation" id={`${uniqueId}-explanation`}></p>
+      </div>
+      
+      <div class="solution-code-container">
+        <div class="solution-code-topbar">
+          <span class="code-lang-tag">python</span>
+        </div>
+        <pre class="solution-code-pre"><code id={`${uniqueId}-code-text`} class="language-python"></code></pre>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .admin-solution-wrapper {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+  }
+
+  /* Single Unified Header */
+  .admin-header-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1.25rem;
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+  }
+
+  .admin-solution-wrapper.is-open .admin-header-bar {
+    border-bottom-color: var(--border-subtle);
+  }
+
+  .admin-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    min-width: 0;
+  }
+
+  .admin-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface);
+    color: var(--color-primary);
+    border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+
+  .admin-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .admin-main-title {
+    font-size: 0.925rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .admin-sub-title {
+    font-size: 0.775rem;
+    color: var(--text-muted);
+  }
+
+  .admin-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .active-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Auth Prompt Box */
+  .admin-auth-prompt {
+    padding: 1.25rem;
+    border-top: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+  }
+
+  .auth-prompt-inner {
+    max-width: 460px;
+  }
+
+  .auth-prompt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+  }
+
+  .auth-prompt-title {
+    font-size: 0.925rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .auth-prompt-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .auth-prompt-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-prompt-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .auth-input-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .auth-input {
+    flex: 1;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.825rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .auth-input:focus {
+    border-color: var(--color-primary);
+  }
+
+  .auth-error-msg {
+    font-size: 0.75rem;
+    color: var(--color-danger, #ef4444);
+    margin-top: 0.25rem;
+  }
+
+  /* Solution Content */
+  .admin-solution-content {
+    background-color: var(--bg-surface);
+    animation: fadeIn 0.25s ease forwards;
+  }
+
+  .solution-body {
+    padding: 1.25rem;
+  }
+
+  .solution-explanation-card {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .solution-explanation {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+    margin: 0;
+  }
+
+  .solution-code-container {
+    background-color: var(--code-bg, #f8fafc);
+    border: 1px solid var(--code-border, #e2e8f0);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-top: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .solution-code-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.85rem;
+    background-color: var(--code-topbar-bg, #f1f5f9);
+    border-bottom: 1px solid var(--code-border, #e2e8f0);
+  }
+
+  .code-lang-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: lowercase;
+  }
+
+  .solution-code-pre {
+    margin: 0 !important;
+    padding: 1rem 1.25rem !important;
+    font-family: var(--font-mono, 'JetBrains Mono', monospace) !important;
+    font-size: 0.825rem !important;
+    line-height: 1.65 !important;
+    color: var(--code-text, #0f172a) !important;
+    background-color: var(--code-bg, #f8fafc) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .solution-code-pre code {
+    color: var(--code-text, #0f172a);
+    background: transparent !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+  }
+
+  /* Python Syntax Tokens (Light Mode) */
+  :global(.syn-comment) {
+    color: #64748b;
+    font-style: italic;
+  }
+  :global(.syn-keyword) {
+    color: #7c3aed;
+    font-weight: 600;
+  }
+  :global(.syn-string) {
+    color: #059669;
+  }
+  :global(.syn-number) {
+    color: #d97706;
+  }
+  :global(.syn-builtin) {
+    color: #2563eb;
+    font-weight: 500;
+  }
+  :global(.syn-module) {
+    color: #0284c7;
+    font-weight: 600;
+  }
+  :global(.syn-function) {
+    color: #0369a1;
+  }
+
+  /* Python Syntax Tokens (Dark Mode) */
+  :global([data-theme="dark"] .syn-comment) {
+    color: #8b949e;
+  }
+  :global([data-theme="dark"] .syn-keyword) {
+    color: #ff7b72;
+  }
+  :global([data-theme="dark"] .syn-string) {
+    color: #7ee787;
+  }
+  :global([data-theme="dark"] .syn-number) {
+    color: #79c0ff;
+  }
+  :global([data-theme="dark"] .syn-builtin) {
+    color: #d2a8ff;
+  }
+  :global([data-theme="dark"] .syn-module) {
+    color: #ffa657;
+  }
+  :global([data-theme="dark"] .syn-function) {
+    color: #79c0ff;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .hidden {
+    display: none !important;
+  }
+</style>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  function initAdminSolutionBoxes() {
+    const wrappers = document.querySelectorAll<HTMLElement>('.admin-solution-wrapper');
+
+    wrappers.forEach((wrapper) => {
+      const taskId = wrapper.getAttribute('data-task-id') || '';
+      const wrapperId = wrapper.id;
+
+      const titleEl = document.getElementById(`${wrapperId}-title`) as HTMLElement;
+      const subtitleEl = document.getElementById(`${wrapperId}-subtitle`) as HTMLElement;
+      const badgeEl = document.getElementById(`${wrapperId}-badge`) as HTMLElement;
+
+      const unlockBtn = document.getElementById(`${wrapperId}-unlock-btn`) as HTMLButtonElement;
+      const activeActions = document.getElementById(`${wrapperId}-active-actions`) as HTMLElement;
+
+      const authBox = document.getElementById(`${wrapperId}-auth-box`) as HTMLElement;
+      const authClose = document.getElementById(`${wrapperId}-auth-close`) as HTMLButtonElement;
+      const authForm = document.getElementById(`${wrapperId}-form`) as HTMLFormElement;
+      const passkeyInput = document.getElementById(`${wrapperId}-passkey`) as HTMLInputElement;
+      const errorMsg = document.getElementById(`${wrapperId}-error`) as HTMLElement;
+
+      const contentBox = document.getElementById(`${wrapperId}-content`) as HTMLElement;
+      const explanationEl = document.getElementById(`${wrapperId}-explanation`) as HTMLElement;
+      const codeTextEl = document.getElementById(`${wrapperId}-code-text`) as HTMLElement;
+      const copyBtn = document.getElementById(`${wrapperId}-copy-btn`) as HTMLButtonElement;
+      const closeBtn = document.getElementById(`${wrapperId}-close-btn`) as HTMLButtonElement;
+
+      let cachedCode = '';
+      const initialTitle = titleEl?.textContent || 'Pembahasan & Kunci Jawaban';
+      const initialSubtitle = subtitleEl?.textContent || 'Panduan penyelesaian tugas untuk pengajar.';
+
+      async function requestSolution(params: { passkey?: string; token?: string }) {
+        try {
+          const res = await fetch('/api/admin/solution', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ taskId, ...params }),
+          });
+
+          const data = await res.json();
+          if (res.ok && data.success && data.solution) {
+            renderSolution(data.solution, data.authorizedAs);
+            if (params.passkey) {
+              sessionStorage.setItem('awd_admin_passkey', params.passkey);
+            }
+            return true;
+          } else {
+            showError(data.message || 'Kunci akses tidak cocok.');
+            return false;
+          }
+        } catch (err: any) {
+          showError('Gagal menghubungi server verifikasi.');
+          return false;
+        }
+      }
+
+      function highlightPython(rawCode: string): string {
+        if (!rawCode) return '';
+
+        function escapeHtml(str: string): string {
+          return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        }
+
+        const lines = rawCode.split('\n');
+        return lines
+          .map((line) => {
+            if (!line.trim()) return '';
+
+            let codePart = line;
+            let commentPart = '';
+
+            // Match real comments starting with #
+            const commentMatch = line.match(/^([^#"']*?(?:(?:"[^"]*"|'[^']*')[^#"']*?)*)(#.*)$/);
+            if (commentMatch) {
+              codePart = commentMatch[1];
+              commentPart = `<span class="syn-comment">${escapeHtml(commentMatch[2])}</span>`;
+            }
+
+            // Stash strings to prevent keyword replacement inside them
+            const stringStash: string[] = [];
+            const stringRegex = /(f?"(?:\\.|[^"\\])*"|f?'(?:\\.|[^'\\])*')/g;
+            const masked = codePart.replace(stringRegex, (match) => {
+              const idx = stringStash.length;
+              stringStash.push(match);
+              return `___STR_${idx}___`;
+            });
+
+            let esc = escapeHtml(masked);
+
+            // Numbers
+            esc = esc.replace(/\b(\d[\d_]*(?:\.\d+)?)\b/g, '<span class="syn-number">$1</span>');
+
+            // Keywords
+            const keywords = [
+              'import', 'from', 'as', 'def', 'return', 'if', 'elif', 'else',
+              'for', 'while', 'in', 'and', 'or', 'not', 'is', 'None', 'True',
+              'False', 'with', 'class', 'try', 'except', 'finally', 'pass',
+              'break', 'continue', 'lambda'
+            ];
+            esc = esc.replace(new RegExp(`\\b(${keywords.join('|')})\\b`, 'g'), '<span class="syn-keyword">$1</span>');
+
+            // Modules
+            const modules = ['pd', 'np', 'plt', 'sns', 'pandas', 'numpy', 'matplotlib', 'seaborn'];
+            esc = esc.replace(new RegExp(`\\b(${modules.join('|')})\\b`, 'g'), '<span class="syn-module">$1</span>');
+
+            // Builtin functions
+            const builtins = ['print', 'len', 'range', 'int', 'float', 'str', 'list', 'dict', 'set', 'tuple', 'type', 'sum', 'min', 'max'];
+            esc = esc.replace(new RegExp(`\\b(${builtins.join('|')})\\b`, 'g'), '<span class="syn-builtin">$1</span>');
+
+            // Method calls
+            esc = esc.replace(/\.([a-zA-Z_][a-zA-Z0-9_]*)(?=\s*\()/g, '.<span class="syn-function">$1</span>');
+
+            // Restore strings
+            stringStash.forEach((s, i) => {
+              esc = esc.replace(`___STR_${i}___`, `<span class="syn-string">${escapeHtml(s)}</span>`);
+            });
+
+            return esc + commentPart;
+          })
+          .join('\n');
+      }
+
+      function renderSolution(solution: any, authName: string) {
+        cachedCode = solution.code;
+        if (explanationEl) explanationEl.textContent = solution.explanation;
+        if (codeTextEl) codeTextEl.innerHTML = highlightPython(solution.code);
+
+        // Transform header into verified state
+        if (titleEl) titleEl.textContent = solution.title || 'Solusi Acuan Tugas';
+        if (subtitleEl) subtitleEl.textContent = `Terverifikasi sebagai ${authName || 'Pemateri'}`;
+        badgeEl?.classList.remove('hidden');
+
+        wrapper.classList.add('is-open');
+        authBox?.classList.add('hidden');
+        contentBox?.classList.remove('hidden');
+
+        unlockBtn?.classList.add('hidden');
+        activeActions?.classList.remove('hidden');
+      }
+
+      function collapseSolution() {
+        wrapper.classList.remove('is-open');
+        contentBox?.classList.add('hidden');
+        authBox?.classList.add('hidden');
+
+        if (titleEl) titleEl.textContent = initialTitle;
+        if (subtitleEl) subtitleEl.textContent = initialSubtitle;
+        badgeEl?.classList.add('hidden');
+
+        activeActions?.classList.add('hidden');
+        unlockBtn?.classList.remove('hidden');
+      }
+
+      function showError(msg: string) {
+        if (errorMsg) {
+          errorMsg.textContent = msg;
+          errorMsg.classList.remove('hidden');
+        }
+      }
+
+      function clearError() {
+        if (errorMsg) {
+          errorMsg.textContent = '';
+          errorMsg.classList.add('hidden');
+        }
+      }
+
+      const savedPasskey = sessionStorage.getItem('awd_admin_passkey');
+
+      unlockBtn?.addEventListener('click', async () => {
+        clearError();
+
+        if (savedPasskey) {
+          const ok = await requestSolution({ passkey: savedPasskey });
+          if (ok) return;
+        }
+
+        if (supabase) {
+          try {
+            const { data } = await supabase.auth.getSession();
+            const token = data?.session?.access_token;
+            if (token) {
+              const ok = await requestSolution({ token });
+              if (ok) return;
+            }
+          } catch {}
+        }
+
+        authBox?.classList.remove('hidden');
+        passkeyInput?.focus();
+      });
+
+      authClose?.addEventListener('click', () => {
+        authBox?.classList.add('hidden');
+      });
+
+      authForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearError();
+        const passkey = passkeyInput?.value.trim();
+        if (!passkey) return;
+
+        await requestSolution({ passkey });
+      });
+
+      closeBtn?.addEventListener('click', collapseSolution);
+
+      copyBtn?.addEventListener('click', async () => {
+        if (!cachedCode) return;
+        try {
+          await navigator.clipboard.writeText(cachedCode);
+          const textEl = copyBtn.querySelector('.copy-text');
+          if (textEl) {
+            const orig = textEl.textContent;
+            textEl.textContent = 'Tersalin!';
+            setTimeout(() => {
+              textEl.textContent = orig;
+            }, 2000);
+          }
+        } catch {}
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', initAdminSolutionBoxes);
+  document.addEventListener('astro:page-load', initAdminSolutionBoxes);
+</script>

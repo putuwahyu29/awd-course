@@ -1,0 +1,793 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const allCourses = await getCollection('courses');
+  const allLessons = await getCollection('lessons');
+
+  const publishedCourses = allCourses.filter(
+    (c) => c.data.isPublished && c.data.status !== 'draft'
+  );
+
+  return publishedCourses.map((course) => {
+    // Only include published lessons
+    const courseLessons = allLessons
+      .filter((l) => l.data.courseSlug === course.id && l.data.isPublished !== false)
+      .sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+
+    return {
+      params: { courseSlug: course.id },
+      props: { course, lessons: courseLessons },
+    };
+  });
+}
+
+const { course, lessons } = Astro.props;
+const {
+  title,
+  description,
+  category,
+  level,
+  duration,
+  instructor,
+  instructorRole,
+  instructorAvatar,
+  updatedAt = '2026-09-08',
+} = course.data;
+
+const categoryLabels: Record<string, string> = {
+  'web-dev': 'Pengembangan Web',
+  'programming': 'Pemrograman',
+  'ui-ux': 'Desain UI/UX',
+  'data-ai': 'Sains Data & AI',
+  'cloud': 'Cloud & DevOps',
+};
+
+// Group published lessons by chapter
+const chaptersMap = new Map<string, typeof lessons>();
+lessons.forEach((l) => {
+  const ch = l.data.chapter || 'Bab 1: Pengenalan';
+  if (!chaptersMap.has(ch)) {
+    chaptersMap.set(ch, []);
+  }
+  chaptersMap.get(ch)!.push(l);
+});
+
+const chapters = Array.from(chaptersMap.entries());
+const firstLesson = lessons.length > 0 ? lessons[0] : null;
+
+const chapterNotebookLinks: Record<string, Record<number, { title: string; url: string }>> = {
+  'python-data-science': {
+    0: { title: 'Notebook Bab 1 Lengkap (.ipynb)', url: '/notebooks/python-data-science/bab-1-dasar-pemrograman-python-lengkap.ipynb' },
+    1: { title: 'Notebook Bab 2 Lengkap (.ipynb)', url: '/notebooks/python-data-science/bab-2-package-data-science-lengkap.ipynb' },
+    2: { title: 'Notebook Bab 3 Lengkap (.ipynb)', url: '/notebooks/python-data-science/bab-3-analisis-data-eksploratif-lengkap.ipynb' },
+  }
+};
+
+function getChapterNotebookLink(courseId: string, chIdx: number, chLessons: typeof lessons): { title: string; url: string } | null {
+  if (chapterNotebookLinks[courseId]?.[chIdx]) {
+    return chapterNotebookLinks[courseId][chIdx];
+  }
+  const lessonWithNotebook = chLessons.find((l) => l.data.ipynbFile);
+  if (lessonWithNotebook?.data.ipynbFile) {
+    return {
+      title: `Notebook Bab ${chIdx + 1} (.ipynb)`,
+      url: lessonWithNotebook.data.ipynbFile,
+    };
+  }
+  return null;
+}
+
+function formatIndonesianDate(dateStr?: string): string {
+  if (!dateStr) return '20 Agustus 2026';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const mIdx = parseInt(parts[1], 10) - 1;
+      return `${parseInt(parts[2], 10)} ${months[mIdx] || parts[1]} ${parts[0]}`;
+    }
+  } catch (e) {}
+  return dateStr;
+}
+
+const formattedDate = formatIndonesianDate(updatedAt);
+---
+
+<BaseLayout
+  title={`${title} - Silabus Kursus`}
+  description={description}
+>
+  <div class="course-page-wrapper">
+    <!-- Hero Header -->
+    <header class="course-hero">
+      <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb-bar" aria-label="Navigasi Halaman">
+          <a href="/" class="crumb-link">Beranda</a>
+          <span class="crumb-separator">/</span>
+          <a href="/courses" class="crumb-link">Katalog Kursus</a>
+          <span class="crumb-separator">/</span>
+          <span class="crumb-current">{title}</span>
+        </nav>
+
+        <div class="hero-layout-grid">
+          <!-- Main Info Column -->
+          <div class="hero-info-col">
+            <div class="course-badge-row">
+              <span class="badge badge-primary">
+                {categoryLabels[category] || category}
+              </span>
+              <span class="badge badge-slate">
+                {level}
+              </span>
+              <span class="badge badge-slate date-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Pembaruan: {formattedDate}
+              </span>
+            </div>
+
+            <h1 class="hero-course-title">{title}</h1>
+            <p class="hero-course-desc">{description}</p>
+
+            <div class="hero-actions-row">
+              {firstLesson && (
+                <a href={`/courses/${course.id}/${firstLesson.id}`} class="btn btn-primary btn-lg">
+                  <span>Mulai Pembelajaran</span>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </a>
+              )}
+              <a href="#silabus" class="btn btn-outline btn-lg">
+                Lihat Silabus Materi
+              </a>
+            </div>
+          </div>
+
+          <!-- Sidebar Card Column -->
+          <div class="hero-meta-col">
+            <div class="meta-card card">
+              <div class="instructor-profile-box">
+                {instructorAvatar ? (
+                  <img src={instructorAvatar} alt={instructor} class="instructor-photo" />
+                ) : (
+                  <div class="instructor-photo-fallback">
+                    {instructor.charAt(0)}
+                  </div>
+                )}
+                <div class="instructor-meta">
+                  <span class="instructor-label">Pemateri</span>
+                  <strong class="instructor-fullname">{instructor}</strong>
+                  <span class="instructor-position">{instructorRole}</span>
+                </div>
+              </div>
+
+              <div class="specs-list">
+                <div class="spec-row">
+                  <span class="spec-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Estimasi Waktu
+                  </span>
+                  <span class="spec-data">{duration}</span>
+                </div>
+
+                <div class="spec-row">
+                  <span class="spec-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                    </svg>
+                    Total Materi
+                  </span>
+                  <span class="spec-data">{lessons.length} Modul Aktif</span>
+                </div>
+
+                <div class="spec-row">
+                  <span class="spec-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                    </svg>
+                    Tingkat Kesulitan
+                  </span>
+                  <span class="spec-data">{level}</span>
+                </div>
+
+                <div class="spec-row">
+                  <span class="spec-label">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    </svg>
+                    Akses Pembelajaran
+                  </span>
+                  <span class="spec-data spec-free">Gratis & Terbuka</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Syllabus Content Section -->
+    <main class="syllabus-main-section" id="silabus">
+      <div class="container">
+        <div class="syllabus-section-header">
+          <div>
+            <h2 class="syllabus-heading">Struktur Silabus & Kurikulum</h2>
+            <p class="syllabus-subheading">Pelajari materi secara bertahap mulai dari sintaksis dasar, latihan pembuatan program, modul bacaan teknis, hingga eksplorasi data.</p>
+          </div>
+        </div>
+
+        <div class="chapters-stack">
+          {chapters.map(([chapterTitle, chapterLessons], chIdx) => (
+            <div class="chapter-block card">
+              <div class="chapter-bar">
+                <div class="chapter-title-group">
+                  <span class="chapter-number-pill">Bab {chIdx + 1}</span>
+                  <h3 class="chapter-heading-text">{chapterTitle}</h3>
+                </div>
+                <div class="chapter-bar-actions">
+                  {(() => {
+                    const nbInfo = getChapterNotebookLink(course.id, chIdx, chapterLessons);
+                    if (!nbInfo) return null;
+                    const colabUrl = `https://colab.research.google.com/github/putuwahyu29/awd-course/blob/main/public${nbInfo.url}`;
+                    return (
+                      <div class="chapter-actions-group">
+                        <a
+                          href={colabUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn btn-outline btn-sm chapter-colab-link"
+                          title={`Buka Seluruh Materi Bab ${chIdx + 1} di Google Colab`}
+                        >
+                          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" aria-hidden="true">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                          </svg>
+                          <span>Buka Bab di Colab</span>
+                        </a>
+
+                        <a
+                          href={nbInfo.url}
+                          download
+                          class="btn btn-secondary btn-sm chapter-download-btn"
+                          title={`Unduh Seluruh Kode Praktik Bab ${chIdx + 1} (.ipynb)`}
+                        >
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                          </svg>
+                          <span>Unduh Bab {chIdx + 1} (.ipynb)</span>
+                        </a>
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              <div class="lessons-table">
+                {chapterLessons.map((l, lIdx) => (
+                  <a href={`/courses/${course.id}/${l.id}`} class="lesson-item-row" aria-label={`Buka materi ${l.data.title}`}>
+                    <div class="lesson-item-left">
+                      <span class="lesson-index-num">{chIdx + 1}.{lIdx + 1}</span>
+
+                      <div class="lesson-media-icon">
+                        {l.data.contentType === 'video' && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                          </svg>
+                        )}
+                        {l.data.contentType === 'pdf' && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                          </svg>
+                        )}
+                        {l.data.contentType === 'assignment' && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+                            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                            <path d="M9 14l2 2 4-4"></path>
+                          </svg>
+                        )}
+                        {(!l.data.contentType || l.data.contentType === 'text') && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                          </svg>
+                        )}
+                      </div>
+
+                      <div class="lesson-info-box">
+                        <span class="lesson-title-text">{l.data.title}</span>
+                      </div>
+                    </div>
+
+                    <div class="lesson-item-right">
+                      <span class="lesson-duration-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        {l.data.duration}
+                      </span>
+                      <span class="lesson-action-arrow">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
+                          <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                      </span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </main>
+  </div>
+</BaseLayout>
+
+<style>
+  .course-page-wrapper {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  /* Hero Section */
+  .course-hero {
+    padding: 3rem 0 3.5rem 0;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .breadcrumb-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.825rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .crumb-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .crumb-link:hover {
+    color: var(--primary);
+  }
+
+  .crumb-separator {
+    color: var(--border-medium);
+  }
+
+  .crumb-current {
+    color: var(--text-main);
+    font-weight: 600;
+  }
+
+  .hero-layout-grid {
+    display: grid;
+    grid-template-columns: 1.75fr 1.25fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .hero-info-col {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .course-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .date-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .hero-course-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--text-main);
+    margin-bottom: 1rem;
+    letter-spacing: -0.015em;
+  }
+
+  .hero-course-desc {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin-bottom: 2rem;
+  }
+
+  .hero-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  /* Sidebar Meta Card */
+  .meta-card {
+    padding: 1.5rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+  }
+
+  .instructor-profile-box {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 1.25rem;
+  }
+
+  .instructor-photo {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-medium);
+    background-color: var(--bg-surface);
+    flex-shrink: 0;
+  }
+
+  .instructor-photo-fallback {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .instructor-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .instructor-label {
+    font-size: 0.725rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-subtle);
+  }
+
+  .instructor-fullname {
+    font-size: 0.95rem;
+    color: var(--text-main);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .instructor-position {
+    font-size: 0.775rem;
+    color: var(--text-muted);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .specs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .spec-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .spec-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+  }
+
+  .spec-data {
+    font-weight: 600;
+    color: var(--text-main);
+    text-align: right;
+  }
+
+  .spec-free {
+    color: var(--accent-emerald);
+  }
+
+  /* Syllabus Section */
+  .syllabus-main-section {
+    padding: 3.5rem 0 5rem 0;
+  }
+
+  .syllabus-section-header {
+    margin-bottom: 2rem;
+  }
+
+  .syllabus-heading {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 0.4rem;
+  }
+
+  .syllabus-subheading {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 750px;
+    margin: 0;
+  }
+
+  .chapters-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .chapter-block {
+    padding: 0;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .chapter-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.35rem;
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .chapter-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .chapter-number-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    background-color: var(--primary-light);
+    color: var(--primary);
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+  }
+
+  .chapter-heading-text {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+  }
+
+  .chapter-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .chapter-lessons-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .chapter-actions-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .chapter-colab-link {
+    font-size: 0.775rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-sm);
+    gap: 0.4rem;
+    text-decoration: none;
+    border-color: rgba(245, 158, 11, 0.4);
+    color: var(--text-main);
+    transition: all 0.15s ease;
+  }
+
+  .chapter-colab-link:hover {
+    border-color: #f59e0b;
+    color: #f59e0b;
+    background-color: rgba(245, 158, 11, 0.08);
+  }
+
+  .chapter-download-btn {
+    font-size: 0.775rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-sm);
+    gap: 0.4rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .chapter-download-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .lessons-table {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .lesson-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.95rem 1.35rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    text-decoration: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .lesson-item-row:last-child {
+    border-bottom: none;
+  }
+
+  .lesson-item-row:hover {
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .lesson-item-row:hover .lesson-title-text {
+    color: var(--primary);
+  }
+
+  .lesson-item-row:hover .lesson-action-arrow {
+    color: var(--primary);
+    transform: translateX(3px);
+  }
+
+  .lesson-item-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-width: 0;
+    flex-grow: 1;
+  }
+
+  .lesson-index-num {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-subtle);
+    width: 28px;
+    flex-shrink: 0;
+  }
+
+  .lesson-media-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .lesson-item-row:hover .lesson-media-icon {
+    background-color: var(--primary-light);
+    color: var(--primary);
+  }
+
+  .lesson-info-box {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .lesson-title-text {
+    font-size: 0.925rem;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.4;
+    transition: color 0.15s ease;
+  }
+
+  .lesson-item-right {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-shrink: 0;
+    margin-left: 1rem;
+  }
+
+  .lesson-duration-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.775rem;
+    color: var(--text-muted);
+    background-color: var(--bg-surface-elevated);
+    padding: 0.25rem 0.55rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .lesson-action-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-subtle);
+    transition: transform 0.15s ease, color 0.15s ease;
+  }
+
+  @media (max-width: 900px) {
+    .hero-layout-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .hero-course-title {
+      font-size: 1.75rem;
+    }
+    .chapter-bar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+    .lesson-item-row {
+      padding: 0.85rem 1rem;
+    }
+    .lesson-duration-badge {
+      display: none;
+    }
+  }
+</style>

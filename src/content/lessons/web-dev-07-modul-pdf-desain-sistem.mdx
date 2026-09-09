@@ -1,0 +1,56 @@
+---
+title: "Panduan Desain Sistem & Tipografi Modern"
+courseSlug: "frontend-modern-mastery"
+chapter: "Bab 4: Desain Sistem & Proyek Akhir"
+order: 7
+duration: "20 Menit"
+contentType: "pdf"
+pdfUrl: "/documents/modul-panduan-frontend.pdf"
+pdfTitle: "Unduh Modul Lengkap Desain Sistem (PDF)"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import PDFViewer from '../../components/mdx/PDFViewer.astro';
+
+Desain sistem (*Design System*) adalah kumpulan aturan, pedoman visual, komponen dapat digunakan ulang (*reusable components*), dan token desain yang menjamin konsistensi antarmuka pengguna pada skala aplikasi besar.
+
+---
+
+## 1. Tiga Pilar Desain Sistem Modern
+
+1. **Design Tokens**: Satuan nilai terkecil yang mewakili keputusan desain (warna, font, spacing, shadow, radius).
+2. **Component Library**: Blok bangunan UI mandiri seperti Button, Card, Modal, Input, dan Badge.
+3. **Pola Tata Letak & Pedoman Aksesibilitas**: Aturan jarak visual 8-point grid dan kepatuhan WCAG 2.1 Level AAA.
+
+---
+
+## 2. Modul Dokumen Panduan Desain Sistem
+
+Anda dapat membaca dokumen standar desain sistem secara langsung pada penampil PDF di bawah ini atau menekan tombol **Unduh Dokumen PDF** di bagian atas untuk menyimpan modul:
+
+<PDFViewer
+  file="/documents/modul-panduan-frontend.pdf"
+  title="Buku Panduan Standar Desain Sistem Frontend (PDF)"
+  description="Dokumen standar tipografi rasio 1.25, palet warna HSL terstruktur, dan arsitektur CSS modern."
+  height="540px"
+/>
+
+<Callout type="tip" title="Penerapan di Industri">
+  Perusahaan teknologi terkemuka dunia seperti Google (Material Design), Apple (Human Interface Guidelines), dan Vercel (Geist Design) selalu menggunakan desain sistem untuk memastikan ratusan pengembang bekerja dengan bahasa visual yang seragam.
+</Callout>
+
+---
+
+## 3. Rangkuman Prinsip Tipografi Harmonis
+
+* **Base Font Size**: `16px` (`1rem`) sebagai ukuran teks tubuh (*body text*).
+* **Line Height**: `1.5` s/d `1.75` untuk kenyamanan membaca paragraf panjang.
+* **Type Scale Ratio (1.25 Major Third)**:
+  * `h1`: `2.44rem` (~39px)
+  * `h2`: `1.95rem` (~31px)
+  * `h3`: `1.56rem` (~25px)
+  * `h4`: `1.25rem` (~20px)
+  * `body`: `1.00rem` (16px)
+  * `small`: `0.80rem` (~13px)
+
+Di materi berikutnya, Anda akan mengimplementasikan seluruh keterampilan ini ke dalam **Tugas Proyek Akhir: Portfolio Web Interaktif**.

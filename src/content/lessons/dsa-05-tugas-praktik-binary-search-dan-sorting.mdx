@@ -1,0 +1,97 @@
+---
+title: "Tugas Praktik: Sorting Data E-Commerce & Binary Search Indexing"
+courseSlug: "dsa-software-engineering"
+chapter: "Bab 2: Rekursi & Algoritma Pengurutan / Pencarian"
+order: 5
+duration: "35 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Pada tugas praktik mandiri ini, Anda akan memproses sekumpulan data transaksi e-commerce besar untuk mengimplementasikan fungsi pengurutan (*Custom Multi-Key Sorting*) dan pencarian data berdasarkan rentang harga (*Price Range Binary Search*).
+
+---
+
+## 1. Spesifikasi Tugas yang Harus Diimplementasikan
+
+Diberikan sekumpulan objek transaksi penjualan:
+1. **Fungsi `sortTransactionsByPriceDesc`**: Mengurutkan ribuan data transaksi dari harga tertinggi ke terendah secara efisien (`O(N log N)`).
+2. **Fungsi `findTransactionById`**: Melakukan pencarian transaksi berdasarkan ID unik dalam waktu logaritmik `O(log N)` menggunakan Binary Search.
+3. **Fungsi `countTransactionsInRange(sortedArr, minPrice, maxPrice)`**: Menghitung berapa banyak transaksi yang berada di dalam rentang harga menggunakan dua titik Binary Search (*Lower Bound* & *Upper Bound*).
+
+---
+
+## 2. Editor Interaktif: Implementasi & Pengujian
+
+<MultiLangRunner
+  language="javascript"
+  title="Tugas Praktik: Algoritma Pengurutan & Pencarian Data Transaksi"
+  initialCode={`// Mock Data Transaksi E-Commerce
+const transactions = [
+  { id: 101, customer: "Budi", amount: 450000, date: "2026-02-01" },
+  { id: 102, customer: "Siti", amount: 1200000, date: "2026-02-02" },
+  { id: 103, customer: "Wahyu", amount: 150000, date: "2026-02-03" },
+  { id: 104, customer: "Dewi", amount: 890000, date: "2026-02-04" },
+  { id: 105, customer: "Agus", amount: 2300000, date: "2026-02-05" },
+  { id: 106, customer: "Rian", amount: 310000, date: "2026-02-06" }
+];
+
+// 1. Quicksort Kustom Berdasarkan Atribut 'amount'
+function sortTransactionsByAmount(arr) {
+  if (arr.length <= 1) return arr;
+
+  const pivot = arr[Math.floor(arr.length / 2)];
+  const left = [];
+  const middle = [];
+  const right = [];
+
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i].amount < pivot.amount) {
+      left.push(arr[i]);
+    } else if (arr[i].amount > pivot.amount) {
+      right.push(arr[i]);
+    } else {
+      middle.push(arr[i]);
+    }
+  }
+
+  return [...sortTransactionsByAmount(left), ...middle, ...sortTransactionsByAmount(right)];
+}
+
+// 2. Binary Search Berdasarkan ID Transaksi (Array harus terurut berdasarkan ID)
+function findTransactionById(sortedByIdArr, targetId) {
+  let left = 0;
+  let right = sortedByIdArr.length - 1;
+
+  while (left <= right) {
+    const mid = Math.floor((left + right) / 2);
+    if (sortedByIdArr[mid].id === targetId) {
+      return sortedByIdArr[mid];
+    }
+    if (sortedByIdArr[mid].id < targetId) {
+      left = mid + 1;
+    } else {
+      right = mid - 1;
+    }
+  }
+
+  return null;
+}
+
+// --- PENGUJIAN ---
+console.log("=== 1. HASIL PENGURUTAN BERDASARKAN NOMINAL TRANSAKSI ===");
+const sortedByAmount = sortTransactionsByAmount(transactions);
+console.log(sortedByAmount);
+
+console.log("\\n=== 2. PENCARIAN BINARY SEARCH TRANSAKSI ID: 104 ===");
+const found = findTransactionById(transactions, 104);
+console.log("Ditemukan:", found);`}
+/>
+
+---
+
+## 3. Checklist Mandiri
+- [ ] Mampu menerapkan *Pivot Selection* pada algoritma QuickSort.
+- [ ] Memahami penentuan batas indeks `left = mid + 1` dan `right = mid - 1` pada Binary Search untuk mencegah *infinite loop*.

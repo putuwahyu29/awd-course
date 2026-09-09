@@ -1,0 +1,115 @@
+---
+title: "Indexing Deep Dive: B-Tree, GIN (JSONB & Full-Text), GiST & Partial Indexes"
+courseSlug: "database-engineering-sql-tuning"
+chapter: "Bab 2: Indeks Mendalam & Query Optimization"
+order: 3
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Banyak pengembang menganggap membuat indeks cukup dengan menulis `CREATE INDEX ON table(column)`. Di PostgreSQL, terdapat berbagai jenis struktur data indeks yang dirancang untuk tipe data dan pola query yang sangat spesifik.
+
+---
+
+## 1. Tipe Struktur Data Indeks di PostgreSQL
+
+```mermaid
+mindmap
+  root((Tipe Indeks PostgreSQL))
+    B-Tree (Default)
+      Paling serbaguna
+      Operator: =, <, <=, >, >=, BETWEEN, LIKE 'abc%'
+      Struktur pohon biner berimbang O(log N)
+    GIN (Generalized Inverted Index)
+      Untuk data komposit / multi-elemen
+      Pencarian dokumen JSONB, Array, dan Full-Text Search
+      Mencari apakah teks/tag terdapat di dalam dokumen
+    GiST (Generalized Search Tree)
+      Untuk data geometri & spasial 2D/3D (PostGIS)
+      Mencari radius lokasi terdekat (Nearest Neighbor), polygon overlap
+    Hash Index
+      Hanya untuk perbandingan kesamaan nilai persis (=)
+      O(1) lookup sederhana
+    BRIN (Block Range Index)
+      Sangat hemat memori untuk data deret waktu besar (Time-series / Logs)
+```
+
+---
+
+## 2. Aturan Emas Composite Index (Leftmost Prefix Rule)
+
+Jika Anda membuat indeks gabungan (*Composite Index*) pada dua kolom:
+```sql
+CREATE INDEX idx_orders_user_status ON orders(user_id, status);
+```
+
+Indeks ini **BISA** digunakan untuk query:
+- `WHERE user_id = 123 AND status = 'COMPLETED'` (Kedua kolom cocok)
+- `WHERE user_id = 123` (Menggunakan *Leftmost Prefix* kolom pertama)
+
+Namun indeks ini **TIDAK BISA** digunakan secara optimal untuk query:
+- `WHERE status = 'COMPLETED'` (Karena kolom pertama `user_id` dilewati!)
+
+---
+
+## 3. Covering Index (Index Only Scan dengan Klausul `INCLUDE`)
+
+Jika query Anda hanya meminta kolom `email` dan `full_name`, Anda dapat menyertakan `full_name` di dalam daun B-Tree tanpa menjadikannya kunci pengurutan:
+
+```sql
+CREATE UNIQUE INDEX idx_users_email_include_name ON users(email) INCLUDE (full_name);
+```
+
+Dengan teknik ini, PostgreSQL melakukan **Index Only Scan**: database mengambil seluruh data yang dibutuhkan langsung dari memori RAM Index **tanpa pernah menyentuh tabel utama di disk (*Heap Table*)**!
+
+---
+
+## 4. Praktik Interaktif: Eksplorasi Composite & Partial Indexes
+
+Jalankan sandbox SQL di bawah ini untuk melihat pembuatan dan perbandingan indeks pada skenario e-commerce nyata:
+
+<MultiLangRunner
+  language="sql"
+  title="SQL Playground: Pembuatan Composite & Partial Indexes"
+  initialCode={`-- 1. Buat Tabel Transaksi Penjualan
+CREATE TABLE sales_transactions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER NOT NULL,
+  region VARCHAR(50) NOT NULL,
+  amount DECIMAL(12, 2) NOT NULL,
+  status VARCHAR(20) NOT NULL,
+  transaction_date DATE NOT NULL
+);
+
+-- 2. Buat Composite Index untuk Query Filter Berdasarkan Region & Status
+CREATE INDEX idx_sales_region_status ON sales_transactions(region, status);
+
+-- 3. Buat Partial Index Khusus untuk Transaksi Pending yang Membutuhkan Follow-up
+CREATE INDEX idx_sales_pending_urgent ON sales_transactions(customer_id, transaction_date) 
+WHERE status = 'PENDING';
+
+-- SEEDING DATA
+INSERT INTO sales_transactions (customer_id, region, amount, status, transaction_date) VALUES 
+  (101, 'Jawa Timur', 1500000, 'COMPLETED', '2026-02-01'),
+  (102, 'DKI Jakarta', 3200000, 'COMPLETED', '2026-02-02'),
+  (103, 'Jawa Timur', 850000, 'PENDING', '2026-02-03'),
+  (104, 'Bali', 2100000, 'COMPLETED', '2026-02-04'),
+  (105, 'Jawa Timur', 4500000, 'PENDING', '2026-02-05');
+
+-- QUERY 1: Memanfaatkan Composite Index (Region & Status)
+SELECT customer_id, region, amount, status 
+FROM sales_transactions 
+WHERE region = 'Jawa Timur' AND status = 'COMPLETED';
+
+-- QUERY 2: Memanfaatkan Partial Index (Pending Follow-up)
+SELECT customer_id, amount, transaction_date 
+FROM sales_transactions 
+WHERE status = 'PENDING' AND customer_id = 103;`}
+/>
+
+<Callout type="tip" title="Over-Indexing Anti-Pattern">
+  Jangan mengindeks setiap kolom di tabel! Setiap penambahan indeks menambah overhead penulisan (*Write Amplification*) saat operasi `INSERT`, `UPDATE`, dan `DELETE`. Pasang indeks hanya berdasarkan query aktual yang paling sering dieksekusi atau yang memiliki latensi lambat di log.
+</Callout>

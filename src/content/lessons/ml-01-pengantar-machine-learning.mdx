@@ -1,0 +1,53 @@
+---
+title: "Pengantar Machine Learning & Alur Kerja Scikit-Learn"
+courseSlug: "machine-learning-ai"
+chapter: "Bab 1: Fondasi Machine Learning"
+order: 1
+duration: "25 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Selamat datang di kursus **Dasar Machine Learning & Artificial Intelligence**! Di era kecerdasan buatan, kemampuan mengajarkan komputer untuk belajar dari pola data tanpa diprogram secara eksplisit (*rule-based*) adalah keahlian yang sangat dicari.
+
+---
+
+## 1. Tiga Paradigma Utama Machine Learning
+
+```
+                            MACHINE LEARNING
+                                   |
+         +-------------------------+-------------------------+
+         |                                                   |
+SUPERVISED LEARNING                                 UNSUPERVISED LEARNING
+(Data berlabel: Input X + Target Y)                 (Data tanpa label: Hanya Input X)
+   - Regresi: Prediksi Nilai Kontinu                   - Clustering: Pengelompokan Pola (K-Means)
+   - Klasifikasi: Prediksi Kategori (Spam/Not Spam)    - Reduksi Dimensi: PCA
+```
+
+---
+
+## 2. Alur Kerja Standar (*Standard ML Pipeline*)
+
+Setiap proyek Machine Learning mengikuti 5 tahap standar:
+
+1. **Pengumpulan & Pembersihan Data (*Data Preparation*)**: Menangani *missing values* dan *outliers*.
+2. **Feature Engineering**: Normalisasi / Standardisasi skala data numerik (`StandardScaler`).
+3. **Pembagian Data (*Train-Test Split*)**: Membagi data menjadi 80% data latih (*training set*) dan 20% data uji (*test set*).
+4. **Pelatihan Model (*Model Fitting*)**: `model.fit(X_train, y_train)`.
+5. **Evaluasi & Prediksi (*Evaluation*)**: `y_pred = model.predict(X_test)` dan perhitungan metrik akurasi.
+
+```python
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Contoh Pembagian Data 80:20
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+```
+
+<Callout type="tip" title="Tujuan Data Uji (Test Set)">
+  Data uji (*test set*) tidak boleh disentuh selama proses pelatihan model. Data uji digunakan untuk menguji kemampuan generalisasi model terhadap data baru yang belum pernah dilihat sebelumnya (*unseen data*).
+</Callout>

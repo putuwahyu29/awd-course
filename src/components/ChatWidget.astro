@@ -1,0 +1,1300 @@
+---
+// src/components/ChatWidget.astro
+---
+
+<!-- Floating Launcher Button -->
+<div id="awd-chat-launcher-container" class="chat-launcher-container">
+  <button id="awd-chat-trigger-btn" class="chat-trigger-btn" aria-label="Buka Asisten AI" title="Tanya AwdBot AI">
+    <svg class="trigger-icon ai-open-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+      <circle cx="12" cy="12" r="4"></circle>
+    </svg>
+    <svg class="trigger-icon ai-close-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+    <span class="trigger-label">Tanya AI</span>
+    <span class="trigger-pulse-dot"></span>
+  </button>
+</div>
+
+<!-- Backdrop Overlay for Mobile / Focus -->
+<div id="awd-chat-backdrop" class="chat-backdrop hidden" aria-hidden="true"></div>
+
+<!-- Chat Window Overlay -->
+<div id="awd-chat-modal" class="chat-modal-window hidden" role="dialog" aria-modal="true" aria-labelledby="chat-bot-title">
+  <div class="chat-panel">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="chat-header-profile">
+        <div class="bot-avatar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+            <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+            <circle cx="12" cy="5" r="2"></circle>
+            <path d="M12 7v4"></path>
+          </svg>
+          <span class="online-indicator"></span>
+        </div>
+        <div class="bot-info">
+          <div class="bot-title-row">
+            <h3 id="chat-bot-title" class="bot-title">AwdBot AI</h3>
+          </div>
+          <p id="chat-bot-status-text" class="bot-subtitle">Asisten Kursus</p>
+        </div>
+      </div>
+
+      <div class="chat-header-actions">
+        <button id="chat-expand-btn" class="header-action-btn" title="Perbesar / Perkecil Ukuran" aria-label="Perbesar Chat">
+          <svg class="expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+          <svg class="contract-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="10" y1="14" x2="3" y2="21"></line>
+          </svg>
+        </button>
+        <button id="chat-clear-btn" class="header-action-btn" title="Bersihkan Percakapan" aria-label="Bersihkan Percakapan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+        <button id="chat-close-btn" class="header-action-btn close-btn-highlight" title="Tutup Chat" aria-label="Tutup Chat">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="chat-messages-container" class="chat-messages">
+      <!-- Initial Welcome Message -->
+      <div class="chat-message assistant-message">
+        <div class="message-content assistant-bubble">
+          <p>Halo, saya <strong>AwdBot</strong>, asisten AI resmi <strong>AWD Course</strong>.</p>
+          <p>Saya siap membantu Anda memahami materi, kurikulum 9 katalog kursus, penjelasan kode, alur belajar, dan profil pemateri.</p>
+        </div>
+      </div>
+
+      <!-- Quick Suggestion Chips -->
+      <div id="chat-suggestions" class="chat-suggestions-box">
+        <div class="suggestions-label">Topik Cepat:</div>
+        <div class="suggestions-wrap">
+          <button class="chip-btn" data-prompt="Kursus apa saja yang tersedia di platform AWD Course?">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            <span>Daftar Kursus</span>
+          </button>
+          <button class="chip-btn" data-prompt="Rekomendasikan alur belajar terbaik untuk pemula di AWD Course!">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            <span>Alur Belajar Pemula</span>
+          </button>
+          <button class="chip-btn" data-prompt="Siapa pemateri Wahyu Dupayana dan apa profil portofolionya?">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Profil Pemateri</span>
+          </button>
+          <button class="chip-btn" data-prompt="Apa saja materi yang dipelajari di kursus Dasar Python & Analisis Data?">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            <span>Materi Python</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Footer -->
+    <div class="chat-footer">
+      <form id="chat-form" class="chat-input-form">
+        <div class="input-container">
+          <textarea
+            id="chat-input"
+            class="chat-textarea"
+            placeholder="Tanyakan materi, konsep, atau kode..."
+            rows="1"
+            maxlength="10000"
+            required
+          ></textarea>
+          <button id="chat-send-btn" type="submit" class="chat-send-btn" aria-label="Kirim Pesan" title="Kirim">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </form>
+      <div class="chat-disclaimer">
+        <span>AwdBot siap mendampingi pembelajaran Anda</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Launcher Button */
+  .chat-launcher-container {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    z-index: 990;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  :global(body.awd-chat-open) .chat-launcher-container {
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.9);
+  }
+
+  .chat-trigger-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 9999px;
+    background-color: var(--primary);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .chat-trigger-btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  }
+
+  .trigger-icon {
+    width: 17px;
+    height: 17px;
+  }
+
+  .trigger-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+  }
+
+  /* Backdrop Blur Overlay */
+  .chat-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 994;
+    background: rgba(11, 15, 25, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+
+  .chat-backdrop.hidden {
+    display: none;
+  }
+
+  :global(body.awd-chat-open) {
+    overflow: hidden !important;
+    touch-action: none;
+  }
+
+  /* Modal Window (Anchored cleanly at bottom-right corner) */
+  .chat-modal-window {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 410px;
+    max-width: calc(100vw - 2.5rem);
+    height: min(600px, calc(100vh - 2.5rem));
+    z-index: 995;
+    display: flex;
+    flex-direction: column;
+    transition: width 0.2s cubic-bezier(0.16, 1, 0.3, 1), height 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .chat-modal-window.expanded {
+    width: 600px;
+    height: min(700px, calc(100vh - 2.5rem));
+  }
+
+  .chat-modal-window.hidden {
+    display: none;
+  }
+
+  @keyframes modalPop {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .chat-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+  }
+
+  [data-theme='dark'] .chat-panel {
+    background-color: #0d1117;
+    border-color: #30363d;
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+  }
+
+  /* Header */
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1rem;
+    background: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  [data-theme='dark'] .chat-header {
+    background: #161b22;
+    border-color: #30363d;
+  }
+
+  .chat-header-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .bot-avatar {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background-color: var(--primary);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .online-indicator {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #10b981;
+    border: 2px solid var(--bg-surface);
+  }
+
+  .bot-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+  }
+
+  .bot-title-row {
+    display: flex;
+    align-items: center;
+  }
+
+  .bot-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .bot-subtitle {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .chat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .header-action-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 0.35rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .header-action-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-main);
+  }
+
+  .close-btn-highlight:hover {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+  }
+
+  /* Messages Area */
+  :global(.chat-messages) {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    background-color: var(--bg-main);
+  }
+
+  :global(.chat-message) {
+    display: flex;
+    flex-direction: column;
+    max-width: 86%;
+    animation: msgIn 0.2s ease-out;
+  }
+
+  @keyframes msgIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  :global(.user-message) {
+    align-self: flex-end;
+  }
+
+  :global(.assistant-message) {
+    align-self: flex-start;
+    max-width: 92%;
+  }
+
+  /* User Bubble */
+  :global(.user-bubble) {
+    background-color: var(--primary) !important;
+    color: #ffffff !important;
+    border-radius: 16px 16px 4px 16px !important;
+    padding: 0.65rem 0.95rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.5 !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+  }
+
+  :global(.user-bubble p),
+  :global(.user-bubble span),
+  :global(.user-bubble strong) {
+    color: #ffffff !important;
+    margin: 0 !important;
+  }
+
+  /* Assistant Bubble */
+  :global(.assistant-bubble) {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-medium) !important;
+    border-radius: 16px 16px 16px 4px !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+  }
+
+  [data-theme='dark'] :global(.assistant-bubble) {
+    background-color: #161b22 !important;
+    border-color: #30363d !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  :global(.assistant-bubble p) {
+    margin: 0 0 0.55rem 0;
+  }
+
+  :global(.assistant-bubble p:last-child) {
+    margin-bottom: 0;
+  }
+
+  /* Clean Headings */
+  :global(.chat-h1), :global(.chat-h2), :global(.chat-h3), :global(.chat-h4), :global(.chat-h5) {
+    font-weight: 700;
+    margin: 0.65rem 0 0.3rem 0;
+    color: var(--text-main);
+  }
+
+  :global(.chat-h1) { font-size: 1rem; }
+  :global(.chat-h2) { font-size: 0.95rem; }
+  :global(.chat-h3) { font-size: 0.9rem; }
+  :global(.chat-h4) { font-size: 0.875rem; }
+  :global(.chat-h5) { font-size: 0.825rem; }
+
+  /* Structured Lists */
+  :global(.chat-list) {
+    margin: 0.4rem 0 0.6rem 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  :global(.chat-li-bullet) {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    line-height: 1.5;
+  }
+
+  :global(.chat-bullet-dot) {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    margin-top: 0.55rem;
+    flex-shrink: 0;
+  }
+
+  :global(.chat-li-num) {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    line-height: 1.5;
+  }
+
+  :global(.chat-num-badge) {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--primary);
+    background-color: var(--primary-light);
+    border-radius: 3px;
+    padding: 0.05rem 0.3rem;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+  }
+
+  :global(.chat-quote) {
+    border-left: 3px solid var(--primary);
+    padding: 0.35rem 0.65rem;
+    background-color: var(--bg-surface-elevated);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    margin: 0.45rem 0;
+    font-size: 0.825rem;
+    color: var(--text-muted);
+  }
+
+  :global(.chat-divider) {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 0.65rem 0;
+  }
+
+  :global(.message-content a) {
+    color: var(--primary);
+    text-decoration: underline;
+    font-weight: 600;
+  }
+
+  :global(.user-bubble a) {
+    color: #ffffff;
+  }
+
+  /* Code Block Styling */
+  :global(.chat-code-block) {
+    margin: 0.6rem 0;
+    border-radius: var(--radius-md);
+    background-color: var(--code-bg);
+    border: 1px solid var(--code-border);
+    overflow: hidden;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  :global(.chat-code-header) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.3rem 0.75rem;
+    background-color: var(--code-topbar-bg);
+    border-bottom: 1px solid var(--code-border);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  :global(.chat-code-copy-btn) {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.35rem;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+  }
+
+  :global(.chat-code-copy-btn:hover) {
+    background-color: var(--code-copy-hover);
+    color: var(--text-main);
+  }
+
+  :global(.chat-code-block pre) {
+    margin: 0;
+    padding: 0.75rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--code-text);
+    transition: color 0.2s ease;
+  }
+
+  :global(.chat-code-inline) {
+    background-color: var(--bg-surface-elevated);
+    color: var(--primary);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.825em;
+    border: 1px solid var(--border-subtle);
+  }
+
+  :global(.user-bubble .chat-code-inline) {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border: none;
+  }
+
+  /* Typewriter Blinking Cursor */
+  :global(.typewriter-cursor) {
+    display: inline-block;
+    width: 2px;
+    height: 1.1em;
+    background-color: var(--primary);
+    margin-left: 2px;
+    vertical-align: -2px;
+    animation: cursorBlink 0.75s infinite;
+  }
+
+  @keyframes cursorBlink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+
+  /* Thinking Status */
+  :global(.thinking-bubble) {
+    padding: 0.65rem 0.85rem !important;
+  }
+
+  :global(.thinking-content) {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  :global(.pulsing-wave) {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 12px;
+  }
+
+  :global(.wave-bar) {
+    width: 2.5px;
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 1px;
+    animation: waveAnimation 1.2s infinite ease-in-out;
+  }
+
+  :global(.wave-bar:nth-child(2)) { animation-delay: 0.15s; }
+  :global(.wave-bar:nth-child(3)) { animation-delay: 0.3s; }
+  :global(.wave-bar:nth-child(4)) { animation-delay: 0.45s; }
+
+  @keyframes waveAnimation {
+    0%, 100% { transform: scaleY(0.3); opacity: 0.4; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+
+  :global(.thinking-text) {
+    font-size: 0.775rem;
+    color: var(--text-muted);
+  }
+
+  /* Markdown Tables */
+  :global(.chat-table-wrapper) {
+    overflow-x: auto;
+    margin: 0.6rem 0;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-medium);
+  }
+
+  :global(.chat-table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.775rem;
+    text-align: left;
+  }
+
+  :global(.chat-table th) {
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-main);
+    font-weight: 700;
+    padding: 0.4rem 0.65rem;
+    border-bottom: 1px solid var(--border-medium);
+    white-space: nowrap;
+  }
+
+  :global(.chat-table td) {
+    padding: 0.4rem 0.65rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-main);
+  }
+
+  :global(.chat-table tr:last-child td) {
+    border-bottom: none;
+  }
+
+  /* Suggestion Chips */
+  .chat-suggestions-box {
+    margin-top: 0.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .suggestions-label {
+    font-size: 0.725rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+
+  .suggestions-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .chip-btn {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: 9999px;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .chip-btn svg {
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .chip-btn:hover {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+  }
+
+  /* Input Footer */
+  .chat-footer {
+    padding: 0.75rem 1rem 0.85rem;
+    background-color: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  [data-theme='dark'] .chat-footer {
+    background-color: #161b22;
+    border-color: #30363d;
+  }
+
+  .chat-input-form {
+    margin: 0;
+  }
+
+  .input-container {
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-medium);
+    border-radius: 12px;
+    padding: 0.35rem 0.4rem 0.35rem 0.85rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .input-container:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+  }
+
+  .chat-textarea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--text-main);
+    line-height: 1.4;
+    max-height: 100px;
+    padding: 0.25rem 0;
+  }
+
+  .chat-send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+
+  .chat-send-btn:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+    transform: scale(1.05);
+  }
+
+  .chat-send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .chat-disclaimer {
+    margin-top: 0.35rem;
+    text-align: center;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+  }
+
+  /* Responsive Mobile Drawer */
+  @media (max-width: 640px) {
+    .chat-modal-window {
+      position: fixed;
+      top: auto;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100vw;
+      max-width: 100vw;
+      height: 88dvh;
+      max-height: 88dvh;
+      border-radius: 18px 18px 0 0;
+      z-index: 1000;
+    }
+
+    .chat-panel {
+      border-radius: 18px 18px 0 0;
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+    }
+
+    #chat-expand-btn {
+      display: none;
+    }
+  }
+</style>
+
+<script is:inline>
+  function initAwdChatWidget() {
+    const launcherBtn = document.getElementById('awd-chat-trigger-btn');
+    const modal = document.getElementById('awd-chat-modal');
+    const closeBtn = document.getElementById('chat-close-btn');
+    const clearBtn = document.getElementById('chat-clear-btn');
+    const expandBtn = document.getElementById('chat-expand-btn');
+    const backdrop = document.getElementById('awd-chat-backdrop');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send-btn');
+    const messagesContainer = document.getElementById('chat-messages-container');
+    const suggestionsBox = document.getElementById('chat-suggestions');
+    const openIcon = document.querySelector('.ai-open-icon');
+    const closeIcon = document.querySelector('.ai-close-icon');
+    const expandIcon = document.querySelector('.expand-icon');
+    const contractIcon = document.querySelector('.contract-icon');
+    const botStatusText = document.getElementById('chat-bot-status-text');
+
+    if (!launcherBtn || !modal || !form || !input) return;
+
+    let chatHistory = [];
+    let isProcessing = false;
+
+    // Load persisted chat history from sessionStorage
+    try {
+      const saved = sessionStorage.getItem('awd_chat_history');
+      if (saved) {
+        chatHistory = JSON.parse(saved);
+        if (Array.isArray(chatHistory) && chatHistory.length > 0) {
+          if (suggestionsBox) suggestionsBox.style.display = 'none';
+          chatHistory.forEach((msg) => {
+            appendStaticMessageToUI(msg.role, msg.content, false);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load chat history:', e);
+    }
+
+    function toggleChat(open) {
+      const isOpen = open !== undefined ? open : modal.classList.contains('hidden');
+      if (isOpen) {
+        modal.classList.remove('hidden');
+        if (backdrop) backdrop.classList.remove('hidden');
+        if (openIcon) openIcon.classList.add('hidden');
+        if (closeIcon) closeIcon.classList.remove('hidden');
+        document.body.classList.add('awd-chat-open');
+        scrollToBottom();
+      } else {
+        modal.classList.add('hidden');
+        if (backdrop) backdrop.classList.add('hidden');
+        if (openIcon) openIcon.classList.remove('hidden');
+        if (closeIcon) closeIcon.classList.add('hidden');
+        document.body.classList.remove('awd-chat-open');
+      }
+    }
+
+    function toggleExpand() {
+      modal.classList.toggle('expanded');
+      const isExp = modal.classList.contains('expanded');
+      if (expandIcon && contractIcon) {
+        if (isExp) {
+          expandIcon.classList.add('hidden');
+          contractIcon.classList.remove('hidden');
+        } else {
+          expandIcon.classList.remove('hidden');
+          contractIcon.classList.add('hidden');
+        }
+      }
+    }
+
+    // Global Bridge: Memungkinkan materi atau kode memanggil chat dengan prompt instan
+    window.openAwdChatWithPrompt = function(promptText, autoSubmit = true) {
+      if (!promptText) return;
+      const targetModal = document.getElementById('awd-chat-modal');
+      const targetBackdrop = document.getElementById('awd-chat-backdrop');
+      const targetInput = document.getElementById('chat-input');
+      const targetForm = document.getElementById('chat-form');
+      const targetSendBtn = document.getElementById('chat-send-btn');
+      const targetOpenIcon = document.querySelector('.ai-open-icon');
+      const targetCloseIcon = document.querySelector('.ai-close-icon');
+
+      if (targetModal) {
+        targetModal.classList.remove('hidden');
+        if (targetBackdrop) targetBackdrop.classList.remove('hidden');
+        if (targetOpenIcon) targetOpenIcon.classList.add('hidden');
+        if (targetCloseIcon) targetCloseIcon.classList.remove('hidden');
+        document.body.classList.add('awd-chat-open');
+      }
+
+      if (targetInput) {
+        targetInput.value = promptText;
+        targetInput.style.height = 'auto';
+        targetInput.style.height = Math.min(targetInput.scrollHeight, 120) + 'px';
+      }
+
+      if (messagesContainer) {
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+      if (autoSubmit && targetForm) {
+        setTimeout(() => {
+          if (targetSendBtn && !targetSendBtn.disabled) {
+            targetSendBtn.click();
+          } else if (typeof targetForm.requestSubmit === 'function') {
+            try {
+              targetForm.requestSubmit();
+            } catch (err) {
+              targetForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+          } else {
+            targetForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
+        }, 150);
+      } else if (targetInput) {
+        targetInput.focus();
+      }
+    };
+
+    launcherBtn.addEventListener('click', () => toggleChat());
+    if (closeBtn) closeBtn.addEventListener('click', () => toggleChat(false));
+    if (backdrop) backdrop.addEventListener('click', () => toggleChat(false));
+    if (expandBtn) expandBtn.addEventListener('click', () => toggleExpand());
+
+    // Clear history
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (confirm('Apakah Anda ingin membersihkan riwayat percakapan?')) {
+          chatHistory = [];
+          sessionStorage.removeItem('awd_chat_history');
+          messagesContainer.innerHTML = `
+            <div class="chat-message assistant-message">
+              <div class="message-content assistant-bubble">
+                <p>Halo, percakapan telah direset. Saya siap membantu Anda seputar kurikulum dan materi di AWD Course.</p>
+              </div>
+            </div>
+          `;
+          if (suggestionsBox) {
+            messagesContainer.appendChild(suggestionsBox);
+            suggestionsBox.style.display = 'block';
+            bindSuggestions();
+          }
+        }
+      });
+    }
+
+    // Auto-resize textarea
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 100) + 'px';
+    });
+
+    // Enter key submits (Shift+Enter for newline)
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        form.requestSubmit();
+      }
+    });
+
+    // Suggestion chips handler
+    function bindSuggestions() {
+      const chips = document.querySelectorAll('.chip-btn');
+      chips.forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const prompt = chip.getAttribute('data-prompt');
+          if (prompt && !isProcessing) {
+            input.value = prompt;
+            form.requestSubmit();
+          }
+        });
+      });
+    }
+    bindSuggestions();
+
+    // Form Submit
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userText = input.value.trim();
+      if (!userText || isProcessing) return;
+
+      if (suggestionsBox) suggestionsBox.style.display = 'none';
+
+      // 1. Append user message
+      input.value = '';
+      input.style.height = 'auto';
+      appendStaticMessageToUI('user', userText, true);
+
+      chatHistory.push({ role: 'user', content: userText });
+      saveHistory();
+
+      // 2. Show thinking indicator & change status text
+      isProcessing = true;
+      sendBtn.disabled = true;
+      if (botStatusText) {
+        botStatusText.textContent = 'Menganalisis...';
+        botStatusText.style.color = 'var(--primary)';
+      }
+      const thinkingEl = showThinkingIndicator();
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: chatHistory,
+          }),
+        });
+
+        const data = await res.json();
+        removeThinkingIndicator(thinkingEl);
+
+        if (res.ok && data.success && data.reply) {
+          // 3. Progressive Typewriter Reveal Animation
+          streamAssistantMessage(data.reply);
+          chatHistory.push({ role: 'assistant', content: data.reply });
+          saveHistory();
+        } else {
+          const errText =
+            data.error ||
+            'Mohon maaf, asisten AI sedang mengalami sedikit kendala. Silakan coba kirim ulang pertanyaan Anda.';
+          appendStaticMessageToUI('assistant', errText, true);
+        }
+      } catch (err) {
+        removeThinkingIndicator(thinkingEl);
+        appendStaticMessageToUI(
+          'assistant',
+          'Mohon maaf, terjadi kendala saat menghubungkan ke asisten AI. Pastikan koneksi internet aktif dan silakan coba kirim kembali pertanyaan Anda.',
+          true
+        );
+      } finally {
+        isProcessing = false;
+        sendBtn.disabled = false;
+        if (botStatusText) {
+          botStatusText.textContent = 'Asisten Kursus';
+          botStatusText.style.color = '';
+        }
+        scrollToBottom();
+      }
+    });
+
+    function saveHistory() {
+      try {
+        sessionStorage.setItem('awd_chat_history', JSON.stringify(chatHistory.slice(-15)));
+      } catch (e) {}
+    }
+
+    function scrollToBottom() {
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function showThinkingIndicator() {
+      const thinkingEl = document.createElement('div');
+      thinkingEl.className = 'chat-message assistant-message typing-status-msg';
+      thinkingEl.innerHTML = `
+        <div class="message-content assistant-bubble thinking-bubble">
+          <div class="thinking-content">
+            <div class="pulsing-wave">
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+            </div>
+            <span class="thinking-text">Menganalisis materi...</span>
+          </div>
+        </div>
+      `;
+      messagesContainer.appendChild(thinkingEl);
+      scrollToBottom();
+      return thinkingEl;
+    }
+
+    function removeThinkingIndicator(el) {
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    }
+
+    // Robust Markdown & Syntax Highlighter Parser
+    function renderMarkdownToHTML(text) {
+      if (!text) return '';
+
+      let out = text.replace(/\r\n/g, '\n');
+
+      // Escape HTML tags to prevent XSS
+      out = out
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      // 1. Fenced Code blocks ```lang\ncode```
+      out = out.replace(/```([a-zA-Z0-9_-]*)[ \t]*\n([\s\S]*?)(?:```|$)/g, (match, lang, code) => {
+        const cleanLang = lang ? lang.toLowerCase() : 'code';
+        const rawCode = code.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+        const encodedCode = encodeURIComponent(rawCode.trim());
+        return `
+          <div class="chat-code-block">
+            <div class="chat-code-header">
+              <span>${cleanLang}</span>
+              <button type="button" class="chat-code-copy-btn" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodedCode}')); this.innerHTML='<svg viewBox=\\'0 0 24 24\\' width=\\'12\\' height=\\'12\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2.5\\'><polyline points=\\'20 6 9 17 4 12\\'/></svg><span>Tersalin</span>'; setTimeout(() => this.innerHTML='<svg viewBox=\\'0 0 24 24\\' width=\\'12\\' height=\\'12\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\'><rect x=\\'9\\' y=\\'9\\' width=\\'13\\' height=\\'13\\' rx=\\'2\\'/><path d=\\'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1\\'/></svg><span>Salin</span>', 2000);">
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Salin</span>
+              </button>
+            </div>
+            <pre><code>${code.trim()}</code></pre>
+          </div>
+        `;
+      });
+
+      // 2. Inline code `code`
+      out = out.replace(/`([^`]+)`/g, '<code class="chat-code-inline">$1</code>');
+
+      // 3. Headings (# to #####)
+      out = out.replace(/^##### (.*$)/gim, '<h5 class="chat-h5">$1</h5>');
+      out = out.replace(/^#### (.*$)/gim, '<h4 class="chat-h4">$1</h4>');
+      out = out.replace(/^### (.*$)/gim, '<h3 class="chat-h3">$1</h3>');
+      out = out.replace(/^## (.*$)/gim, '<h2 class="chat-h2">$1</h2>');
+      out = out.replace(/^# (.*$)/gim, '<h1 class="chat-h1">$1</h1>');
+
+      // 4. Bold **text**
+      out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      out = out.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+
+      // 5. Italic *text*
+      out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+      // 6. Markdown Links [title](url)
+      out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+      // 7. Numbered Lists (1. Item)
+      out = out.replace(/^\s*(\d+)\.\s+(.*$)/gim, '<li class="chat-li-num"><span class="chat-num-badge">$1</span><span>$2</span></li>');
+
+      // 8. Bullet Lists (- Item, * Item)
+      out = out.replace(/^\s*[-*+]\s+(.*$)/gim, '<li class="chat-li-bullet"><span class="chat-bullet-dot"></span><span>$1</span></li>');
+
+      // Wrap consecutive <li> into <ul class="chat-list">
+      out = out.replace(/((?:<li[\s\S]*?<\/li>\s*)+)/g, '<ul class="chat-list">$1</ul>');
+
+      // 9. Blockquotes (> Quote)
+      out = out.replace(/^>\s*(.*$)/gim, '<blockquote class="chat-quote">$1</blockquote>');
+
+      // 10. Markdown Tables
+      out = out.replace(/((\|[^\n]+\|\n)((?:\|:?[-]+:?)+\|\n)((?:\|[^\n]+\|\n?)+))/g, (match, fullTable, headerRow, sepRow, bodyRows) => {
+        const parseRow = (row, isHeader) => {
+          const cells = row.trim().replace(/^\|/, '').replace(/\|$/, '').split('|');
+          const tag = isHeader ? 'th' : 'td';
+          return '<tr>' + cells.map((c) => `<${tag}>${c.trim()}</${tag}>`).join('') + '</tr>';
+        };
+        const thead = '<thead>' + parseRow(headerRow, true) + '</thead>';
+        const tbodyRows = bodyRows.trim().split('\n').map((r) => parseRow(r, false)).join('');
+        const tbody = '<tbody>' + tbodyRows + '</tbody>';
+        return `<div class="chat-table-wrapper"><table class="chat-table">${thead}${tbody}</table></div>`;
+      });
+
+      // 11. Horizontal Rules (---)
+      out = out.replace(/^---+$/gim, '<hr class="chat-divider"/>');
+
+      // 12. Paragraphs
+      const paragraphs = out.split(/\n\n+/);
+      return paragraphs
+        .map((p) => {
+          const trimmed = p.trim();
+          if (!trimmed) return '';
+          if (
+            trimmed.startsWith('<div class="chat-code-block"') ||
+            trimmed.startsWith('<div class="chat-table-wrapper"') ||
+            trimmed.startsWith('<h') ||
+            trimmed.startsWith('<ul') ||
+            trimmed.startsWith('<blockquote') ||
+            trimmed.startsWith('<hr')
+          ) {
+            return trimmed;
+          }
+          return `<p>${trimmed.replace(/\n/g, '<br/>')}</p>`;
+        })
+        .filter(Boolean)
+        .join('');
+    }
+
+    // Append static message (for user message or history load)
+    function appendStaticMessageToUI(role, content, shouldScroll) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-message ${role === 'user' ? 'user-message' : 'assistant-message'}`;
+
+      if (role === 'assistant') {
+        msgDiv.innerHTML = `
+          <div class="message-content assistant-bubble">
+            ${renderMarkdownToHTML(content)}
+          </div>
+        `;
+      } else {
+        msgDiv.innerHTML = `
+          <div class="message-content user-bubble">
+            <p>${content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>')}</p>
+          </div>
+        `;
+      }
+
+      messagesContainer.appendChild(msgDiv);
+      if (shouldScroll) scrollToBottom();
+    }
+
+    // Progressive Typewriter Animation for Assistant Reply
+    function streamAssistantMessage(replyText) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-message assistant-message';
+
+      msgDiv.innerHTML = `
+        <div class="message-content assistant-bubble">
+          <div class="streaming-text-container"></div>
+        </div>
+      `;
+
+      messagesContainer.appendChild(msgDiv);
+      scrollToBottom();
+
+      const textContainer = msgDiv.querySelector('.streaming-text-container');
+
+      // Word-by-word streaming effect
+      const words = replyText.split(/(\s+)/);
+      let currentIdx = 0;
+      let accumulated = '';
+
+      const streamTimer = setInterval(() => {
+        if (currentIdx < words.length) {
+          accumulated += words[currentIdx];
+          textContainer.innerHTML = renderMarkdownToHTML(accumulated) + '<span class="typewriter-cursor"></span>';
+          currentIdx++;
+          scrollToBottom();
+        } else {
+          clearInterval(streamTimer);
+          // Final clean render
+          textContainer.innerHTML = renderMarkdownToHTML(replyText);
+          scrollToBottom();
+        }
+      }, 15);
+    }
+  }
+
+  // Event bridge listener for components dispatching custom event
+  window.addEventListener('awd:open-chat', (e) => {
+    const detail = (e && e.detail) || {};
+    if (detail.prompt && typeof window.openAwdChatWithPrompt === 'function') {
+      window.openAwdChatWithPrompt(detail.prompt, detail.autoSubmit !== false);
+    }
+  });
+
+  // Initialize on page load & Astro View Transitions
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAwdChatWidget);
+  } else {
+    initAwdChatWidget();
+  }
+  document.addEventListener('astro:before-swap', () => {
+    document.body.classList.remove('awd-chat-open');
+  });
+  document.addEventListener('astro:after-swap', initAwdChatWidget);
+  document.addEventListener('astro:page-load', initAwdChatWidget);
+</script>

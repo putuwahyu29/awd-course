@@ -1,0 +1,753 @@
+---
+// src/components/Header.astro
+import ThemeToggle from './ThemeToggle.astro';
+
+interface Props {
+  currentPath?: string;
+}
+
+const { currentPath = '/' } = Astro.props;
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <!-- Brand Logo -->
+    <a href="/" class="brand-logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+      </div>
+      <span class="brand-title">Awd <span class="brand-highlight">Course</span></span>
+    </a>
+
+    <!-- Desktop Navigation Links -->
+    <nav class="desktop-nav">
+      <a href="/" class={`nav-item ${currentPath === '/' ? 'active' : ''}`}>
+        Beranda
+      </a>
+      <a href="/courses" class={`nav-item ${currentPath.startsWith('/courses') ? 'active' : ''}`}>
+        Katalog Kursus
+      </a>
+      <a href="/dashboard" id="desktop-nav-dashboard" class={`nav-item hidden ${currentPath.startsWith('/dashboard') ? 'active' : ''}`}>
+        Dasbor Saya
+      </a>
+    </nav>
+
+    <!-- Right Controls -->
+    <div class="header-actions">
+      <!-- Quick Search Trigger Button -->
+      <button
+        type="button"
+        class="header-search-trigger-btn trigger-global-search"
+        aria-label="Cari materi pembelajaran (Ctrl+K)"
+        title="Cari Materi (Ctrl + K)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <span class="search-label desktop-only">Cari materi...</span>
+        <kbd class="search-kbd desktop-only">Ctrl K</kbd>
+      </button>
+
+      <ThemeToggle />
+
+      <!-- Desktop Auth State Slot -->
+      <div id="auth-header-slot" class="auth-header-slot">
+        <!-- Guest State (Desktop) -->
+        <a href="/login" id="header-login-btn" class="btn btn-primary btn-sm desktop-only">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          <span>Masuk</span>
+        </a>
+
+        <!-- User Logged-in State (Desktop Dropdown) -->
+        <div id="header-user-menu" class="user-menu-dropdown desktop-only hidden">
+          <button id="user-menu-btn" class="user-avatar-btn" aria-label="Menu Profil Pengguna" title="Akun Pengguna">
+            <img id="user-avatar-img" src="" alt="Foto Profil" class="user-avatar-photo hidden" />
+            <span id="user-avatar-initial">U</span>
+          </button>
+          <div id="user-menu-panel" class="user-dropdown-panel hidden">
+            <div class="user-info-preview">
+              <div class="user-info-avatar-row">
+                <img id="panel-avatar-img" src="" alt="Avatar" class="panel-avatar-photo hidden" />
+                <div id="panel-avatar-initial" class="panel-avatar-badge">U</div>
+                <div class="user-info-text-col">
+                  <span id="user-display-name" class="user-name">Pengguna</span>
+                  <span id="user-display-email" class="user-email">email@domain.com</span>
+                </div>
+              </div>
+            </div>
+            <hr class="dropdown-divider" />
+            <a href="/dashboard" class="dropdown-action-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+              </svg>
+              <span>Dasbor Progres Saya</span>
+            </a>
+            <hr class="dropdown-divider" />
+            <button type="button" id="logout-btn" class="dropdown-action-btn text-rose">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Keluar Akun (Logout)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Mobile Hamburger Button -->
+      <button id="mobile-menu-toggle" class="mobile-menu-btn" aria-label="Buka Menu Navigasi">
+        <svg class="menu-open-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+        <svg class="menu-close-icon hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Unified Mobile Drawer -->
+  <div id="mobile-menu-drawer" class="mobile-drawer hidden">
+    <!-- User Profile Header in Mobile Drawer (Shown only when logged in) -->
+    <div id="mobile-user-card" class="mobile-user-card hidden">
+      <img id="mobile-avatar-img" src="" alt="Avatar" class="mobile-avatar-photo hidden" />
+      <div id="mobile-avatar-initial" class="mobile-avatar-badge">U</div>
+      <div class="mobile-user-info">
+        <strong id="mobile-display-name" class="mobile-user-name">Pengguna</strong>
+        <span id="mobile-display-email" class="mobile-user-email">email@domain.com</span>
+      </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <nav class="mobile-nav-list">
+      <a href="/" class={`mobile-nav-item ${currentPath === '/' ? 'active' : ''}`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+        <span>Beranda</span>
+      </a>
+      <a href="/courses" class={`mobile-nav-item ${currentPath.startsWith('/courses') ? 'active' : ''}`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <span>Katalog Kursus</span>
+      </a>
+      <a href="/dashboard" id="mobile-nav-dashboard" class={`mobile-nav-item hidden ${currentPath.startsWith('/dashboard') ? 'active' : ''}`}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        <span>Dasbor Progres Saya</span>
+      </a>
+      
+      <!-- Drawer Action Button -->
+      <div class="mobile-drawer-footer">
+        <a href="/login" id="mobile-login-link" class="btn btn-primary w-full">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+            <polyline points="10 17 15 12 10 7"></polyline>
+            <line x1="15" y1="12" x2="3" y2="12"></line>
+          </svg>
+          <span>Masuk Akun</span>
+        </a>
+        <button type="button" id="mobile-logout-btn" class="btn btn-outline text-rose w-full hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Keluar Akun (Logout)</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<script>
+  import { supabase, isSupabaseConfigured } from '../lib/supabase';
+
+  let isGlobalClickAttached = false;
+  function ensureGlobalClick() {
+    if (isGlobalClickAttached) return;
+    isGlobalClickAttached = true;
+    document.addEventListener('click', (e) => {
+      const userMenu = document.getElementById('header-user-menu');
+      const userMenuPanel = document.getElementById('user-menu-panel');
+      if (userMenu && userMenuPanel && !userMenu.contains(e.target as Node)) {
+        userMenuPanel.classList.add('hidden');
+      }
+    });
+  }
+
+  function setupHeader() {
+    ensureGlobalClick();
+
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const mobileMenuDrawer = document.getElementById('mobile-menu-drawer');
+    const openIcon = mobileMenuToggle?.querySelector('.menu-open-icon');
+    const closeIcon = mobileMenuToggle?.querySelector('.menu-close-icon');
+
+    const userMenuBtn = document.getElementById('user-menu-btn');
+    const userMenuPanel = document.getElementById('user-menu-panel');
+    const loginBtn = document.getElementById('header-login-btn');
+    const userMenu = document.getElementById('header-user-menu');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    const desktopDashboardLink = document.getElementById('desktop-nav-dashboard');
+    const mobileDashboardLink = document.getElementById('mobile-nav-dashboard');
+    const mobileLoginLink = document.getElementById('mobile-login-link');
+    const mobileLogoutBtn = document.getElementById('mobile-logout-btn');
+    const mobileUserCard = document.getElementById('mobile-user-card');
+
+    const displayName = document.getElementById('user-display-name');
+    const displayEmail = document.getElementById('user-display-email');
+    const userAvatarImg = document.getElementById('user-avatar-img') as HTMLImageElement | null;
+    const userAvatarInitial = document.getElementById('user-avatar-initial');
+    const panelAvatarImg = document.getElementById('panel-avatar-img') as HTMLImageElement | null;
+    const panelAvatarInitial = document.getElementById('panel-avatar-initial');
+
+    const mobileDisplayName = document.getElementById('mobile-display-name');
+    const mobileDisplayEmail = document.getElementById('mobile-display-email');
+    const mobileAvatarImg = document.getElementById('mobile-avatar-img') as HTMLImageElement | null;
+    const mobileAvatarInitial = document.getElementById('mobile-avatar-initial');
+
+    if (mobileMenuToggle && mobileMenuDrawer) {
+      mobileMenuToggle.onclick = () => {
+        const isHidden = mobileMenuDrawer.classList.contains('hidden');
+        if (isHidden) {
+          mobileMenuDrawer.classList.remove('hidden');
+          openIcon?.classList.add('hidden');
+          closeIcon?.classList.remove('hidden');
+        } else {
+          mobileMenuDrawer.classList.add('hidden');
+          openIcon?.classList.remove('hidden');
+          closeIcon?.classList.add('hidden');
+        }
+      };
+    }
+
+    async function handleLogout() {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.signOut();
+        window.location.href = '/';
+      }
+    }
+
+    if (logoutBtn) logoutBtn.onclick = handleLogout;
+    if (mobileLogoutBtn) mobileLogoutBtn.onclick = handleLogout;
+
+    if (userMenuBtn && userMenuPanel) {
+      userMenuBtn.onclick = (e) => {
+        e.stopPropagation();
+        userMenuPanel.classList.toggle('hidden');
+      };
+    }
+
+    if (isSupabaseConfigured && supabase) {
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          // Show user logged in state
+          loginBtn?.classList.add('hidden');
+          userMenu?.classList.remove('hidden');
+          desktopDashboardLink?.classList.remove('hidden');
+          mobileDashboardLink?.classList.remove('hidden');
+          mobileLoginLink?.classList.add('hidden');
+          mobileLogoutBtn?.classList.remove('hidden');
+          mobileUserCard?.classList.remove('hidden');
+
+          const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Pengguna';
+          const email = user.email || '';
+          const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+
+          if (displayName) displayName.textContent = name;
+          if (displayEmail) displayEmail.textContent = email;
+          if (mobileDisplayName) mobileDisplayName.textContent = name;
+          if (mobileDisplayEmail) mobileDisplayEmail.textContent = email;
+
+          // Render Profile Photo or Initial
+          if (avatarUrl) {
+            if (userAvatarImg) {
+              userAvatarImg.src = avatarUrl;
+              userAvatarImg.classList.remove('hidden');
+            }
+            if (userAvatarInitial) userAvatarInitial.classList.add('hidden');
+
+            if (panelAvatarImg) {
+              panelAvatarImg.src = avatarUrl;
+              panelAvatarImg.classList.remove('hidden');
+            }
+            if (panelAvatarInitial) panelAvatarInitial.classList.add('hidden');
+
+            if (mobileAvatarImg) {
+              mobileAvatarImg.src = avatarUrl;
+              mobileAvatarImg.classList.remove('hidden');
+            }
+            if (mobileAvatarInitial) mobileAvatarInitial.classList.add('hidden');
+          } else {
+            const initial = name.charAt(0).toUpperCase();
+            if (userAvatarInitial) {
+              userAvatarInitial.textContent = initial;
+              userAvatarInitial.classList.remove('hidden');
+            }
+            if (panelAvatarInitial) {
+              panelAvatarInitial.textContent = initial;
+              panelAvatarInitial.classList.remove('hidden');
+            }
+            if (mobileAvatarInitial) {
+              mobileAvatarInitial.textContent = initial;
+              mobileAvatarInitial.classList.remove('hidden');
+            }
+            if (userAvatarImg) userAvatarImg.classList.add('hidden');
+            if (panelAvatarImg) panelAvatarImg.classList.add('hidden');
+            if (mobileAvatarImg) mobileAvatarImg.classList.add('hidden');
+          }
+        } else {
+          // Guest State
+          loginBtn?.classList.remove('hidden');
+          userMenu?.classList.add('hidden');
+          desktopDashboardLink?.classList.add('hidden');
+          mobileDashboardLink?.classList.add('hidden');
+          mobileLoginLink?.classList.remove('hidden');
+          mobileLogoutBtn?.classList.add('hidden');
+          mobileUserCard?.classList.add('hidden');
+        }
+      });
+    }
+  }
+
+  document.addEventListener('astro:page-load', setupHeader);
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-sm);
+    background-color: var(--primary);
+    color: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .logo-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .brand-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .brand-highlight {
+    color: var(--primary);
+  }
+
+  .desktop-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav-item {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+    padding: 0.35rem 0.5rem;
+  }
+
+  .nav-item:hover {
+    color: var(--primary);
+  }
+
+  .nav-item.active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+
+  .header-search-trigger-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 38px;
+    padding: 0 0.75rem;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    font-size: 0.825rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .header-search-trigger-btn:hover {
+    color: var(--text-main);
+    border-color: var(--border-medium);
+    background: var(--bg-hover);
+  }
+
+  .header-search-trigger-btn svg {
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+  }
+
+  .search-kbd {
+    font-family: var(--font-mono);
+    font-size: 0.675rem;
+    font-weight: 600;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    color: var(--text-subtle);
+  }
+
+  .auth-header-slot {
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+
+  .user-menu-dropdown {
+    position: relative;
+  }
+
+  .user-avatar-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: #fff;
+    border: 2px solid var(--border-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    overflow: hidden;
+    padding: 0;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .user-avatar-btn:hover {
+    transform: scale(1.05);
+    border-color: var(--primary);
+  }
+
+  .user-avatar-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .user-dropdown-panel {
+    position: absolute;
+    top: 46px;
+    right: 0;
+    width: 250px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 0.85rem;
+    z-index: 60;
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .user-info-preview {
+    padding: 0.25rem 0.25rem 0.5rem 0.25rem;
+  }
+
+  .user-info-avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .panel-avatar-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--primary);
+    flex-shrink: 0;
+  }
+
+  .panel-avatar-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .user-info-text-col {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .user-name {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .user-email {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .dropdown-divider {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 0.5rem 0;
+  }
+
+  .dropdown-action-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.825rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s ease;
+    text-decoration: none;
+    color: var(--text-main);
+  }
+
+  .dropdown-action-btn:hover {
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .text-rose {
+    color: var(--accent-rose);
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-sizing: border-box;
+    flex-shrink: 0;
+  }
+
+  .mobile-menu-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-medium);
+  }
+
+  /* Mobile Drawer (Clean, cohesive design) */
+  .mobile-drawer {
+    border-top: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+    padding: 1rem 1.25rem 1.5rem 1.25rem;
+    box-shadow: var(--shadow-md);
+  }
+
+  .mobile-user-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: 0.85rem;
+  }
+
+  .mobile-avatar-photo {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--primary);
+    flex-shrink: 0;
+  }
+
+  .mobile-avatar-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .mobile-user-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .mobile-user-name {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-user-email {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-nav-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .mobile-nav-item {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    transition: background-color 0.15s ease;
+  }
+
+  .mobile-nav-item:hover {
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .mobile-nav-item.active {
+    color: var(--primary);
+    background-color: var(--primary-light);
+  }
+
+  .mobile-drawer-footer {
+    padding-top: 0.85rem;
+    margin-top: 0.4rem;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .w-full {
+    width: 100%;
+  }
+
+  @media (max-width: 768px) {
+    .desktop-nav {
+      display: none;
+    }
+    .desktop-only {
+      display: none !important;
+    }
+    .mobile-menu-btn {
+      display: flex;
+    }
+    .header-search-trigger-btn {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+</style>

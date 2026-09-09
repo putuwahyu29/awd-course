@@ -1,0 +1,73 @@
+---
+interface Props {
+  id: string;
+  title?: string;
+  poster?: string;
+}
+
+const { id, title = 'Video Tutorial Materi', poster } = Astro.props;
+---
+
+<div class="video-embed-card my-5">
+  <div class="video-container">
+    <iframe
+      src={`https://www.youtube-nocookie.com/embed/${id}?rel=0`}
+      title={title}
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen
+      loading="lazy"
+    ></iframe>
+  </div>
+  {title && (
+    <div class="video-caption">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      </svg>
+      <span>{title}</span>
+    </div>
+  )}
+</div>
+
+<style>
+  .video-embed-card {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin: 1.5rem 0;
+  }
+
+  .video-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+    height: 0;
+    background-color: #0f172a;
+  }
+
+  .video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+
+  .video-caption {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.825rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .video-caption svg {
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+</style>

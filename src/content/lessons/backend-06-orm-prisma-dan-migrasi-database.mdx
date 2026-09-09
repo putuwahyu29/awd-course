@@ -1,0 +1,204 @@
+---
+title: "Integrasi Database Modern: ORM Prisma, Migrasi & Transaksi ACID"
+courseSlug: "backend-web-development"
+chapter: "Bab 3: Basis Data Relasional, SQL & ORM Modern"
+order: 6
+duration: "25 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Meskipun memahami SQL murni (*raw SQL*) adalah keharusan mutlak bagi backend engineer, di lingkungan produksi kita sering menggunakan **Object-Relational Mapping (ORM)** modern seperti **Prisma** atau **Drizzle ORM** untuk menjamin keamanan tipe data (*type safety*), auto-completion TypeScript, serta manajemen migrasi skema yang terotomatisasi.
+
+---
+
+## 1. Anatomi Skema Prisma (`schema.prisma`)
+
+Prisma mendefinisikan struktur database menggunakan bahasa deklaratif yang bersih:
+
+```prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  role      Role     @default(USER)
+  orders    Order[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@map("users")
+}
+
+model Order {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  totalAmount Decimal  @map("total_amount") @db.Decimal(12, 2)
+  status      String   @default("PENDING")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("orders")
+}
+```
+
+---
+
+## 2. Alur Kerja Migrasi Database Profesional
+
+Hindari mengubah kolom database langsung di phpMyAdmin atau GUI database produksi! Setiap perubahan skema wajib dicatat dalam berkas histori migrasi:
+
+```bash
+# 1. Buat file migrasi SQL baru dan terapkan ke database lokal development
+npx prisma migrate dev --name add_role_to_users
+
+# 2. Generate Prisma Client TypeScript types
+npx prisma generate
+
+# 3. Terapkan migrasi ke database Staging/Production CI/CD
+npx prisma migrate deploy
+```
+
+---
+
+## 3. Transaksi ACID Database (`prisma.$transaction`)
+
+Ketika pengguna melakukan checkout pesanan, dua hal harus terjadi secara atomik:
+1. Stok barang dipotong dari tabel `products`.
+2. Record pesanan dibuat di tabel `orders`.
+
+Jika stok barang habis di tengah jalan, seluruh operasi **wajib di-rollback** agar tidak terjadi data korup:
+
+```javascript
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+
+export async function checkoutOrder(userId, productId, quantity) {
+  // Jalankan dalam 1 Transaksi Interaktif Terisolasi
+  return await prisma.$transaction(async (tx) => {
+    // 1. Dapatkan produk & kunci baris stok
+    const product = await tx.product.findUnique({
+      where: { id: productId }
+    });
+
+    if (!product || product.stock < quantity) {
+      throw new Error("Stok barang tidak mencukupi untuk pemesanan ini");
+    }
+
+    // 2. Kurangi stok produk
+    await tx.product.update({
+      where: { id: productId },
+      data: { stock: { decrement: quantity } }
+    });
+
+    // 3. Buat pesanan baru
+    const order = await tx.order.create({
+      data: {
+        userId,
+        totalAmount: product.price * quantity,
+        status: "PAID"
+      }
+    });
+
+    return order;
+  });
+}
+```
+
+---
+
+## 4. Praktik Interaktif: Simulasi Atomic Transaction & Rollback
+
+Sandbox di bawah ini mensimulasikan mekanisme transaksi database atomik (ACID Transaction Manager):
+
+<MultiLangRunner
+  language="javascript"
+  title="Simulasi ACID Database Transaction & Rollback Mechanism"
+  initialCode={`// Mock Database State
+const database = {
+  accounts: {
+    "acc_101": { id: "acc_101", owner: "Andi", balance: 500000 },
+    "acc_102": { id: "acc_102", owner: "Budi", balance: 100000 }
+  },
+  auditLogs: []
+};
+
+// Transaction Manager Engine
+async function executeTransaction(callback) {
+  // 1. Snapshot State sebelum transaksi (untuk rollback jika error)
+  const snapshot = JSON.parse(JSON.stringify(database));
+  console.log("🔒 [ACID] Memulai Transaksi Terisolasi...");
+
+  try {
+    const result = await callback(database);
+    console.log("✅ [ACID] Transaksi Berhasil! Melakukan COMMIT ke Database.");
+    return { success: true, data: result };
+  } catch (err) {
+    // 2. ROLLBACK: Kembalikan kondisi database ke snapshot semula
+    database.accounts = snapshot.accounts;
+    database.auditLogs = snapshot.auditLogs;
+    console.error(\`❌ [ACID] Transaksi GAGAL: \${err.message}. Melakukan ROLLBACK data!\`);
+    return { success: false, error: err.message };
+  }
+}
+
+// Service Transfer Dana Antar Rekening
+async function transferMoney(fromAccId, toAccId, amount) {
+  return await executeTransaction(async (db) => {
+    const sender = db.accounts[fromAccId];
+    const receiver = db.accounts[toAccId];
+
+    if (!sender) throw new Error(\`Rekening pengirim \${fromAccId} tidak ditemukan\`);
+    if (!receiver) throw new Error(\`Rekening penerima \${toAccId} tidak ditemukan\`);
+    if (sender.balance < amount) {
+      throw new Error(\`Saldo tidak mencukupi! Saldo \${sender.owner}: Rp\${sender.balance}, Transfer: Rp\${amount}\`);
+    }
+
+    // Eksekusi Debit & Kredit
+    sender.balance -= amount;
+    receiver.balance += amount;
+
+    // Catat Log Audit
+    db.auditLogs.push({
+      txId: Date.now(),
+      from: sender.owner,
+      to: receiver.owner,
+      amount,
+      status: "SUCCESS"
+    });
+
+    return { transferredAmount: amount, senderBalance: sender.balance };
+  });
+}
+
+async function testTransactions() {
+  console.log("=== SKENARIO 1: Transfer Berhasil (Rp 200.000) ===");
+  const res1 = await transferMoney("acc_101", "acc_102", 200000);
+  console.log("State DB Sekarang:", JSON.stringify(database.accounts));
+
+  console.log("\\n=== SKENARIO 2: Transfer Gagal karena Saldo Kurang (Rp 800.000) ===");
+  const res2 = await transferMoney("acc_101", "acc_102", 800000);
+  console.log("State DB Setelah Rollback (Tetap Utuh):", JSON.stringify(database.accounts));
+}
+
+testTransactions();`}
+/>
+
+<Callout type="tip" title="Connection Pooling di Serverless">
+  Jika Anda mendeploy aplikasi backend Node.js ke platform serverless (seperti Vercel / AWS Lambda), pastikan menggunakan **Prisma Accelerate** atau **PgBouncer** (Supabase Connection Pooler) agar koneksi PostgreSQL tidak kehabisan batas *Max Client Connections*.
+</Callout>

@@ -1,0 +1,16 @@
+{
+  "title": "Machine Learning & AI Terapan dengan Python",
+  "description": "Pelajari konsep algoritma supervised learning, evaluasi metrik akurasi, decision tree, dan pembuatan model prediksi berbasis data nyata.",
+  "category": "data-ai",
+  "level": "Menengah",
+  "duration": "4 Jam",
+  "instructor": "I Putu Agus Wahyu Dupayana",
+  "instructorRole": "Software Engineer di AWD.dev",
+  "instructorAvatar": "/images/instructors/wahyu-dupayana.jpg",
+  "thumbnail": "/images/courses/machine-learning.svg",
+  "isFeatured": true,
+  "isPublished": false,
+  "status": "draft",
+  "updatedAt": "2026-09-08",
+  "order": 7
+}

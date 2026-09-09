@@ -1,0 +1,412 @@
+---
+interface Props {
+  language?: 'javascript' | 'python' | 'html' | 'sql' | 'cpp' | 'java' | 'rust' | 'go' | 'php';
+  initialCode?: string;
+  title?: string;
+}
+
+const {
+  language = 'javascript',
+  initialCode = '// Tulis kode JavaScript Anda di sini\nconst data = [1, 2, 3, 4, 5];\nconst kuadrat = data.map(x => x * x);\n\nconsole.log("Data asli:", data);\nconsole.log("Hasil kuadrat:", kuadrat);',
+  title,
+} = Astro.props;
+
+const langDisplayNames: Record<string, string> = {
+  javascript: 'JavaScript (Node.js/V8)',
+  python: 'Python 3 (WASM)',
+  html: 'HTML / CSS / JS',
+  sql: 'SQL (SQLite in-browser)',
+  cpp: 'C++ (Clang/GCC)',
+  java: 'Java (OpenJDK)',
+  rust: 'Rust (Cargo/Rustc)',
+  go: 'Go (Golang)',
+  php: 'PHP 8',
+};
+
+const displayTitle = title || `Interactive ${langDisplayNames[language] || language} Playground`;
+const runnerId = `multi-runner-${Math.random().toString(36).substring(2, 9)}`;
+const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
+---
+
+<div class="multi-runner-card card my-6" id={runnerId} data-lang={language} data-runner-enabled={isRunnerEnabled ? 'true' : 'false'}>
+  <div class="runner-header">
+    <div class="runner-header-left">
+      <span class="lang-badge">{language.toUpperCase()}</span>
+      <span class="runner-heading">{displayTitle}</span>
+    </div>
+
+    <div class="runner-header-right">
+      <button type="button" class="btn btn-secondary btn-sm copy-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span>Salin</span>
+      </button>
+
+      {isRunnerEnabled && (
+        <button type="button" class="btn btn-primary btn-sm exec-btn">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span class="exec-btn-text">Jalankan Kode</span>
+        </button>
+      )}
+    </div>
+  </div>
+
+  <div class="editor-container">
+    <textarea class="code-editor-input" spellcheck="false">{initialCode}</textarea>
+  </div>
+
+  <!-- Output Console -->
+  <div class="console-box hidden">
+    <div class="console-top">
+      <span class="console-label">Console Output:</span>
+      <button type="button" class="clear-btn">Bersihkan</button>
+    </div>
+    <pre class="console-logs"><code></code></pre>
+  </div>
+</div>
+
+<script>
+  function setupMultiRunners() {
+    document.querySelectorAll('.multi-runner-card').forEach((card) => {
+      const lang = card.getAttribute('data-lang') || 'javascript';
+      const execBtn = card.querySelector('.exec-btn') as HTMLButtonElement;
+      const copyBtn = card.querySelector('.copy-btn') as HTMLButtonElement;
+      const clearBtn = card.querySelector('.clear-btn') as HTMLButtonElement;
+      const textarea = card.querySelector('.code-editor-input') as HTMLTextAreaElement;
+      const consoleBox = card.querySelector('.console-box');
+      const logCode = card.querySelector('.console-logs code');
+      const btnText = execBtn?.querySelector('.exec-btn-text');
+
+      copyBtn?.addEventListener('click', () => {
+        if (textarea) {
+          navigator.clipboard.writeText(textarea.value);
+          const s = copyBtn.querySelector('span');
+          if (s) {
+            s.textContent = 'Tersalin!';
+            setTimeout(() => { s.textContent = 'Salin'; }, 1500);
+          }
+        }
+      });
+
+      // Support Tab indentation & Ctrl+Enter to execute
+      textarea?.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          textarea.value = textarea.value.substring(0, start) + '    ' + textarea.value.substring(end);
+          textarea.selectionStart = textarea.selectionEnd = start + 4;
+        } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          execBtn?.click();
+        }
+      });
+
+      clearBtn?.addEventListener('click', () => {
+        if (logCode) logCode.textContent = '';
+        consoleBox?.classList.add('hidden');
+      });
+
+      execBtn?.addEventListener('click', async () => {
+        if (!textarea || !logCode) return;
+
+        execBtn.disabled = true;
+        if (btnText) btnText.textContent = 'Mengeksekusi...';
+        consoleBox?.classList.remove('hidden');
+        logCode.textContent = '';
+
+        if (lang === 'javascript') {
+          try {
+            let logs: string[] = [];
+            const customConsole = {
+              log: (...args: any[]) => {
+                logs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a)).join(' '));
+              },
+              error: (...args: any[]) => {
+                logs.push('Error: ' + args.join(' '));
+              },
+              warn: (...args: any[]) => {
+                logs.push('Warning: ' + args.join(' '));
+              },
+              info: (...args: any[]) => {
+                logs.push(args.join(' '));
+              }
+            };
+
+            const runFunc = new Function('console', textarea.value);
+            const res = runFunc(customConsole);
+
+            if (logs.length > 0) {
+              logCode.textContent = logs.join('\n');
+            } else if (res !== undefined) {
+              logCode.textContent = String(res);
+            } else {
+              logCode.textContent = '[Kode JavaScript selesai dieksekusi tanpa log]';
+            }
+          } catch (err: any) {
+            logCode.textContent = `Uncaught Exception: ${err.message}`;
+          } finally {
+            execBtn.disabled = false;
+            if (btnText) btnText.textContent = 'Jalankan Kode';
+          }
+        } else if (lang === 'python') {
+          // Trigger Pyodide
+          try {
+            // @ts-ignore
+            let pyodide = window.pyodideInstance;
+            if (!pyodide) {
+              logCode.textContent = 'Memuat modul Python WebAssembly...\n';
+              // @ts-ignore
+              if (!window.loadPyodide) {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js';
+                document.head.appendChild(s);
+                await new Promise((res) => (s.onload = res));
+              }
+              // @ts-ignore
+              pyodide = await window.loadPyodide({
+                indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/',
+              });
+              // @ts-ignore
+              window.pyodideInstance = pyodide;
+            }
+
+            let logs = '';
+            pyodide.setStdout({ batched: (m: string) => { logs += m + '\n'; } });
+            pyodide.setStderr({ batched: (m: string) => { logs += 'Error: ' + m + '\n'; } });
+
+            const out = await pyodide.runPythonAsync(textarea.value);
+            logCode.textContent = logs || String(out || '[Selesai]');
+          } catch (err: any) {
+            console.error('Python runner error:', err);
+            const errStr = String(err?.message || err || '').toLowerCase();
+            if (errStr.includes('fetch') || errStr.includes('network') || errStr.includes('script')) {
+              logCode.textContent = 'Gagal mengunduh runtime WebAssembly dari server CDN. Pastikan koneksi internet Anda stabil lalu coba lagi.';
+            } else {
+              logCode.textContent = `Pesan Kesalahan Kode:\n${err.message || err}`;
+            }
+          } finally {
+            execBtn.disabled = false;
+            if (btnText) btnText.textContent = 'Jalankan Kode';
+          }
+        } else {
+          // Free public sandbox runner for compiled languages (C++, Java, Go, Rust, PHP)
+          try {
+            logCode.textContent = `Menghubungkan ke layanan eksekusi ${lang.toUpperCase()}...\n`;
+            const response = await fetch('https://emkc.org/api/v2/piston/execute', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                language: lang,
+                version: '*',
+                files: [{ content: textarea.value }],
+              }),
+            });
+
+            if (!response.ok) {
+              if (response.status === 429) {
+                logCode.textContent = 'Layanan eksekusi kode eksternal sedang sibuk karena banyaknya antrean. Silakan tunggu sekitar 1 menit sebelum mencoba kembali.';
+              } else {
+                logCode.textContent = 'Mohon maaf, server eksekusi kode eksternal sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.';
+              }
+              return;
+            }
+
+            const data = await response.json();
+            if (data.run) {
+              logCode.textContent = data.run.output || '[Program selesai dieksekusi tanpa keluaran]';
+            } else if (data.message) {
+              logCode.textContent = `Pemberitahuan: ${data.message}`;
+            } else {
+              logCode.textContent = 'Mohon maaf, layanan eksekutor kode eksternal tidak dapat memproses kode ini. Silakan periksa kembali kode Anda atau coba beberapa saat lagi.';
+            }
+          } catch (err: any) {
+            console.error('External runner error:', err);
+            logCode.textContent = 'Gagal terhubung ke layanan eksekusi kode eksternal. Pastikan koneksi internet Anda aktif dan silakan coba kembali.';
+          } finally {
+            execBtn.disabled = false;
+            if (btnText) btnText.textContent = 'Jalankan Kode';
+          }
+        }
+      });
+    });
+  }
+
+  setupMultiRunners();
+  document.addEventListener('astro:page-load', setupMultiRunners);
+</script>
+
+<style>
+  .multi-runner-card {
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    margin: 1.75rem 0;
+  }
+
+  .runner-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .runner-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .lang-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+
+  .runner-heading {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  .runner-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .editor-container {
+    background-color: var(--code-bg);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+    transition: background-color 0.2s ease;
+  }
+
+  .code-editor-input {
+    width: 100%;
+    min-height: 140px;
+    padding: 1rem;
+    background-color: transparent;
+    color: var(--code-text);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    border: none;
+    resize: vertical;
+    outline: none;
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+    tab-size: 4;
+    -webkit-overflow-scrolling: touch;
+    transition: color 0.2s ease;
+  }
+
+  .console-box {
+    background-color: var(--code-out-bg);
+    border-top: 1px solid var(--code-border);
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .console-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.35rem 1rem;
+    background-color: var(--code-topbar-bg);
+    border-bottom: 1px solid var(--code-border);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .console-label {
+    font-size: 0.725rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .clear-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.725rem;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+  }
+
+  .clear-btn:hover {
+    color: var(--text-main);
+    background-color: var(--code-copy-hover);
+  }
+
+  .console-logs {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    max-height: 240px;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    font-family: var(--font-mono);
+    font-size: 0.825rem;
+    line-height: 1.5;
+    color: var(--code-out-text);
+    white-space: pre;
+    word-break: normal;
+    word-wrap: normal;
+    transition: color 0.2s ease;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 640px) {
+    .runner-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0.75rem 0.85rem;
+      gap: 0.65rem;
+    }
+    .runner-header-right {
+      width: 100%;
+      gap: 0.35rem;
+    }
+    .runner-header-right .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.75rem;
+    }
+    .code-editor-input {
+      padding: 0.75rem 0.85rem;
+      font-size: 0.8rem;
+      min-height: 120px;
+    }
+    .console-logs {
+      padding: 0.65rem 0.85rem;
+      font-size: 0.775rem;
+    }
+  }
+</style>

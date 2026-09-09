@@ -1,0 +1,78 @@
+---
+title: "Tugas Praktik: Membangun Sistem Manajemen Inventaris E-Commerce"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 3: Dasbor Admin & API Enterprise"
+order: 6
+duration: "45 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Pada proyek praktik akhir ini, Anda akan membangun sebuah **Sistem Manajemen Inventaris & Produk E-Commerce** menggunakan kombinasi **Laravel 11**, **Eloquent Relational Models**, dan panel dasbor **Filament PHP 3**.
+
+---
+
+## 1. Spesifikasi Database & Relasi
+
+1. **Model `Category`**:
+   * Kolom: `id`, `name`, `slug`, `icon`.
+   * Relasi: `hasMany(Product::class)`.
+2. **Model `Product`**:
+   * Kolom: `id`, `category_id`, `name`, `sku` (Unique Code), `stock_quantity`, `unit_price`, `is_active`.
+   * Relasi: `belongsTo(Category::class)`.
+
+---
+
+## 2. Instruksi Pengerjaan Langkah-demi-Langkah
+
+```bash
+# 1. Generate Model, Migration, dan Factory secara simultan
+php artisan make:model Category -mf
+php artisan make:model Product -mf
+
+# 2. Generate Resource Filament untuk kedua model
+php artisan make:filament-resource Category
+php artisan make:filament-resource Product
+```
+
+### Kustomisasi `ProductResource.php`:
+
+```php
+// Tambahkan validasi dan kalkulasi otomatis stok
+Forms\Components\TextInput::make('sku')
+    ->label('Kode SKU Produk')
+    ->required()
+    ->unique(ignoreRecord: true)
+    ->placeholder('PRD-001'),
+
+Forms\Components\TextInput::make('stock_quantity')
+    ->label('Jumlah Stok')
+    ->numeric()
+    ->default(0)
+    ->minValue(0)
+    ->required(),
+
+// Tambahkan badge peringatan stok menipis di tabel
+Tables\Columns\TextColumn::make('stock_quantity')
+    ->label('Sisa Stok')
+    ->badge()
+    ->color(fn (int $state): string => match (true) {
+        $state === 0 => 'danger',
+        $state < 10 => 'warning',
+        default => 'success',
+    }),
+```
+
+---
+
+## 3. Rubrik Penilaian Proyek
+
+* [x] Migrasi database relasional foreign key `category_id` dengan `onDelete('cascade')`.
+* [x] Slug URL ter-generate otomatis saat judul produk diketik.
+* [x] Filter status ketersediaan barang aktif di tabel Filament.
+* [x] Badge warna dinamis (*Hijau jika stok aman, Kuning jika stok di bawah 10, Merah jika habis*).
+
+<Callout type="tip" title="Penyelesaian Tugas">
+  Setelah Anda memverifikasi CRUD dan panel admin Filament berjalan mulus di localhost Anda, lanjutkan ke sesi **Kuis Evaluasi Komprehensif Laravel Mastery**.
+</Callout>

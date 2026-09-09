@@ -1,0 +1,581 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const allCourses = await getCollection('courses');
+const allLessons = await getCollection('lessons');
+
+// Filter only published courses and count their published lessons
+const publishedCourses = allCourses
+  .filter((c) => c.data.isPublished !== false && c.data.status !== 'draft')
+  .map((course) => {
+    const courseLessons = allLessons
+      .filter((l) => l.data.courseSlug === course.id && l.data.isPublished !== false)
+      .sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+
+    return {
+      ...course,
+      lessons: courseLessons,
+      firstLesson: courseLessons.length > 0 ? courseLessons[0] : null,
+    };
+  });
+---
+
+<BaseLayout
+  title="Dasbor Pembelajar - Awd Course"
+  description="Pantau progres belajar kursus dan lanjutkan materi pembelajaran Anda di Awd Course."
+>
+  <div class="dashboard-page">
+    <div class="container">
+      <!-- Dashboard Header -->
+      <header class="dashboard-header">
+        <div class="user-greeting-box">
+          <div class="user-avatar-badge" id="dash-avatar-badge">
+            <img id="dash-avatar-img" src="" alt="Foto Profil" class="dash-avatar-photo hidden" />
+            <span id="dash-avatar-initial">U</span>
+          </div>
+          <div class="greeting-texts">
+            <span class="greeting-subtitle">Selamat Datang Kembali,</span>
+            <h1 class="user-fullname" id="dash-user-name">Pembelajar</h1>
+            <span class="user-email-text" id="dash-user-email">Memuat akun...</span>
+          </div>
+        </div>
+
+        <div class="header-action-links">
+          <a href="/courses" class="btn btn-outline btn-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Katalog Kursus</span>
+          </a>
+          <button type="button" id="dash-logout-btn" class="btn btn-outline btn-sm text-rose hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Keluar Akun</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Stats Grid -->
+      <section class="stats-overview-grid" aria-label="Statistik Pembelajaran">
+        <div class="stat-card card">
+          <div class="stat-icon-box bg-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" aria-hidden="true">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+          </div>
+          <div class="stat-details">
+            <span class="stat-value" id="stat-courses-count">{publishedCourses.length}</span>
+            <span class="stat-label">Kursus Aktif</span>
+          </div>
+        </div>
+
+        <div class="stat-card card">
+          <div class="stat-icon-box bg-green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" aria-hidden="true">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <div class="stat-details">
+            <span class="stat-value" id="stat-completed-lessons">0</span>
+            <span class="stat-label">Modul Selesai</span>
+          </div>
+        </div>
+
+        <div class="stat-card card">
+          <div class="stat-icon-box bg-amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+          </div>
+          <div class="stat-details">
+            <span class="stat-value" id="stat-overall-progress">0%</span>
+            <span class="stat-label">Rata-rata Progres</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Active Courses List Section -->
+      <section class="dashboard-courses-section">
+        <div class="section-title-row">
+          <div>
+            <h2 class="section-heading">Kursus & Progres Pembelajaran</h2>
+            <p class="section-subheading">Lanjutkan pembelajaran dari modul terakhir yang Anda pelajari.</p>
+          </div>
+        </div>
+
+        <div class="dashboard-courses-grid">
+          {publishedCourses.map((c) => (
+            <div class="course-progress-card card" data-course-slug={c.id} data-total-lessons={c.lessons.length}>
+              <div class="course-card-top">
+                <div class="course-badges">
+                  <span class="badge badge-primary">{c.data.category}</span>
+                  <span class="badge badge-slate">{c.data.level}</span>
+                </div>
+                <h3 class="course-card-title">
+                  <a href={`/courses/${c.id}`}>{c.data.title}</a>
+                </h3>
+                <p class="course-card-summary">{c.data.description}</p>
+              </div>
+
+              <div class="course-progress-block">
+                <div class="progress-info-row">
+                  <span class="progress-text-label">Progres Kursus</span>
+                  <span class="progress-percent-val" id={`progress-text-${c.id}`}>0% (0/{c.lessons.length})</span>
+                </div>
+                <div class="progress-track-bar">
+                  <div class="progress-fill-bar" id={`progress-bar-${c.id}`} style="width: 0%;"></div>
+                </div>
+              </div>
+
+              <div class="course-card-actions">
+                {c.firstLesson ? (
+                  <a href={`/courses/${c.id}/${c.firstLesson.id}`} class="btn btn-primary btn-block">
+                    <span>Buka Materi</span>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </a>
+                ) : (
+                  <a href={`/courses/${c.id}`} class="btn btn-outline btn-block">
+                    <span>Lihat Silabus</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { supabase, isSupabaseConfigured } from '../lib/supabase';
+
+  async function loadDashboardData() {
+    const nameEl = document.getElementById('dash-user-name');
+    const emailEl = document.getElementById('dash-user-email');
+    const avatarInitialEl = document.getElementById('dash-avatar-initial');
+    const avatarImgEl = document.getElementById('dash-avatar-img') as HTMLImageElement;
+    const logoutBtn = document.getElementById('dash-logout-btn');
+    const completedLessonsEl = document.getElementById('stat-completed-lessons');
+    const overallProgressEl = document.getElementById('stat-overall-progress');
+
+    logoutBtn?.addEventListener('click', async () => {
+      if (supabase) {
+        await supabase.auth.signOut();
+        window.location.href = '/login';
+      }
+    });
+
+    // 1. Get authenticated user info
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          logoutBtn?.classList.remove('hidden');
+
+          const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Pembelajar';
+          const email = user.email || '';
+          const avatarUrl = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+
+          if (nameEl) nameEl.textContent = name;
+          if (emailEl) emailEl.textContent = email;
+
+          if (avatarUrl && avatarImgEl) {
+            avatarImgEl.src = avatarUrl;
+            avatarImgEl.classList.remove('hidden');
+            if (avatarInitialEl) avatarInitialEl.classList.add('hidden');
+          } else {
+            if (avatarInitialEl) {
+              avatarInitialEl.textContent = name.charAt(0).toUpperCase();
+              avatarInitialEl.classList.remove('hidden');
+            }
+            if (avatarImgEl) avatarImgEl.classList.add('hidden');
+          }
+          // Fetch all course progress from Supabase and merge
+          try {
+            const { data: dbProgress, error: progErr } = await supabase
+              .from('course_progress')
+              .select('course_id, lesson_id')
+              .eq('user_id', user.id);
+
+            if (!progErr && dbProgress) {
+              const grouped: Record<string, string[]> = {};
+              dbProgress.forEach((row: any) => {
+                if (!grouped[row.course_id]) grouped[row.course_id] = [];
+                grouped[row.course_id].push(row.lesson_id);
+              });
+
+              Object.keys(grouped).forEach((slug) => {
+                let localList: string[] = [];
+                try {
+                  localList = JSON.parse(localStorage.getItem(`progress_${slug}`) || '[]');
+                } catch {
+                  localList = [];
+                }
+                const merged = Array.from(new Set([...localList, ...grouped[slug]]));
+                localStorage.setItem(`progress_${slug}`, JSON.stringify(merged));
+              });
+            }
+          } catch (e) {
+            console.warn('Dashboard Supabase progress fetch error:', e);
+          }
+        } else {
+          logoutBtn?.classList.add('hidden');
+          if (nameEl) nameEl.textContent = 'Tamu (Penyimpanan Lokal)';
+          if (emailEl) emailEl.textContent = 'Masuk dengan Google untuk menyinkronkan progres ke cloud.';
+          if (avatarInitialEl) avatarInitialEl.textContent = 'T';
+        }
+      } catch {
+        if (nameEl) nameEl.textContent = 'Pembelajar';
+      }
+    } else {
+      if (nameEl) nameEl.textContent = 'Tamu (Mode Offline)';
+      if (emailEl) emailEl.textContent = 'Progres tersimpan di peramban lokal.';
+    }
+
+    // 2. Calculate progress for each published course
+    const courseCards = document.querySelectorAll<HTMLElement>('.course-progress-card');
+    let totalCompletedAll = 0;
+    let totalLessonsAll = 0;
+
+    courseCards.forEach((card) => {
+      const courseSlug = card.getAttribute('data-course-slug') || '';
+      const totalLessons = parseInt(card.getAttribute('data-total-lessons') || '0', 10);
+      totalLessonsAll += totalLessons;
+
+      let completedList: string[] = [];
+      try {
+        completedList = JSON.parse(localStorage.getItem(`progress_${courseSlug}`) || '[]');
+      } catch {
+        completedList = [];
+      }
+
+      const completedCount = completedList.length;
+      totalCompletedAll += completedCount;
+      const percent = totalLessons > 0 ? Math.min(100, Math.round((completedCount / totalLessons) * 100)) : 0;
+
+      const progressText = document.getElementById(`progress-text-${courseSlug}`);
+      const progressBar = document.getElementById(`progress-bar-${courseSlug}`);
+
+      if (progressText) {
+        progressText.textContent = `${percent}% (${completedCount}/${totalLessons} Selesai)`;
+      }
+      if (progressBar) {
+        progressBar.style.width = `${percent}%`;
+      }
+    });
+
+    if (completedLessonsEl) {
+      completedLessonsEl.textContent = String(totalCompletedAll);
+    }
+
+    if (overallProgressEl) {
+      const avgPercent = totalLessonsAll > 0 ? Math.round((totalCompletedAll / totalLessonsAll) * 100) : 0;
+      overallProgressEl.textContent = `${avgPercent}%`;
+    }
+  }
+
+  loadDashboardData();
+  document.addEventListener('astro:page-load', loadDashboardData);
+</script>
+
+<style>
+  .dashboard-page {
+    padding: 3rem 0 5rem 0;
+    min-height: calc(100vh - 160px);
+  }
+
+  /* Header */
+  .dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 2.25rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .user-greeting-box {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+  }
+
+  .user-avatar-badge {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: #ffffff;
+    font-size: 1.4rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+    border: 2px solid var(--border-medium);
+  }
+
+  .dash-avatar-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .header-action-links {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .greeting-texts {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .greeting-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .user-fullname {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1.2;
+    margin: 0.15rem 0;
+  }
+
+  .user-email-text {
+    font-size: 0.825rem;
+    color: var(--text-muted);
+  }
+
+  /* Stats Grid */
+  .stats-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+  }
+
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 1.15rem;
+    padding: 1.35rem 1.5rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .stat-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+  }
+
+  .bg-blue {
+    background-color: var(--primary-light);
+    color: var(--primary);
+  }
+
+  .bg-green {
+    background-color: rgba(5, 150, 105, 0.12);
+    color: var(--accent-emerald);
+  }
+
+  .bg-amber {
+    background-color: rgba(217, 119, 6, 0.12);
+    color: var(--accent-amber);
+  }
+
+  .stat-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1.15;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-top: 0.2rem;
+  }
+
+  /* Courses Section */
+  .dashboard-courses-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .section-title-row {
+    margin-bottom: 0.5rem;
+  }
+
+  .section-heading {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 0.25rem;
+  }
+
+  .section-subheading {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .dashboard-courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .course-progress-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .course-progress-card:hover {
+    border-color: var(--border-medium);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .course-card-top {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+  }
+
+  .course-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .course-card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 0.5rem;
+  }
+
+  .course-card-title a {
+    color: var(--text-main);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .course-card-title a:hover {
+    color: var(--primary);
+  }
+
+  .course-card-summary {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .course-progress-block {
+    margin-bottom: 1.5rem;
+    padding: 0.85rem;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .progress-info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.775rem;
+    margin-bottom: 0.45rem;
+  }
+
+  .progress-text-label {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .progress-percent-val {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .progress-track-bar {
+    width: 100%;
+    height: 6px;
+    border-radius: 99px;
+    background-color: var(--border-subtle);
+    overflow: hidden;
+  }
+
+  .progress-fill-bar {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+  }
+
+  .course-card-actions {
+    margin-top: auto;
+  }
+
+  .btn-block {
+    width: 100%;
+    justify-content: center;
+  }
+
+  @media (max-width: 768px) {
+    .stats-overview-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

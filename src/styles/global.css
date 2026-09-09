@@ -1,0 +1,575 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --color-primary: #1e40af;
+  --color-primary-hover: #1d4ed8;
+  --color-primary-light: #eff6ff;
+  --color-primary-border: #bfdbfe;
+}
+
+:root {
+  /* Light Theme */
+  --bg-main: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f1f5f9;
+  --bg-hover: #e2e8f0;
+  
+  --border-subtle: #e2e8f0;
+  --border-medium: #cbd5e1;
+  --border-focus: #2563eb;
+
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-subtle: #94a3b8;
+  --text-inverted: #ffffff;
+
+  --primary: #1e40af;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-border: #bfdbfe;
+
+  --accent-emerald: #059669;
+  --accent-amber: #d97706;
+  --accent-rose: #e11d48;
+  --accent-cyan: #0284c7;
+
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e2e8f0;
+  --sidebar-active: #eff6ff;
+
+  /* Code & Syntax Colors (Light Theme) */
+  --code-bg: #f8fafc;
+  --code-topbar-bg: #f1f5f9;
+  --code-border: #e2e8f0;
+  --code-text: #0f172a;
+  --code-line-num: #94a3b8;
+  --code-line-border: #e2e8f0;
+  --code-out-bg: #ffffff;
+  --code-out-text: #15803d;
+  --code-copy-hover: #e2e8f0;
+  --code-badge-in: #2563eb;
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Plus Jakarta Sans', var(--font-sans);
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+[data-theme='dark'] {
+  /* Dark Theme */
+  --bg-main: #0b0f19;
+  --bg-surface: #111827;
+  --bg-surface-elevated: #1f2937;
+  --bg-hover: #374151;
+
+  --border-subtle: #1f2937;
+  --border-medium: #374151;
+  --border-focus: #3b82f6;
+
+  --text-main: #f9fafb;
+  --text-muted: #9ca3af;
+  --text-subtle: #6b7280;
+  --text-inverted: #0f172a;
+
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-light: rgba(59, 130, 246, 0.12);
+  --primary-border: #1d4ed8;
+
+  --accent-emerald: #10b981;
+  --accent-amber: #f59e0b;
+  --accent-rose: #f43f5e;
+  --accent-cyan: #06b6d4;
+
+  --sidebar-bg: #0d1322;
+  --sidebar-border: #1f2937;
+  --sidebar-active: rgba(59, 130, 246, 0.15);
+
+  /* Code & Syntax Colors (Dark Theme) */
+  --code-bg: #0d1117;
+  --code-topbar-bg: #161b22;
+  --code-border: #30363d;
+  --code-text: #e6edf3;
+  --code-line-num: #484f58;
+  --code-line-border: #21262d;
+  --code-out-bg: #010409;
+  --code-out-text: #7ee787;
+  --code-copy-hover: #21262d;
+  --code-badge-in: #58a6ff;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.3;
+  margin-top: 0;
+}
+
+h1 { font-size: 2.25rem; font-weight: 800; }
+h2 { font-size: 1.75rem; font-weight: 700; }
+h3 { font-size: 1.25rem; font-weight: 700; }
+h4 { font-size: 1.05rem; font-weight: 600; }
+
+p {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Layout Utilities */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.container-narrow {
+  max-width: 860px;
+}
+
+/* Component Utility Classes */
+.card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--border-medium);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+  line-height: 1.25;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: #ffffff !important;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-main);
+  border-color: var(--border-subtle);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-medium);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--text-main);
+  border-color: var(--border-medium);
+}
+
+.btn-outline:hover {
+  background-color: var(--bg-surface-elevated);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-sm {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-lg {
+  padding: 0.85rem 1.75rem;
+  font-size: 1rem;
+  border-radius: var(--radius-md);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.badge-primary {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.badge-slate {
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.badge-emerald {
+  background-color: rgba(5, 150, 105, 0.1);
+  color: var(--accent-emerald);
+}
+
+.badge-amber {
+  background-color: rgba(217, 119, 6, 0.1);
+  color: var(--accent-amber);
+}
+
+.badge-rose {
+  background-color: rgba(225, 29, 72, 0.1);
+  color: var(--accent-rose);
+}
+
+.badge-cyan {
+  background-color: rgba(2, 132, 199, 0.1);
+  color: var(--accent-cyan);
+}
+
+/* Prose Typography for Lessons */
+.prose {
+  color: var(--text-main);
+  line-height: 1.75;
+  font-size: 1rem;
+}
+
+.prose h2 {
+  font-size: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.prose h3 {
+  font-size: 1.2rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose p {
+  margin-bottom: 1.25rem;
+  color: var(--text-muted);
+}
+
+.prose ul, .prose ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+  color: var(--text-muted);
+}
+
+.prose li {
+  margin-bottom: 0.35rem;
+}
+
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  padding: 0.2em 0.4em;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+}
+
+.prose pre {
+  margin: 1.5rem 0;
+  padding: 1.15rem 1.25rem;
+  border-radius: var(--radius-md);
+  background-color: var(--code-bg);
+  border: 1px solid var(--code-border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  max-width: 100%;
+  position: relative;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.prose pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--code-text);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  tab-size: 2;
+}
+
+/* Shiki Dual Theme Adaptation */
+html[data-theme='dark'] pre.astro-code {
+  color: var(--shiki-dark) !important;
+  background-color: transparent !important;
+}
+
+html[data-theme='dark'] .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: transparent !important;
+  font-style: var(--shiki-dark-font-style, inherit) !important;
+  font-weight: var(--shiki-dark-font-weight, inherit) !important;
+  text-decoration: var(--shiki-dark-text-decoration, inherit) !important;
+}
+
+html:not([data-theme='dark']) pre.astro-code {
+  background-color: transparent !important;
+}
+
+html:not([data-theme='dark']) .astro-code span {
+  background-color: transparent !important;
+}
+
+/* Custom Sleek Scrollbars for Code Blocks, Outputs, and Tables */
+.prose pre::-webkit-scrollbar,
+.code-input::-webkit-scrollbar,
+.code-textarea::-webkit-scrollbar,
+.code-editor-input::-webkit-scrollbar,
+.cell-code-editor::-webkit-scrollbar,
+.output-console::-webkit-scrollbar,
+.cell-output-console::-webkit-scrollbar,
+.console-logs::-webkit-scrollbar,
+.table-container::-webkit-scrollbar,
+.prose table::-webkit-scrollbar,
+.code-editor-wrapper::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+.prose pre::-webkit-scrollbar-track,
+.code-input::-webkit-scrollbar-track,
+.code-textarea::-webkit-scrollbar-track,
+.code-editor-input::-webkit-scrollbar-track,
+.cell-code-editor::-webkit-scrollbar-track,
+.output-console::-webkit-scrollbar-track,
+.cell-output-console::-webkit-scrollbar-track,
+.console-logs::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track,
+.prose table::-webkit-scrollbar-track,
+.code-editor-wrapper::-webkit-scrollbar-track {
+  background: rgba(13, 17, 23, 0.7);
+  border-radius: 4px;
+}
+
+.prose pre::-webkit-scrollbar-thumb,
+.code-input::-webkit-scrollbar-thumb,
+.code-textarea::-webkit-scrollbar-thumb,
+.code-editor-input::-webkit-scrollbar-thumb,
+.cell-code-editor::-webkit-scrollbar-thumb,
+.output-console::-webkit-scrollbar-thumb,
+.cell-output-console::-webkit-scrollbar-thumb,
+.console-logs::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb,
+.prose table::-webkit-scrollbar-thumb,
+.code-editor-wrapper::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
+}
+
+.prose pre::-webkit-scrollbar-thumb:hover,
+.code-input::-webkit-scrollbar-thumb:hover,
+.code-textarea::-webkit-scrollbar-thumb:hover,
+.output-console::-webkit-scrollbar-thumb:hover {
+  background: #484f58;
+}
+
+.prose table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.875rem;
+}
+
+.prose th, .prose td {
+  padding: 0.65rem 1rem;
+  text-align: left;
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.prose th {
+  background-color: var(--bg-surface-elevated);
+  font-weight: 700;
+}
+
+.prose blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1rem;
+  margin: 1.25rem 0;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  h1 { font-size: 1.85rem; }
+  h2 { font-size: 1.45rem; }
+  h3 { font-size: 1.15rem; }
+  .btn-lg {
+    padding: 0.75rem 1.35rem;
+    font-size: 0.95rem;
+  }
+  .prose {
+    font-size: 0.95rem;
+  }
+  .prose h2 {
+    font-size: 1.35rem;
+  }
+  .prose h3 {
+    font-size: 1.1rem;
+  }
+  .prose pre {
+    padding: 0.9rem 0.85rem;
+    margin: 1.15rem 0;
+    border-radius: var(--radius-sm);
+  }
+  .prose pre code {
+    font-size: 0.8rem;
+  }
+}
+
+/* ==========================================================================
+   Global Print / Presentation PDF Export Rules
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    overflow: visible !important;
+  }
+
+  /* When printing, hide the entire standard website UI so ONLY presentation slides print */
+  header,
+  nav,
+  aside,
+  footer,
+  .global-top-progress-track,
+  .mobile-reader-bar,
+  .course-reader-layout,
+  .reader-main,
+  .reader-inner,
+  .lesson-article-wrapper,
+  .site-header,
+  .header-container,
+  #chat-widget-root,
+  #search-modal-container,
+  .scroll-to-top-btn,
+  #awd-text-ai-tooltip {
+    display: none !important;
+  }
+
+  body > *:not(#presentation-mode-modal) {
+    display: none !important;
+  }
+
+  .reader-body > *:not(#presentation-mode-modal) {
+    display: none !important;
+  }
+
+  /* Make Presentation Mode Modal the sole printed element */
+  #presentation-mode-modal,
+  #presentation-mode-modal.hidden {
+    display: block !important;
+    position: static !important;
+    width: 297mm !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 999999 !important;
+    inset: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+

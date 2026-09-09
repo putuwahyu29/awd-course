@@ -1,0 +1,286 @@
+---
+interface Props {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+}
+
+const {
+  question,
+  options,
+  correctIndex,
+  explanation = 'Bagus sekali! Pemahaman Anda terhadap materi ini sudah tepat.',
+} = Astro.props;
+
+// Unique ID for quiz
+const quizId = `quiz-${Math.random().toString(36).substring(2, 9)}`;
+---
+
+<div class="quiz-card card my-5" id={quizId} data-correct={correctIndex}>
+  <div class="quiz-badge-wrap">
+    <span class="badge badge-primary">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+      Latihan Mandiri
+    </span>
+  </div>
+
+  <h4 class="quiz-question-title">{question}</h4>
+
+  <div class="quiz-options-group">
+    {options.map((opt, idx) => (
+      <label class="quiz-option-row" data-index={idx}>
+        <input type="radio" name={`${quizId}-group`} value={idx} class="quiz-radio-input" />
+        <span class="quiz-option-letter">{String.fromCharCode(65 + idx)}</span>
+        <span class="quiz-option-label">{opt}</span>
+      </label>
+    ))}
+  </div>
+
+  <div class="quiz-result-box hidden">
+    <div class="result-title"></div>
+    <div class="result-desc">{explanation}</div>
+  </div>
+
+  <div class="quiz-btn-row">
+    <button type="button" class="btn btn-primary btn-sm check-btn" disabled>
+      Periksa Jawaban
+    </button>
+    <button type="button" class="btn btn-secondary btn-sm reset-btn hidden">
+      Coba Lagi
+    </button>
+  </div>
+</div>
+
+<script>
+  function setupQuizzes() {
+    document.querySelectorAll('.quiz-card').forEach((quiz) => {
+      const correctIdx = parseInt(quiz.getAttribute('data-correct') || '0', 10);
+      const radioInputs = quiz.querySelectorAll<HTMLInputElement>('.quiz-radio-input');
+      const checkBtn = quiz.querySelector<HTMLButtonElement>('.check-btn');
+      const resetBtn = quiz.querySelector<HTMLButtonElement>('.reset-btn');
+      const feedbackBox = quiz.querySelector('.quiz-result-box');
+      const feedbackTitle = quiz.querySelector('.result-title');
+      const optionItems = quiz.querySelectorAll('.quiz-option-row');
+
+      let selectedIndex: number | null = null;
+
+      radioInputs.forEach((input) => {
+        input.addEventListener('change', () => {
+          selectedIndex = parseInt(input.value, 10);
+          if (checkBtn) checkBtn.disabled = false;
+          
+          optionItems.forEach((item) => {
+            const idx = parseInt(item.getAttribute('data-index') || '-1', 10);
+            if (idx === selectedIndex) {
+              item.classList.add('selected');
+            } else {
+              item.classList.remove('selected');
+            }
+          });
+        });
+      });
+
+      checkBtn?.addEventListener('click', () => {
+        if (selectedIndex === null) return;
+        
+        radioInputs.forEach((inp) => (inp.disabled = true));
+        if (checkBtn) checkBtn.classList.add('hidden');
+        if (resetBtn) resetBtn.classList.remove('hidden');
+        if (feedbackBox) feedbackBox.classList.remove('hidden');
+
+        optionItems.forEach((item) => {
+          const idx = parseInt(item.getAttribute('data-index') || '-1', 10);
+          if (idx === correctIdx) {
+            item.classList.add('correct');
+          } else if (idx === selectedIndex) {
+            item.classList.add('incorrect');
+          }
+        });
+
+        if (selectedIndex === correctIdx) {
+          feedbackBox?.classList.add('result-success');
+          feedbackBox?.classList.remove('result-error');
+          if (feedbackTitle) feedbackTitle.textContent = 'Jawaban Anda Tepat!';
+        } else {
+          feedbackBox?.classList.add('result-error');
+          feedbackBox?.classList.remove('result-success');
+          if (feedbackTitle) feedbackTitle.textContent = 'Jawaban Belum Tepat, Silakan Coba Lagi.';
+        }
+      });
+
+      resetBtn?.addEventListener('click', () => {
+        selectedIndex = null;
+        radioInputs.forEach((inp) => {
+          inp.disabled = false;
+          inp.checked = false;
+        });
+        optionItems.forEach((item) => {
+          item.classList.remove('selected', 'correct', 'incorrect');
+        });
+        if (checkBtn) {
+          checkBtn.disabled = true;
+          checkBtn.classList.remove('hidden');
+        }
+        if (resetBtn) resetBtn.classList.add('hidden');
+        if (feedbackBox) {
+          feedbackBox.classList.add('hidden');
+          feedbackBox.classList.remove('result-success', 'result-error');
+        }
+      });
+    });
+  }
+
+  setupQuizzes();
+  document.addEventListener('astro:page-load', setupQuizzes);
+</script>
+
+<style>
+  .quiz-card {
+    padding: 1.5rem;
+    margin: 1.75rem 0;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .quiz-badge-wrap {
+    margin-bottom: 0.75rem;
+  }
+
+  .quiz-question-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+
+  .quiz-options-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .quiz-option-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .quiz-option-row:hover {
+    border-color: var(--primary);
+  }
+
+  .quiz-option-row.selected {
+    border-color: var(--primary);
+    background-color: var(--primary-light);
+  }
+
+  .quiz-option-row.correct {
+    border-color: var(--accent-emerald) !important;
+    background-color: rgba(5, 150, 105, 0.1) !important;
+  }
+
+  .quiz-option-row.incorrect {
+    border-color: var(--accent-rose) !important;
+    background-color: rgba(225, 29, 72, 0.1) !important;
+  }
+
+  .quiz-radio-input {
+    display: none;
+  }
+
+  .quiz-option-letter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .quiz-option-row.selected .quiz-option-letter {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+
+  .quiz-option-row.correct .quiz-option-letter {
+    background-color: var(--accent-emerald);
+    color: #ffffff;
+    border-color: var(--accent-emerald);
+  }
+
+  .quiz-option-row.incorrect .quiz-option-letter {
+    background-color: var(--accent-rose);
+    color: #ffffff;
+    border-color: var(--accent-rose);
+  }
+
+  .quiz-option-label {
+    font-size: 0.9rem;
+    color: var(--text-main);
+  }
+
+  .quiz-result-box {
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+    border: 1px solid;
+  }
+
+  .result-success {
+    background-color: rgba(5, 150, 105, 0.08);
+    border-color: var(--accent-emerald);
+    color: var(--accent-emerald);
+  }
+
+  .result-error {
+    background-color: rgba(225, 29, 72, 0.08);
+    border-color: var(--accent-rose);
+    color: var(--accent-rose);
+  }
+
+  .result-title {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .result-desc {
+    font-size: 0.825rem;
+    color: var(--text-main);
+  }
+
+  .quiz-btn-row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 480px) {
+    .quiz-card {
+      padding: 1.15rem;
+    }
+  }
+</style>

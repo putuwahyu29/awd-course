@@ -1,0 +1,80 @@
+---
+title: "Tugas Praktik: Membangun Model Prediksi End-to-End"
+courseSlug: "machine-learning-ai"
+chapter: "Bab 2: Algoritma Klasifikasi & Klasterisasi"
+order: 4
+duration: "40 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Pada studi kasus akhir Machine Learning ini, Anda ditugaskan untuk membangun model kecerdasan buatan lengkap yang memprediksi apakah seorang pelanggan berpotensi berhenti berlangganan (*Customer Churn Prediction*).
+
+---
+
+## 1. Dataset Pelanggan
+
+```python
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+np.random.seed(42)
+
+# Simulasi 200 data riwayat pelanggan
+n = 200
+data_churn = {
+    'Masa_Langganan_Bulan': np.random.randint(1, 48, n),
+    'Total_Tagihan_Juta': np.random.uniform(0.5, 20.0, n),
+    'Jumlah_Keluhan': np.random.randint(0, 10, n),
+    'Frekuensi_Login_Mingguan': np.random.randint(1, 30, n)
+}
+
+df = pd.DataFrame(data_churn)
+
+# Logika Target: Pelanggan dengan banyak keluhan dan masa langganan pendek cenderung Churn (1)
+df['Churn'] = np.where((df['Jumlah_Keluhan'] > 4) | (df['Masa_Langganan_Bulan'] < 6), 1, 0)
+```
+
+---
+
+## 2. Instruksi Tugas
+
+1. **Pisahkan Fitur dan Target**: Buat variabel `X` dari 4 fitur pelanggan dan `y` dari kolom target `Churn`.
+2. **Train-Test Split**: Bagi dataset dengan rasio 80:20 dan `random_state=42`.
+3. **Latih Model Random Forest**: Gunakan `RandomForestClassifier(n_estimators=100)`.
+4. **Analisis Feature Importance**: Tentukan fitur mana yang paling berpengaruh terhadap keputusan churn pelanggan menggunakan `model.feature_importances_`.
+
+---
+
+## 3. Template Kode Solusi
+
+```python
+# 1. Split Data
+X = df[['Masa_Langganan_Bulan', 'Total_Tagihan_Juta', 'Jumlah_Keluhan', 'Frekuensi_Login_Mingguan']]
+y = df['Churn']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 2. Pelatihan Model
+model_rf = RandomForestClassifier(n_estimators=100, random_state=42)
+model_rf.fit(X_train, y_train)
+
+# 3. Prediksi & Evaluasi
+y_pred = model_rf.predict(X_test)
+akurasi = accuracy_score(y_test, y_pred)
+
+print(f"Akurasi Model Random Forest: {akurasi * 100:.2f}%\n")
+print(classification_report(y_test, y_pred))
+
+# 4. Fitur Paling Berpengaruh
+fitur_penting = pd.Series(model_rf.feature_importances_, index=X.columns).sort_values(ascending=False)
+print("Peringkat Kepentingan Fitur (Feature Importance):\n", fitur_penting)
+```
+
+<Callout type="tip" title="Penyelesaian Tugas">
+  Jalankan kode di atas pada notebook Anda. Setelah berhasil memverifikasi model dan laporan klasifikasinya, tekan tombol **Tandai Selesai Pelajaran Ini** untuk melangkah ke kuis evaluasi.
+</Callout>

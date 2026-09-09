@@ -1,0 +1,85 @@
+---
+title: "Kuis Evaluasi: Kompetensi Cybersecurity, OWASP & API Defense"
+courseSlug: "cybersecurity-web-defense"
+chapter: "Bab 4: Incident Response & Evaluasi"
+order: 9
+duration: "15 Menit"
+contentType: "quiz"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import Quiz from '../../components/mdx/Quiz.astro';
+
+Uji penguasaan Anda mengenai prinsip CIA Triad, pencegahan SQL Injection & XSS, keamanan JWT, manajemen secrets, dan protokol respons insiden.
+
+---
+
+## Soal Evaluasi Pemahaman
+
+Pilih satu opsi jawaban yang paling tepat pada setiap pertanyaan berikut, lalu klik tombol **Periksa Jawaban**.
+
+<Quiz
+  question="1. Manakah metode paling efektif dan terstandarisasi untuk mencegah serangan SQL Injection secara tuntas pada aplikasi backend?"
+  options={[
+    "Melakukan blacklist kata kunci tertentu seperti 'OR' dan 'SELECT'.",
+    "Menggunakan Prepared Statements (Parameterized Queries) atau Object-Relational Mapping (ORM) modern.",
+    "Mengubah port server database dari 5432 menjadi 9000.",
+    "Menyembunyikan kode JavaScript di sisi frontend."
+  ]}
+  correctIndex={1}
+  explanation="Tepat sekali! Prepared Statements memisahkan instruksi query SQL dari data input pengguna pada level protokol biner database, sehingga seluruh karakter input murni diperlakukan sebagai nilai string dan tidak pernah dieksekusi sebagai perintah SQL."
+/>
+
+<Quiz
+  question="2. Mengapa menyimpan token autentikasi sesi di dalam cookie bertipe HttpOnly lebih aman daripada menyimpannya di localStorage peramban?"
+  options={[
+    "Karena cookie HttpOnly mengompres ukuran file menjadi lebih kecil.",
+    "Karena cookie HttpOnly tidak dapat diakses oleh skrip JavaScript peramban (document.cookie), sehingga kebal dari pencurian melalui serangan Cross-Site Scripting (XSS).",
+    "Karena cookie HttpOnly otomatis mengenkripsi seluruh database server.",
+    "Karena cookie HttpOnly tidak memerlukan koneksi internet."
+  ]}
+  correctIndex={1}
+  explanation="Benar! Atribut HttpOnly melarang browser mengizinkan skrip JavaScript lokal membaca nilai cookie, memutus jalur eksfiltrasi token saat terjadi serangan XSS."
+/>
+
+<Quiz
+  question="3. Pada model ancaman STRIDE, kategori ancaman apakah yang terjadi saat seorang penyerang memanipulasi ID invoice di URL untuk melihat tagihan milik pengguna lain (IDOR)?"
+  options={[
+    "Denial of Service (DoS)",
+    "Elevation of Privilege & Information Disclosure",
+    "Repudiation",
+    "Physical Theft"
+  ]}
+  correctIndex={1}
+  explanation="Luar biasa! IDOR memungkinkan penyerang melompat ke luar batas hak akses sahnya (Elevation of Privilege) untuk mengakses data privat pihak lain (Information Disclosure)."
+/>
+
+<Quiz
+  question="4. Apa fungsi dari header Content Security Policy (CSP) pada peramban web?"
+  options={[
+    "Mempercepat kecepatan download gambar di website.",
+    "Membatasi domain dan sumber daya mana saja yang diizinkan untuk memuat dan mengeksekusi skrip, stylesheet, atau frame (Mitigasi XSS & Clickjacking).",
+    "Menghapus seluruh file cookie pengguna saat browser ditutup.",
+    "Mengubah format respon server menjadi XML."
+  ]}
+  correctIndex={1}
+  explanation="Sempurna! CSP adalah kebijakan keamanan peramban yang membatasi eksekusi skrip hanya dari sumber terpercaya yang telah didaftarkan."
+/>
+
+<Quiz
+  question="5. Dalam siklus Incident Response (NIST), apa tindakan pertama yang wajib dilakukan pada tahap 'Containment' saat server terdeteksi terinfeksi malware?"
+  options={[
+    "Menghapus seluruh database dan memecat staf IT.",
+    "Mengisolasi sistem yang terinfeksi dari jaringan lokal/publik untuk mencegah penyebaran (lateral movement) ke server lain.",
+    "Membuat pengumuman publik di media massa.",
+    "Menyalakan fitur debug mode di server produksi."
+  ]}
+  correctIndex={1}
+  explanation="Tepat! Tahap Containment bertujuan membatasi kerusakan dan mencegah penyebaran infeksi dengan memutus jalur jaringan sistem yang terkompromi sebelum proses pembersihan (Eradication) dimulai."
+/>
+
+---
+
+<Callout type="tip" title="Langkah Penutup">
+  Setelah menuntaskan kuis evaluasi ini, lanjutkan ke materi terakhir untuk membaca panduan penyusunan **Proyek Akhir Laporan Audit Keamanan & Hardening Server**!
+</Callout>

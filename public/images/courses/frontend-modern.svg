@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <circle cx="400" cy="190" r="120" fill="none" stroke="#059669" stroke-opacity="0.15" stroke-width="2"/>
+  <circle cx="400" cy="190" r="160" fill="none" stroke="#0284c7" stroke-opacity="0.08" stroke-width="2"/>
+  <g transform="translate(352, 142) scale(4)">
+    <rect x="2" y="3" width="20" height="14" rx="2" stroke="url(#acc)" stroke-width="2.5" fill="none"/><line x1="8" y1="21" x2="16" y2="21" stroke="url(#acc)" stroke-width="2.5" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="url(#acc)" stroke-width="2.5"/>
+  </g>
+  <text x="400" y="330" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-weight="700" font-size="26" fill="#f8fafc">Frontend Modern Mastery</text>
+  <text x="400" y="365" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-weight="400" font-size="15" fill="#94a3b8">HTML5 • CSS3 • JavaScript • Responsive UI</text>
+</svg>

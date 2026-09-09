@@ -1,0 +1,110 @@
+---
+title: "Blade Templating, Layout Inheritance & Komponen UI"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 1: Fondasi Laravel & Arsitektur MVC"
+order: 2
+duration: "25 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+**Blade** adalah mesin templating bawaan Laravel yang sangat cepat karena dikompilasi menjadi kode PHP mentah dan di-cache hingga terjadi perubahan file. Blade memungkinkan pewarisan tata letak (*layout inheritance*), struktur kontrol yang ringkas, dan komponen UI mandiri.
+
+---
+
+## 1. Pewarisan Tata Letak (Layout Inheritance)
+
+Buat satu file induk utama `resources/views/layouts/app.blade.php`:
+
+```html
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ $title ?? 'Awd Course Platform' }}</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
+    <!-- Navbar Global -->
+    @include('partials.navbar')
+
+    <!-- Konten Utama Halaman Anak -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        {{ $slot ?? '' }}
+        @yield('content')
+    </main>
+
+    <!-- Footer Global -->
+    @include('partials.footer')
+</body>
+</html>
+```
+
+---
+
+## 2. Struktur Kontrol & Perulangan Blade
+
+Blade menyediakan direktif ekspresif tanpa perlu membuka tag `<?php ... ?>` manual:
+
+```html
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    @forelse ($courses as $course)
+        <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg">
+            <span class="text-xs font-bold text-sky-400 uppercase tracking-wide">
+                {{ $course->category }}
+            </span>
+            <h3 class="text-xl font-bold text-white mt-2">{{ $course->title }}</h3>
+            <p class="text-slate-400 text-sm mt-1">{{ Str::limit($course->description, 100) }}</p>
+            
+            <div class="mt-4 flex justify-between items-center">
+                <span class="text-emerald-400 font-bold">
+                    {{ $course->price > 0 ? 'Rp ' . number_format($course->price) : 'Gratis' }}
+                </span>
+                <a href="{{ route('courses.show', $course->slug) }}" class="btn-primary">
+                    Lihat Materi &rarr;
+                </a>
+            </div>
+        </div>
+    @empty
+        <div class="col-span-3 text-center py-12 text-slate-500">
+            Belum ada kursus yang tersedia saat ini.
+        </div>
+    @endforelse
+</section>
+```
+
+---
+
+## 3. Komponen Blade Modern (Blade Components)
+
+Anda dapat membuat komponen UI yang dapat digunakan kembali di folder `resources/views/components/`:
+
+```html
+<!-- resources/views/components/alert.blade.php -->
+@props(['type' => 'info'])
+
+@php
+$classes = [
+    'info' => 'bg-sky-950 border-sky-500 text-sky-200',
+    'success' => 'bg-emerald-950 border-emerald-500 text-emerald-200',
+    'error' => 'bg-rose-950 border-rose-500 text-rose-200',
+][$type];
+@endphp
+
+<div {{ $attributes->merge(['class' => "p-4 border rounded-lg flex items-center gap-3 {$classes}"]) }}>
+    <span class="font-bold">{{ $slot }}</span>
+</div>
+```
+
+```html
+<!-- Penggunaan di Halaman Mana Saja -->
+<x-alert type="success">
+    Pendaftaran kursus Anda berhasil dikonfirmasi!
+</x-alert>
+```
+
+<Callout type="tip" title="Pembersihan XSS Otomatis">
+  Sintaks kurung kurawal ganda `&#123;&#123; $variabel &#125;&#125;` di Blade secara otomatis menerapkan fungsi `htmlspecialchars()` PHP untuk melindungi aplikasi Anda dari serangan injeksi skrip jahat (*Cross-Site Scripting / XSS*).
+</Callout>

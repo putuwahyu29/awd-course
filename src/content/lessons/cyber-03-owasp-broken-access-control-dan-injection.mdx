@@ -1,0 +1,134 @@
+---
+title: "OWASP Top 10: Mitigasi Broken Access Control (BOLA/IDOR) & SQL Injection"
+courseSlug: "cybersecurity-web-defense"
+chapter: "Bab 2: Eksploitasi & Pertahanan OWASP Top 10"
+order: 3
+duration: "35 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+**OWASP (Open Web Application Security Project)** merilis daftar 10 risiko keamanan aplikasi web paling kritis di dunia. Di peringkat teratas bertengger dua kerentanan paling mematikan: **Broken Access Control** dan **Injection**.
+
+---
+
+## 1. Broken Object Level Authorization (BOLA / IDOR)
+
+**IDOR (*Insecure Direct Object Reference*)** terjadi ketika aplikasi menerima identifier objek dari pengguna (misal: ID dokumen di URL) tanpa memverifikasi apakah pengguna yang sedang login benar-benar pemilik sah dari objek tersebut:
+
+```text
+// SKENARIO IDOR RENTAN:
+// Pengguna A (ID: 45) login, lalu mengubah URL browser menjadi:
+GET /api/v1/invoices/1092  <-- Tagihan milik Pengguna B (ID: 88)!
+
+// Backend yang ceroboh hanya mengeksekusi:
+SELECT * FROM invoices WHERE id = 1092; // KEBOCORAN DATA!
+```
+
+### Solusi Pertahanan IDOR:
+```javascript
+// Validasi Kepemilikan Data (Context-Aware Ownership Check)
+export async function getInvoice(req, res) {
+  const invoiceId = req.params.id;
+  const currentUserId = req.user.id; // Diambil dari JWT terverifikasi
+
+  const invoice = await db.invoices.findFirst({
+    where: {
+      id: invoiceId,
+      userId: currentUserId // HANYA ambil jika invoice milik user yang sedang login!
+    }
+  });
+
+  if (!invoice) {
+    return res.status(404).json({ success: false, message: "Faktur tidak ditemukan" });
+  }
+
+  res.json({ success: true, data: invoice });
+}
+```
+
+---
+
+## 2. Anatomi SQL Injection (SQLi)
+
+**SQL Injection** terjadi ketika input mentah dari form atau parameter URL digabungkan langsung (*string concatenation*) ke dalam string perintah SQL:
+
+```javascript
+// ❌ KODE SANGAT BERBAHAYA (VULNERABLE):
+const sql = `SELECT * FROM users WHERE username = '${username}' AND password = '${password}'`;
+
+// Jika Hacker memasukkan username: admin' OR '1'='1' --
+// String query berubah menjadi:
+// SELECT * FROM users WHERE username = 'admin' OR '1'='1' --' AND password = '...'
+// Query mengevaluasi TRUE dan membocorkan akun admin tanpa password!
+```
+
+### Solusi Mutlak: Prepared Statements / Parameterized Queries
+```javascript
+// ✅ KODE AMAN (SECURE):
+// Database engine memisahkan instruksi SQL dari data variabel secara biner
+const [rows] = await db.execute(
+  'SELECT * FROM users WHERE username = ? AND password = ?',
+  [username, passwordHash]
+);
+```
+
+---
+
+## 3. Praktik Interaktif: Simulasi SQL Injection vs Prepared Statements
+
+Jalankan sandbox di bawah ini untuk melihat bagaimana Prepared Statements menetralkan payload injeksi SQL secara total:
+
+<MultiLangRunner
+  language="javascript"
+  title="Simulasi Eksploitasi SQLi vs Proteksi Prepared Statements"
+  initialCode={`// Mock Database Table
+const usersTable = [
+  { id: 1, username: "admin", role: "SUPERADMIN", email: "admin@corp.id" },
+  { id: 2, username: "budi", role: "USER", email: "budi@mail.com" }
+];
+
+// 1. ENGINE RENTAN (String Concatenation Query)
+function vulnerableSearch(inputUsername) {
+  console.log(\`🔍 [VULNERABLE SQL] Input diterima: "\${inputUsername}"\`);
+  
+  // Simulasi parsing query SQL mentah
+  const rawQuery = \`SELECT * FROM users WHERE username = '\${inputUsername}'\`;
+  console.log(\`   Perintah SQL yang Dieksekusi: \${rawQuery}\`);
+
+  // Jika terdapat pola injeksi klasik OR '1'='1'
+  if (inputUsername.includes("' OR '1'='1") || inputUsername.includes("' OR 1=1")) {
+    console.log("   🚨 HASIL: BYPASS BERHASIL! Seluruh database terekspos!");
+    return usersTable; // Mengembalikan seluruh database!
+  }
+
+  return usersTable.filter(u => u.username === inputUsername);
+}
+
+// 2. ENGINE AMAN (Prepared Statements Parameterized)
+function secureSearch(inputUsername) {
+  console.log(\`🔒 [SECURE PREPARED STATEMENT] Input: "\${inputUsername}"\`);
+  console.log("   Perintah SQL: SELECT * FROM users WHERE username = ?");
+  console.log(\`   Parameter Binding: [? = "\${inputUsername}"] (Diterlakukan murni sebagai teks data)\`);
+
+  // Engine database memperlakukan seluruh string sebagai nilai literal username, bukan sintaks SQL
+  return usersTable.filter(u => u.username === inputUsername);
+}
+
+// --- PENGUJIAN PERBANDINGAN KEAMANAN ---
+const hackerPayload = "admin' OR '1'='1";
+
+console.log("=== 1. MENYERANG ENGINE YANG RENTAN ===");
+const resVulnerable = vulnerableSearch(hackerPayload);
+console.log("Data yang Bocor ke Hacker:", resVulnerable);
+
+console.log("\\n=== 2. MENYERANG ENGINE DENGAN PREPARED STATEMENT ===");
+const resSecure = secureSearch(hackerPayload);
+console.log("Data yang Didapat Hacker:", resSecure); // Kosong (karena tidak ada user bernama admin' OR '1'='1)`}
+/>
+
+<Callout type="tip" title="Mass Assignment Vulnerability">
+  Selain SQLi, waspadai kerentanan **Mass Assignment**: jangan pernah menulis `User.create(req.body)`. Hacker dapat menyisipkan `role: 'ADMIN'` atau `isVerified: true` di JSON payload request. Selalu filter field yang diizinkan (*Whitelist DTO*).
+</Callout>

@@ -1,0 +1,87 @@
+---
+title: "Kuis Evaluasi Komprehensif: Frontend Modern Mastery"
+courseSlug: "frontend-modern-mastery"
+chapter: "Bab 4: Desain Sistem & Proyek Akhir"
+order: 9
+duration: "15 Menit"
+contentType: "quiz"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import Quiz from '../../components/mdx/Quiz.astro';
+
+Selamat telah menyelesaikan seluruh rangkaian materi kursus **Pengembangan Web Frontend: Dari Dasar hingga Mahir**!
+
+Ujilah penguasaan materi Anda dari Bab 1 hingga Bab 4 pada kuis evaluasi komprehensif di bawah ini.
+
+---
+
+## Evaluasi Akhir Pemahaman
+
+Pilihlah satu jawaban yang paling tepat untuk setiap pertanyaan berikut:
+
+<Quiz
+  question="1. Manakah tag HTML5 semantik yang paling tepat digunakan untuk membungkus konten artikel blog atau kartu postingan mandiri?"
+  options={[
+    "Tag &lt;article&gt;",
+    "Tag &lt;section&gt;",
+    "Tag &lt;div&gt;",
+    "Tag &lt;aside&gt;"
+  ]}
+  correctIndex={0}
+  explanation="Tepat sekali! Elemen article dirancang khusus untuk memuat konten mandiri yang dapat didistribusikan secara independen, seperti postingan blog atau kartu produk."
+/>
+
+<Quiz
+  question="2. Mengapa aturan CSS global 'box-sizing: border-box;' sangat dianjurkan dalam setiap proyek web?"
+  options={[
+    "Untuk membuat semua sudut kotak menjadi melengkung otomatis",
+    "Agar nilai padding dan border dihitung di dalam total lebar/tinggi elemen sehingga tata letak tidak pecah",
+    "Untuk menghapus seluruh margin bawaan dari browser",
+    "Agar elemen otomatis berpindah ke tengah layar"
+  ]}
+  correctIndex={1}
+  explanation="Benar! 'box-sizing: border-box' memastikan bahwa padding dan border tidak menambah ukuran luar elemen, sehingga perhitungan layout responsif menjadi sangat stabil."
+/>
+
+<Quiz
+  question="3. Properti CSS Grid manakah yang paling ampuh menyusun jumlah kolom secara otomatis sesuai lebar layar tanpa perlu media query?"
+  options={[
+    "grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));",
+    "grid-template-columns: 1fr 1fr 1fr;",
+    "display: flex; flex-direction: row;",
+    "float: left; width: 33.33%;"
+  ]}
+  correctIndex={0}
+  explanation="Tepat sekali! repeat(auto-fit, minmax(...)) secara otomatis menghitung jumlah kolom yang muat pada lebar viewport saat itu."
+/>
+
+<Quiz
+  question="4. Metode manakah yang paling tepat digunakan dalam JavaScript modern untuk mengirim permintaan HTTP secara asinkron tanpa memblokir tampilan UI?"
+  options={[
+    "fetch() dengan async / await",
+    "document.write()",
+    "window.alert()",
+    "Math.random()"
+  ]}
+  correctIndex={0}
+  explanation="Benar! fetch() berbasis Promise yang dipadukan dengan async/await adalah standar modern untuk komunikasi data asinkron di browser."
+/>
+
+<Quiz
+  question="5. Di mana lokasi terbaik untuk mendefinisikan Variabel CSS (Custom Properties) agar dapat diakses oleh seluruh elemen di halaman?"
+  options={[
+    "Di dalam selektor :root",
+    "Di dalam tag &lt;title&gt;",
+    "Di dalam file gambar SVG",
+    "Di dalam atribut alt gambar"
+  ]}
+  correctIndex={0}
+  explanation="Sempurna! Selektor pseudo-class :root mewakili elemen html teratas, sehingga seluruh variabel CSS yang dideklarasikan di dalamnya memiliki cakupan (scope) global."
+/>
+
+---
+
+<Callout type="tip" title="Selamat Atas Kelulusan Anda!">
+  Anda telah menyelesaikan seluruh kurikulum **Pengembangan Web Frontend: Dari Dasar hingga Mahir**. Tekan tombol **Tandai Selesai Pelajaran Ini** di bawah untuk melengkapi progres kelulusan 100% pada kursus ini!
+</Callout>

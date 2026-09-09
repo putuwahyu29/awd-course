@@ -1,0 +1,348 @@
+---
+interface Props {
+  course: {
+    id: string;
+    data: {
+      title: string;
+      description: string;
+      category: string;
+      level: string;
+      duration: string;
+      instructor: string;
+      instructorRole: string;
+      instructorAvatar?: string | null;
+      thumbnail?: string;
+      isFeatured?: boolean;
+      isPublished?: boolean;
+      status?: 'published' | 'draft';
+      updatedAt?: string;
+    };
+  };
+  lessonCount?: number;
+}
+
+const { course, lessonCount = 0 } = Astro.props;
+const {
+  title,
+  description,
+  category,
+  level,
+  duration,
+  instructor,
+  instructorRole,
+  instructorAvatar,
+  updatedAt = '2026-09-08',
+} = course.data;
+
+const categoryLabels: Record<string, string> = {
+  'web-dev': 'Pengembangan Web',
+  'programming': 'Pemrograman',
+  'ui-ux': 'Desain UI/UX',
+  'data-ai': 'Sains Data & AI',
+  'cloud': 'Cloud & DevOps',
+};
+
+function formatIndonesianDate(dateStr?: string): string {
+  if (!dateStr) return '20 Agustus 2026';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const mIdx = parseInt(parts[1], 10) - 1;
+      return `${parseInt(parts[2], 10)} ${months[mIdx] || parts[1]} ${parts[0]}`;
+    }
+  } catch (e) {}
+  return dateStr;
+}
+
+const formattedDate = formatIndonesianDate(updatedAt);
+---
+
+<div class="course-card">
+  <a href={`/courses/${course.id}`} class="course-card-link" aria-label={`Buka kursus ${title}`}>
+    <!-- Header Card Banner -->
+    <div class="card-banner">
+      <div class="banner-badge-row">
+        <span class="category-badge">
+          {categoryLabels[category] || category}
+        </span>
+        <span class="level-badge">
+          {level}
+        </span>
+      </div>
+
+      <h3 class="course-card-title">{title}</h3>
+    </div>
+
+    <!-- Body Content -->
+    <div class="card-body">
+      <p class="course-card-desc">{description}</p>
+
+      <!-- Metadata Badges -->
+      <div class="course-meta-tags">
+        <div class="meta-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>{duration}</span>
+        </div>
+
+        <span class="meta-bullet">•</span>
+
+        <div class="meta-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span>{lessonCount} Pelajaran</span>
+        </div>
+
+        <span class="meta-bullet">•</span>
+
+        <div class="meta-tag date-tag">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>{formattedDate}</span>
+        </div>
+      </div>
+
+      <!-- Instructor & Action Footer -->
+      <div class="card-bottom-bar">
+        <div class="instructor-profile">
+          {instructorAvatar ? (
+            <img src={instructorAvatar} alt={instructor} class="instructor-avatar-img-sm" />
+          ) : (
+            <div class="instructor-avatar">
+              {instructor.charAt(0)}
+            </div>
+          )}
+          <div class="instructor-text">
+            <span class="instructor-name">{instructor}</span>
+            <span class="instructor-role">{instructorRole}</span>
+          </div>
+        </div>
+
+        <span class="btn btn-sm btn-primary action-btn">
+          <span>Buka Kursus</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </span>
+      </div>
+    </div>
+  </a>
+</div>
+
+<style>
+  .course-card {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .course-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary);
+    box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.1);
+  }
+
+  .course-card-link {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  .card-banner {
+    padding: 1.5rem 1.5rem 1.15rem 1.5rem;
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .banner-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .category-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary);
+    background-color: var(--primary-light);
+    border: 1px solid var(--primary-border);
+    border-radius: 99px;
+  }
+
+  .level-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 99px;
+  }
+
+  .course-card-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1.35;
+    color: var(--text-main);
+    margin: 0;
+    letter-spacing: -0.01em;
+    transition: color 0.15s ease;
+  }
+
+  .course-card:hover .course-card-title {
+    color: var(--primary);
+  }
+
+  .card-body {
+    padding: 1.35rem 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+  }
+
+  .course-card-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 1.35rem;
+    flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .course-meta-tags {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.775rem;
+    color: var(--text-muted);
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 1.1rem;
+    flex-wrap: wrap;
+  }
+
+  .meta-tag {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .date-tag {
+    color: var(--text-muted);
+  }
+
+  .meta-bullet {
+    color: var(--border-medium);
+  }
+
+  .card-bottom-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: auto;
+  }
+
+  .instructor-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+  }
+
+  .instructor-avatar-img-sm {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-medium);
+    background-color: var(--bg-surface-elevated);
+    flex-shrink: 0;
+  }
+
+  .instructor-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background-color: var(--primary);
+    color: #ffffff;
+    font-size: 0.825rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .instructor-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .instructor-name {
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .instructor-role {
+    font-size: 0.675rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .action-btn {
+    flex-shrink: 0;
+    pointer-events: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-md);
+  }
+
+  @media (max-width: 480px) {
+    .card-banner {
+      padding: 1.15rem 1.25rem 1rem 1.25rem;
+    }
+    .card-body {
+      padding: 1.15rem 1.25rem 1.25rem 1.25rem;
+    }
+  }
+</style>

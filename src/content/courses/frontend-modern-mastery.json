@@ -1,0 +1,16 @@
+{
+  "title": "Pengembangan Web Frontend: Dari Dasar hingga Mahir",
+  "description": "Pelajari fondasi web modern mulai dari HTML5 semantik, CSS3 responsif, JavaScript DOM & Async, hingga pembuatan portfolio proyek nyata.",
+  "category": "web-dev",
+  "level": "Pemula",
+  "duration": "4 Jam",
+  "instructor": "I Putu Agus Wahyu Dupayana",
+  "instructorRole": "Software Engineer di AWD.dev",
+  "instructorAvatar": "/images/instructors/wahyu-dupayana.jpg",
+  "thumbnail": "/images/courses/frontend-modern.svg",
+  "isFeatured": true,
+  "isPublished": false,
+  "status": "draft",
+  "updatedAt": "2026-09-08",
+  "order": 2
+}

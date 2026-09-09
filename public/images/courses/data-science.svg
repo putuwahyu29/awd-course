@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="450" fill="url(#bg)"/>
+  <circle cx="400" cy="200" r="140" fill="none" stroke="rgba(56, 189, 248, 0.15)" stroke-width="2"/>
+  <circle cx="400" cy="200" r="190" fill="none" stroke="rgba(99, 102, 241, 0.1)" stroke-width="2"/>
+  <g transform="translate(340, 130) scale(2.5)">
+    <path d="M24 6c-8 0-14 4-14 10v6h14v2H10c-6 0-10 4-10 10 0 6 4 10 10 10h6v-6c0-6 4-10 10-10h14V22c0-8-6-16-16-16zm-7 5a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm7 31c8 0 14-4 14-10v-6H34v-2h14c6 0 10-4 10-10 0-6-4-10-10-10h-6v6c0 6-4 10-10 10H14v6c0 8 6 16 16 16zm7-5a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="url(#accent)"/>
+  </g>
+  <text x="400" y="340" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-weight="700" font-size="28" fill="#f8fafc">Data Science &amp; Python</text>
+  <text x="400" y="375" text-anchor="middle" font-family="'Inter', system-ui, sans-serif" font-weight="400" font-size="16" fill="#94a3b8">NumPy • Pandas • Matplotlib • Seaborn</text>
+</svg>

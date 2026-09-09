@@ -1,0 +1,627 @@
+---
+import { Code } from 'astro:components';
+
+interface CellData {
+  type?: 'code' | 'markdown';
+  code: string;
+  output?: string;
+  image?: string;
+}
+
+interface Props {
+  title?: string;
+  colabUrl?: string;
+  ipynbFile?: string;
+  cells?: CellData[];
+}
+
+const {
+  title = 'Interactive Jupyter Notebook',
+  colabUrl,
+  ipynbFile,
+  cells = [
+    {
+      type: 'code',
+      code: `# Sel 1: Impor pustaka data science\nimport numpy as np\nimport pandas as pd\n\nprint("Pustaka NumPy & Pandas berhasil dimuat!")`,
+      output: 'Pustaka NumPy & Pandas berhasil dimuat!',
+    },
+    {
+      type: 'code',
+      code: `# Sel 2: Membuat dan menampilkan DataFrame\ndata = {\n    'Nama Siswa': ['Andi', 'Budi', 'Citra', 'Dewi', 'Eko'],\n    'Nilai Teori': [85, 92, 78, 95, 88],\n    'Nilai Praktik': [90, 88, 85, 98, 92]\n}\n\ndf = pd.DataFrame(data)\ndf['Rata-Rata'] = (df['Nilai Teori'] + df['Nilai Praktik']) / 2\n\nprint(df)`,
+      output: `  Nama Siswa  Nilai Teori  Nilai Praktik  Rata-Rata
+0       Andi           85             90       87.5
+1       Budi           92             88       90.0
+2      Citra           78             85       81.5
+3       Dewi           95             98       96.5
+4        Eko           88             92       90.0`,
+    },
+    {
+      type: 'code',
+      code: `# Sel 3: Analisis Statistik Cepat\nprint("Rata-rata Kelas :", df['Rata-Rata'].mean())\nprint("Nilai Tertinggi  :", df['Rata-Rata'].max())\nprint("Siswa Terbaik    :", df.loc[df['Rata-Rata'].idxmax()]['Nama Siswa'])`,
+      output: `Rata-rata Kelas : 89.1
+Nilai Tertinggi  : 96.5
+Siswa Terbaik    : Dewi`,
+    },
+  ],
+} = Astro.props;
+
+const cleanRelPath = ipynbFile ? `public${ipynbFile.startsWith('/') ? '' : '/'}${ipynbFile}` : '';
+const effectiveGithubUrl = cleanRelPath ? `https://github.com/putuwahyu29/awd-course/blob/main/${cleanRelPath}` : 'https://github.com/putuwahyu29/awd-course';
+const effectiveColabUrl = (colabUrl && colabUrl !== 'https://colab.research.google.com')
+  ? colabUrl
+  : (cleanRelPath ? `https://colab.research.google.com/github/putuwahyu29/awd-course/blob/main/${cleanRelPath}` : 'https://colab.research.google.com');
+
+const notebookId = `notebook-${Math.random().toString(36).substring(2, 9)}`;
+const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
+---
+
+<div class="interactive-notebook-wrap card my-8" id={notebookId} data-runner-enabled={isRunnerEnabled ? 'true' : 'false'}>
+  <!-- Notebook Toolbar Header -->
+  <div class="notebook-toolbar">
+    <div class="toolbar-left">
+      <div class="colab-badge-logo">
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path fill="#F9AB00" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.12 14.86l-3.32 3.32a.75.75 0 0 1-1.06 0l-5.6-5.6a.75.75 0 0 1 0-1.06l3.32-3.32a.75.75 0 0 1 1.06 0l5.6 5.6a.75.75 0 0 1 0 1.06z"/>
+        </svg>
+      </div>
+      <div class="toolbar-title-wrap">
+        <h4 class="notebook-title">{title}</h4>
+        <span class="engine-badge">{isRunnerEnabled ? 'Python 3 (In-Browser Kernel)' : 'Python 3 • Pratinjau Notebook'}</span>
+      </div>
+    </div>
+
+    <div class="toolbar-right">
+      {isRunnerEnabled && (
+        <button type="button" class="btn btn-secondary btn-sm run-all-btn" title="Jalankan Seluruh Sel">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Jalankan Semua</span>
+        </button>
+      )}
+
+      {isRunnerEnabled && (
+        <button type="button" class="btn btn-secondary btn-sm add-cell-btn" title="Tambah Sel Baru">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span>+ Sel</span>
+        </button>
+      )}
+
+      <a href={effectiveGithubUrl} target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" title="Buka File di GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        <span>GitHub</span>
+      </a>
+
+      <a href={effectiveColabUrl} target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm colab-action-btn" title="Buka Langsung di Google Colab via GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Buka di Colab</span>
+      </a>
+
+      {ipynbFile && (
+        <a href={ipynbFile} download class="btn btn-outline btn-sm" title="Unduh File .ipynb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>.ipynb</span>
+        </a>
+      )}
+    </div>
+  </div>
+
+  <!-- Cells Container -->
+  <div class="notebook-cells-list">
+    {cells.map((cell, idx) => (
+      <div class="notebook-cell" data-cell-index={idx}>
+        <!-- Cell Left Gutter (Play Button & In [] Indicator) -->
+        <div class="cell-gutter">
+          {isRunnerEnabled && (
+            <button type="button" class="cell-run-btn" title="Jalankan Sel Ini">
+              <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                <polygon points="6 4 20 12 6 20 6 4"></polygon>
+              </svg>
+              <div class="cell-spinner hidden"></div>
+            </button>
+          )}
+          <span class="cell-in-num">[{idx + 1}]</span>
+        </div>
+
+        <!-- Cell Main Editor & Output -->
+        <div class="cell-content">
+          <div class="cell-editor-wrap" data-code={cell.code}>
+            {isRunnerEnabled ? (
+              <textarea class="cell-code-editor" spellcheck="false" rows={cell.code.split('\n').length + 1}>{cell.code}</textarea>
+            ) : (
+              <div class="code-shiki-container">
+                <Code code={cell.code} lang="python" themes={{ light: 'github-light', dark: 'github-dark' }} wrap={false} />
+              </div>
+            )}
+          </div>
+
+          <div class={`cell-output-wrap ${cell.output || cell.image ? '' : 'hidden'}`}>
+            <div class="cell-output-header">
+              <span class="cell-out-num">Out [{idx + 1}]:</span>
+              <button type="button" class="cell-clear-btn" title="Bersihkan Output">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+            {cell.image && (
+              <div class="cell-output-img-wrap mb-2">
+                <img src={cell.image} alt={`Visualisasi Sel Out [${idx + 1}]`} class="max-w-full rounded border border-border" loading="lazy" />
+              </div>
+            )}
+            <pre class={`cell-output-console ${cell.output ? '' : (cell.image ? 'hidden' : '')}`}><code>{cell.output || ''}</code></pre>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</div>
+
+<script>
+  let sharedPyodidePromise: Promise<any> | null = null;
+
+  function getNotebookPyodide() {
+    if (!sharedPyodidePromise) {
+      sharedPyodidePromise = new Promise(async (resolve, reject) => {
+        try {
+          // @ts-ignore
+          if (!window.loadPyodide) {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js';
+            document.head.appendChild(s);
+            await new Promise((res) => (s.onload = res));
+          }
+          // @ts-ignore
+          const pyodide = await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/',
+          });
+
+          // Auto-load common scientific packages
+          await pyodide.loadPackage(['numpy', 'pandas']);
+          resolve(pyodide);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+    return sharedPyodidePromise;
+  }
+
+  function setupNotebooks() {
+    document.querySelectorAll('.interactive-notebook-wrap').forEach((nb) => {
+      const isRunnerEnabled = nb.getAttribute('data-runner-enabled') === 'true';
+      if (!isRunnerEnabled) return;
+
+      const runAllBtn = nb.querySelector('.run-all-btn');
+      const addCellBtn = nb.querySelector('.add-cell-btn');
+      const cellsList = nb.querySelector('.notebook-cells-list');
+
+      async function runSingleCell(cell: Element) {
+        const runBtn = cell.querySelector('.cell-run-btn') as HTMLButtonElement;
+        const playIcon = cell.querySelector('.play-icon');
+        const spinner = cell.querySelector('.cell-spinner');
+        const textarea = cell.querySelector('.cell-code-editor') as HTMLTextAreaElement;
+        const outputWrap = cell.querySelector('.cell-output-wrap');
+        const outputCode = cell.querySelector('.cell-output-console code');
+
+        if (!textarea || !outputCode) return;
+
+        playIcon?.classList.add('hidden');
+        spinner?.classList.remove('hidden');
+        if (runBtn) runBtn.disabled = true;
+
+        outputWrap?.classList.remove('hidden');
+        outputCode.textContent = 'Memproses di kernel Python...\n';
+
+        try {
+          const pyodide = await getNotebookPyodide();
+          outputCode.textContent = '';
+
+          let stdoutLogs = '';
+          pyodide.setStdout({ batched: (m: string) => { stdoutLogs += m + '\n'; } });
+          pyodide.setStderr({ batched: (m: string) => { stdoutLogs += 'Error: ' + m + '\n'; } });
+
+          const result = await pyodide.runPythonAsync(textarea.value);
+
+          if (stdoutLogs) {
+            outputCode.textContent = stdoutLogs;
+          } else if (result !== undefined) {
+            outputCode.textContent = String(result);
+          } else {
+            outputCode.textContent = '[Sel selesai dieksekusi]';
+          }
+        } catch (err: any) {
+          console.error('InteractiveNotebook error:', err);
+          const errStr = String(err?.message || err || '').toLowerCase();
+          if (
+            errStr.includes('fetch') ||
+            errStr.includes('network') ||
+            errStr.includes('cdn') ||
+            errStr.includes('script')
+          ) {
+            outputCode.textContent =
+              'Gagal mengunduh modul kernel Python dari server CDN. Pastikan perangkat Anda terhubung ke internet yang stabil.';
+          } else {
+            outputCode.textContent = `Pesan Kesalahan Kode:\n${err.message || err}`;
+          }
+        } finally {
+          playIcon?.classList.remove('hidden');
+          spinner?.classList.add('hidden');
+          if (runBtn) runBtn.disabled = false;
+        }
+      }
+
+      // Attach handlers to existing cells
+      nb.querySelectorAll('.notebook-cell').forEach((cell) => {
+        const runBtn = cell.querySelector('.cell-run-btn');
+        const clearBtn = cell.querySelector('.cell-clear-btn');
+        const outputWrap = cell.querySelector('.cell-output-wrap');
+        const outputCode = cell.querySelector('.cell-output-console code');
+
+        runBtn?.addEventListener('click', () => runSingleCell(cell));
+        clearBtn?.addEventListener('click', () => {
+          if (outputCode) outputCode.textContent = '';
+          outputWrap?.classList.add('hidden');
+        });
+      });
+
+      // Run All Button
+      runAllBtn?.addEventListener('click', async () => {
+        const allCells = Array.from(nb.querySelectorAll('.notebook-cell'));
+        for (const c of allCells) {
+          await runSingleCell(c);
+        }
+      });
+
+      // Add Cell Button
+      addCellBtn?.addEventListener('click', () => {
+        if (!cellsList) return;
+        const currentCount = cellsList.querySelectorAll('.notebook-cell').length;
+        const newCell = document.createElement('div');
+        newCell.className = 'notebook-cell';
+        newCell.setAttribute('data-cell-index', String(currentCount));
+        newCell.innerHTML = `
+          <div class="cell-gutter">
+            <button type="button" class="cell-run-btn" title="Jalankan Sel">
+              <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+                <polygon points="6 4 20 12 6 20 6 4"></polygon>
+              </svg>
+              <div class="cell-spinner hidden"></div>
+            </button>
+            <span class="cell-in-num">[${currentCount + 1}]</span>
+          </div>
+          <div class="cell-content">
+            <div class="cell-editor-wrap">
+              <textarea class="cell-code-editor" spellcheck="false" rows="3"># Tulis kode Python Anda\n</textarea>
+            </div>
+            <div class="cell-output-wrap hidden">
+              <div class="cell-output-header">
+                <span class="cell-out-num">Out [${currentCount + 1}]:</span>
+                <button type="button" class="cell-clear-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+              <pre class="cell-output-console"><code></code></pre>
+            </div>
+          </div>
+        `;
+        cellsList.appendChild(newCell);
+
+        const newRunBtn = newCell.querySelector('.cell-run-btn');
+        const newClearBtn = newCell.querySelector('.cell-clear-btn');
+        newRunBtn?.addEventListener('click', () => runSingleCell(newCell));
+        newClearBtn?.addEventListener('click', () => {
+          newCell.querySelector('.cell-output-wrap')?.classList.add('hidden');
+        });
+      });
+    });
+  }
+
+  setupNotebooks();
+  document.addEventListener('astro:page-load', setupNotebooks);
+</script>
+
+<style>
+  .interactive-notebook-wrap {
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+  }
+
+  .notebook-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .colab-badge-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background-color: rgba(245, 158, 11, 0.12);
+  }
+
+  .toolbar-title-wrap {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .notebook-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .engine-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--accent-emerald);
+  }
+
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .colab-action-btn {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+    color: #ffffff !important;
+  }
+
+  .colab-action-btn:hover {
+    background-color: #d97706;
+  }
+
+  /* Cells List */
+  .notebook-cells-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background-color: var(--bg-main);
+  }
+
+  .notebook-cell {
+    display: flex;
+    gap: 0.75rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    transition: border-color 0.15s ease;
+  }
+
+  .notebook-cell:focus-within {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+  }
+
+  .cell-gutter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    width: 44px;
+    flex-shrink: 0;
+  }
+
+  .cell-run-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .cell-run-btn:hover {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+
+  .cell-in-num {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text-subtle);
+  }
+
+  .cell-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border-subtle);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .cell-content {
+    flex-grow: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .cell-editor-wrap {
+    background-color: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .cell-code-editor {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: transparent;
+    color: var(--code-text);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border: none;
+    outline: none;
+    resize: vertical;
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+    tab-size: 4;
+    -webkit-overflow-scrolling: touch;
+    transition: color 0.2s ease;
+  }
+
+  .cell-editor-wrap :global(pre.astro-code) {
+    margin: 0 !important;
+    padding: 0.75rem 1rem !important;
+    background-color: transparent !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+    white-space: pre !important;
+    word-break: normal !important;
+    word-wrap: normal !important;
+    tab-size: 4 !important;
+  }
+
+  .cell-editor-wrap :global(code) {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    background: transparent !important;
+  }
+
+  .cell-output-wrap {
+    background-color: var(--code-out-bg);
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem 0.85rem;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .cell-output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+  }
+
+  .cell-out-num {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--accent-rose);
+    font-weight: 700;
+  }
+
+  .cell-clear-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-subtle);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+
+  .cell-clear-btn:hover {
+    color: var(--text-main);
+  }
+
+  .cell-output-console {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.825rem;
+    line-height: 1.45;
+    color: var(--text-main);
+    white-space: pre;
+    word-break: normal;
+    word-wrap: normal;
+    max-height: 280px;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  @media (max-width: 640px) {
+    .notebook-toolbar {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0.75rem 0.85rem;
+      gap: 0.65rem;
+    }
+    .toolbar-right {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .toolbar-right .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.75rem;
+    }
+    .cell-gutter {
+      width: 36px;
+    }
+    .cell-run-btn {
+      width: 28px;
+      height: 28px;
+    }
+    .cell-code-editor {
+      padding: 0.65rem 0.75rem;
+      font-size: 0.8rem;
+    }
+    .cell-output-console {
+      font-size: 0.775rem;
+    }
+  }
+</style>

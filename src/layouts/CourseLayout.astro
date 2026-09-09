@@ -1,0 +1,1936 @@
+---
+import Header from '../components/Header.astro';
+import Sidebar from '../components/Sidebar.astro';
+import YouTube from '../components/mdx/YouTube.astro';
+import PDFViewer from '../components/mdx/PDFViewer.astro';
+import ScrollToTop from '../components/ScrollToTop.astro';
+import PresentationMode from '../components/PresentationMode.astro';
+import ChatWidget from '../components/ChatWidget.astro';
+import SearchModal from '../components/SearchModal.astro';
+import { ClientRouter } from 'astro:transitions';
+import '../styles/global.css';
+
+interface Props {
+  course: any;
+  lessons: any[];
+  currentLesson: any;
+  headings?: { depth: number; slug: string; text: string }[];
+}
+
+const { course, lessons, currentLesson, headings = [] } = Astro.props;
+
+// Sort lessons by order
+const sortedLessons = [...lessons].sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+const currentIndex = sortedLessons.findIndex((l) => l.id === currentLesson.id);
+const prevLesson = currentIndex > 0 ? sortedLessons[currentIndex - 1] : null;
+const nextLesson = currentIndex < sortedLessons.length - 1 ? sortedLessons[currentIndex + 1] : null;
+
+// Filter headings for ToC (depth 2 to 4)
+const tocHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 4);
+
+function formatIndonesianDate(dateStr?: string): string {
+  if (!dateStr) return '20 Agu 2026';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      const mIdx = parseInt(parts[1], 10) - 1;
+      return `${parseInt(parts[2], 10)} ${months[mIdx] || parts[1]} ${parts[0]}`;
+    }
+  } catch (e) {}
+  return dateStr;
+}
+
+const formattedDate = formatIndonesianDate(currentLesson.data.updatedAt || course.data.updatedAt || '2026-09-08');
+const siteUrl = Astro.site ? Astro.site.href.replace(/\/$/, '') : 'https://course.awd.my.id';
+const canonicalURL = new URL(Astro.url.pathname, siteUrl);
+const ogImageURL = new URL('/images/og-banner.jpg', siteUrl);
+
+const isAssignment = currentLesson?.data?.contentType === 'assignment';
+const isDocumentModule = currentLesson?.data?.contentType === 'pdf' || Boolean(currentLesson?.data?.pdfUrl);
+const showAiBox = !isAssignment && !isDocumentModule;
+
+const jsonLdCourse = {
+  '@context': 'https://schema.org',
+  '@type': 'Course',
+  name: course.data.title,
+  description: course.data.description,
+  provider: {
+    '@type': 'Person',
+    name: course.data.instructor || 'I Putu Agus Wahyu Dupayana',
+    jobTitle: course.data.instructorRole || 'Software Engineer',
+  },
+  hasCourseInstance: {
+    '@type': 'CourseInstance',
+    courseMode: 'Online',
+    courseWorkload: course.data.duration || '6 Jam',
+  },
+};
+
+const jsonLdBreadcrumbs = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Beranda',
+      item: siteUrl,
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Katalog Kursus',
+      item: `${siteUrl}/courses`,
+    },
+    {
+      '@type': 'ListItem',
+      position: 3,
+      name: course.data.title,
+      item: `${siteUrl}/courses/${course.id}`,
+    },
+    {
+      '@type': 'ListItem',
+      position: 4,
+      name: currentLesson.data.title,
+      item: canonicalURL.href,
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Performance & Font Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+
+    <!-- SEO Primary Meta Tags -->
+    <title>{currentLesson.data.title} | {course.data.title} | Awd Course</title>
+    <meta name="title" content={`${currentLesson.data.title} | ${course.data.title} | Awd Course`} />
+    <meta name="description" content={`Pelajari ${currentLesson.data.title} (${currentLesson.data.chapter}) dalam kursus ${course.data.title}. Waktu belajar: ${currentLesson.data.duration}.`} />
+    <meta name="author" content={course.data.instructor || 'I Putu Agus Wahyu Dupayana'} />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Theme Color Tags -->
+    <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:site_name" content="Awd Course" />
+    <meta property="og:title" content={`${currentLesson.data.title} - ${course.data.title}`} />
+    <meta property="og:description" content={`Pelajari ${currentLesson.data.title} dalam kursus ${course.data.title}.`} />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="id_ID" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={`${currentLesson.data.title} - ${course.data.title}`} />
+    <meta name="twitter:description" content={`Pelajari ${currentLesson.data.title} dalam kursus ${course.data.title}.`} />
+    <meta name="twitter:image" content={ogImageURL} />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLdCourse)} />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLdBreadcrumbs)} />
+
+    <!-- Client-Side SPA Router / View Transitions -->
+    <ClientRouter />
+
+    <script is:inline>
+      function applyTheme() {
+        const theme = (() => {
+          if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+            return localStorage.getItem('theme');
+          }
+          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+          }
+          return 'light';
+        })();
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+      applyTheme();
+      document.addEventListener('astro:after-swap', applyTheme);
+    </script>
+  </head>
+  <body class="reader-body">
+    <!-- Top Global Course Progress Bar -->
+    <div class="global-top-progress-track">
+      <div id="top-global-progress-bar" class="global-top-progress-fill" style="width: 0%;"></div>
+    </div>
+
+    <Header currentPath="/courses" />
+
+    <!-- Mobile Sticky Subheader Bar (Visible on < 1100px) -->
+    <div class="mobile-reader-bar">
+      <div class="mobile-reader-bar-left">
+        <button id="mobile-sidebar-open-btn" class="btn btn-secondary btn-sm mobile-action-btn" aria-label="Buka Silabus Modul">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+          <span>Silabus</span>
+        </button>
+
+        {tocHeadings.length > 0 && (
+          <button id="mobile-toc-open-btn" class="btn btn-secondary btn-sm mobile-action-btn" aria-label="Buka Daftar Isi Materi">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+              <line x1="8" y1="6" x2="21" y2="6"></line>
+              <line x1="8" y1="12" x2="21" y2="12"></line>
+              <line x1="8" y1="18" x2="21" y2="18"></line>
+              <line x1="3" y1="6" x2="3.01" y2="6"></line>
+              <line x1="3" y1="12" x2="3.01" y2="12"></line>
+              <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            <span>Daftar Isi ({tocHeadings.length})</span>
+          </button>
+        )}
+
+        <button type="button" class="btn btn-secondary btn-sm mobile-action-btn btn-trigger-presentation" aria-label="Buka Mode Presentasi Slide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" class="text-primary">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span>Slide</span>
+        </button>
+      </div>
+
+      <span class="mobile-progress-badge" id="mobile-progress-percent-text">0% Selesai</span>
+    </div>
+
+    <div class="course-reader-layout">
+      <!-- Left Sticky Sidebar Navigation -->
+      <Sidebar course={course} lessons={sortedLessons} currentLessonSlug={currentLesson.id} currentLessonId={currentLesson.id} />
+
+      <!-- Center Main Lesson Content -->
+      <main class="reader-main">
+        <div class="reader-inner">
+          <div class="lesson-article-wrapper">
+            <!-- Breadcrumbs -->
+            <nav class="reader-breadcrumbs" aria-label="Breadcrumb">
+              <a href="/courses">Kursus</a>
+              <span class="crumb-sep">/</span>
+              <a href={`/courses/${course.id}`}>{course.data.title}</a>
+              <span class="crumb-sep">/</span>
+              <span class="current-crumb">{currentLesson.data.chapter}</span>
+            </nav>
+
+            <header class="lesson-header">
+              <h1 class="lesson-title">{currentLesson.data.title}</h1>
+
+              <div class="lesson-meta-bar">
+                <div class="meta-left">
+                  <span class="meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>{currentLesson.data.duration}</span>
+                  </span>
+
+                  <span class="meta-dot">•</span>
+
+                  <span class="meta-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                      <line x1="16" y1="2" x2="16" y2="6"></line>
+                      <line x1="8" y1="2" x2="8" y2="6"></line>
+                      <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    <span>Pembaruan: {formattedDate}</span>
+                  </span>
+
+                  {currentLesson.data.contentType === 'video' && (
+                    <span class="type-pill text-rose">• Video Tutorial</span>
+                  )}
+                  {currentLesson.data.contentType === 'pdf' && (
+                    <span class="type-pill text-amber">• Modul PDF</span>
+                  )}
+                  {currentLesson.data.contentType === 'assignment' && (
+                    <span class="type-pill text-amber">• Tugas Praktik</span>
+                  )}
+                </div>
+
+                <div class="meta-right">
+                  <button type="button" class="btn btn-secondary btn-sm btn-trigger-presentation desktop-presentation-btn" title="Buka Mode Presentasi Slide & Pointer (Tekan P)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" class="text-primary" aria-hidden="true">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                      <line x1="8" y1="21" x2="16" y2="21"></line>
+                      <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <span>Mode Presentasi (P)</span>
+                  </button>
+                </div>
+              </div>
+
+              {currentLesson.data.isPublished === false && (
+                <div class="card" style="margin-top: 1rem; padding: 0.85rem 1.15rem; background-color: var(--bg-surface-elevated); border-left: 3px solid var(--border-medium); display: flex; align-items: center; gap: 0.75rem;">
+                  <div style="font-size: 0.85rem; color: var(--text-muted);">
+                    <strong style="color: var(--text-main);">Pratinjau Materi:</strong> Modul ini sedang dalam tahap penyesuaian materi oleh pengajar.
+                  </div>
+                </div>
+              )}
+            </header>
+
+            <!-- Optional Auto-Embed Media from Frontmatter -->
+            {currentLesson.data.youtubeId && (
+              <div class="media-container">
+                <YouTube id={currentLesson.data.youtubeId} title={currentLesson.data.title} />
+              </div>
+            )}
+
+            {currentLesson.data.pdfUrl && (
+              <div class="media-container">
+                <PDFViewer
+                  file={currentLesson.data.pdfUrl}
+                  title={currentLesson.data.pdfTitle || 'Modul Pembelajaran (PDF)'}
+                />
+              </div>
+            )}
+
+            <!-- In-Lesson AI Assistant Box (Only on regular lessons, hidden on assignments & document/pdf modules) -->
+            {showAiBox && (
+              <div class="lesson-ai-action-box card">
+                <div class="ai-box-top">
+                  <div class="ai-box-identity">
+                    <div class="ai-box-avatar">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+                        <circle cx="12" cy="5" r="2"></circle>
+                        <path d="M12 7v4"></path>
+                      </svg>
+                    </div>
+                    <div class="ai-box-text">
+                      <span class="ai-box-heading">Asisten AI Modul</span>
+                      <span class="ai-box-sub">Tanyakan materi, ringkasan, atau penjelasan kode bab ini langsung ke AI</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="ai-box-grid">
+                  <button type="button" class="ai-quick-action-card" data-ai-prompt={`Tolong buatkan ringkasan 3 poin kunci terpenting dari modul '${currentLesson.data.title}' dalam kursus '${course.data.title}'.`}>
+                    <div class="ai-action-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                      </svg>
+                    </div>
+                    <div class="ai-action-info">
+                      <strong>Rangkum Poin Kunci</strong>
+                      <span>Ringkasan inti materi bab ini</span>
+                    </div>
+                  </button>
+                  <button type="button" class="ai-quick-action-card" data-ai-prompt={`Apa saja konsep kunci atau istilah teknis penting yang wajib saya pahami pada materi '${currentLesson.data.title}'? Tolong jelaskan dengan analogi sederhana.`}>
+                    <div class="ai-action-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 18h6"></path>
+                        <path d="M10 22h4"></path>
+                        <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"></path>
+                      </svg>
+                    </div>
+                    <div class="ai-action-info">
+                      <strong>Jelaskan Konsep</strong>
+                      <span>Istilah dan penjelasan materi</span>
+                    </div>
+                  </button>
+                  <button type="button" class="ai-quick-action-card" data-ai-prompt={`Berikan contoh kode atau studi kasus praktis tambahan yang relevan dengan topik '${currentLesson.data.title}'.`}>
+                    <div class="ai-action-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="16 18 22 12 16 6"></polyline>
+                        <polyline points="8 6 2 12 8 18"></polyline>
+                      </svg>
+                    </div>
+                    <div class="ai-action-info">
+                      <strong>Contoh Kode Praktik</strong>
+                      <span>Studi kasus tambahan</span>
+                    </div>
+                  </button>
+                  <button type="button" class="ai-quick-action-card" data-ai-prompt={`Saya sedang mempelajari materi '${currentLesson.data.title}' di kursus '${course.data.title}'. Ada beberapa hal yang ingin saya tanyakan seputar bab ini.`}>
+                    <div class="ai-action-icon">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                      </svg>
+                    </div>
+                    <div class="ai-action-info">
+                      <strong>Tanya Apapun</strong>
+                      <span>Buka sesi tanya jawab bebas</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <!-- Lesson Body MDX -->
+            <article class="prose lesson-body" data-content-type={currentLesson.data.contentType || 'lesson'}>
+              <slot />
+            </article>
+
+            <!-- Lesson Completion Box & Navigation Grid -->
+            <div class="lesson-navigation-card card">
+              <div class="lesson-completion-row">
+                <div class="completion-prompt">
+                  <div class="completion-icon-bubble">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="text-primary">
+                      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                      <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                  </div>
+                  <div class="completion-text">
+                    <strong class="completion-title">Progres Pembelajaran</strong>
+                    <span class="completion-desc">Tandai modul ini selesai setelah Anda memahami teori dan mempraktikkan kode.</span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  class="btn btn-secondary mark-done-btn"
+                  id="lesson-mark-done-btn"
+                  data-lesson-id={currentLesson.id}
+                  data-course-id={course.id}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16" class="done-check-icon">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                  <span class="done-btn-text">Tandai Selesai</span>
+                </button>
+              </div>
+
+              <div class="lesson-nav-divider"></div>
+
+              <div class="lesson-nav-grid">
+                {prevLesson ? (
+                  <a href={`/courses/${course.id}/${prevLesson.id}`} class="nav-direction-card prev-card">
+                    <div class="nav-direction-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                      </svg>
+                    </div>
+                    <div class="nav-direction-content">
+                      <span class="nav-direction-sub">Materi Sebelumnya</span>
+                      <strong class="nav-direction-title">{prevLesson.data.title}</strong>
+                    </div>
+                  </a>
+                ) : (
+                  <a href={`/courses/${course.id}`} class="nav-direction-card prev-card back-to-syllabus">
+                    <div class="nav-direction-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                      </svg>
+                    </div>
+                    <div class="nav-direction-content">
+                      <span class="nav-direction-sub">Menu Utama</span>
+                      <strong class="nav-direction-title">Daftar Silabus Kursus</strong>
+                    </div>
+                  </a>
+                )}
+
+                {nextLesson ? (
+                  <a href={`/courses/${course.id}/${nextLesson.id}`} class="nav-direction-card next-card">
+                    <div class="nav-direction-content">
+                      <span class="nav-direction-sub">Materi Selanjutnya</span>
+                      <strong class="nav-direction-title">{nextLesson.data.title}</strong>
+                    </div>
+                    <div class="nav-direction-icon icon-primary">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </div>
+                  </a>
+                ) : (
+                  <a href={`/courses/${course.id}`} class="nav-direction-card next-card finish-card">
+                    <div class="nav-direction-content">
+                      <span class="nav-direction-sub">Selamat! Kursus Selesai</span>
+                      <strong class="nav-direction-title">Kembali ke Silabus</strong>
+                    </div>
+                    <div class="nav-direction-icon icon-emerald">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </div>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Aside Table of Contents (Desktop Sticky Sidebar) -->
+      {tocHeadings.length > 0 && (
+        <aside class="toc-aside">
+          <div class="toc-sticky-container">
+            <h4 class="toc-heading">Daftar Isi Materi</h4>
+            <ul class="toc-nav-list">
+              {tocHeadings.map((h) => (
+                <li class={`toc-nav-item toc-level-${h.depth}`}>
+                  <a href={`#${h.slug}`} class="toc-nav-link">
+                    {h.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </aside>
+      )}
+    </div>
+
+    <!-- Mobile Slide-Up Sheet for Table of Contents -->
+    {tocHeadings.length > 0 && (
+      <div id="mobile-toc-drawer" class="mobile-toc-drawer hidden">
+        <div id="mobile-toc-backdrop" class="mobile-toc-backdrop"></div>
+        <div class="mobile-toc-panel">
+          <div class="mobile-toc-handle-bar">
+            <div class="mobile-toc-handle"></div>
+          </div>
+          <div class="mobile-toc-header">
+            <div class="mobile-toc-header-left">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" class="text-primary">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+              <h3 class="mobile-toc-title">Daftar Isi Materi</h3>
+            </div>
+            <button id="mobile-toc-close-btn" class="mobile-toc-close" aria-label="Tutup Daftar Isi">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="mobile-toc-body">
+            <ul class="mobile-toc-list">
+              {tocHeadings.map((h) => (
+                <li class={`mobile-toc-item toc-level-${h.depth}`}>
+                  <a href={`#${h.slug}`} class="mobile-toc-link">
+                    {h.text}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    )}
+
+    <!-- Global Scroll To Top Button -->
+    <ScrollToTop />
+
+    <!-- Presentation Mode Interactive Overlay Engine -->
+    <PresentationMode course={course} currentLesson={currentLesson} />
+
+    <!-- Global AI Assistant Chatbot (Mistral AI) -->
+    <ChatWidget />
+
+    <!-- Global Search Modal (Ctrl + K) -->
+    <SearchModal />
+
+    <!-- Floating Text Selection AI Tooltip -->
+    <div id="awd-text-ai-tooltip" class="text-selection-ai-tooltip hidden">
+      <button id="awd-selection-ai-btn" type="button" class="selection-ai-btn">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+          <circle cx="12" cy="12" r="4"></circle>
+        </svg>
+        <span>Tanya AI</span>
+      </button>
+    </div>
+
+    <script>
+      import { supabase, isSupabaseConfigured } from '../lib/supabase';
+
+      function setupLessonAIInteractions() {
+        const lessonTitle = document.querySelector('.lesson-title')?.textContent?.trim() || 'Modul Kursus';
+        const courseTitle = document.querySelector('.reader-breadcrumbs a:nth-child(3)')?.textContent?.trim() || 'AWD Course';
+
+        const isAssignmentLesson = document.querySelector('.lesson-body')?.getAttribute('data-content-type') === 'assignment';
+
+        function sendPromptToAwdBot(prompt: string, autoSubmit: boolean = true) {
+          if (!prompt) return;
+          if (typeof (window as any).openAwdChatWithPrompt === 'function') {
+            (window as any).openAwdChatWithPrompt(prompt, autoSubmit);
+            return;
+          }
+
+          // Custom Event dispatch fallback
+          window.dispatchEvent(new CustomEvent('awd:open-chat', { detail: { prompt, autoSubmit } }));
+
+          // Direct DOM fallback
+          const modal = document.getElementById('awd-chat-modal');
+          const backdrop = document.getElementById('awd-chat-backdrop');
+          const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+          const sendBtn = document.getElementById('chat-send-btn') as HTMLButtonElement | null;
+          const form = document.getElementById('chat-form') as HTMLFormElement | null;
+
+          if (modal) {
+            modal.classList.remove('hidden');
+            if (backdrop) backdrop.classList.remove('hidden');
+            document.body.classList.add('awd-chat-open');
+          }
+          if (input) {
+            input.value = prompt;
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+          }
+          if (autoSubmit) {
+            setTimeout(() => {
+              if (sendBtn && !sendBtn.disabled) {
+                sendBtn.click();
+              } else if (form) {
+                try {
+                  form.requestSubmit();
+                } catch (err) {
+                  form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                }
+              }
+            }, 150);
+          } else if (input) {
+            input.focus();
+          }
+        }
+
+        // 1. Setup Code Block Toolbars (Tanya AI & Salin) - Only for standard markdown pre blocks
+        const codeBlocks = document.querySelectorAll('.lesson-body pre');
+        codeBlocks.forEach((pre) => {
+          if (
+            isAssignmentLesson ||
+            pre.closest('.code-cell-container') ||
+            pre.closest('.code-runner-card') ||
+            pre.closest('.interactive-notebook-wrap') ||
+            pre.closest('.multi-lang-runner') ||
+            pre.closest('.code-output-wrapper') ||
+            pre.closest('.output-wrapper') ||
+            pre.closest('.output-console') ||
+            pre.closest('.admin-solution-wrapper') ||
+            pre.classList.contains('output-console') ||
+            (pre as HTMLElement).dataset.language === 'text'
+          ) {
+            return;
+          }
+          if (pre.querySelector('.code-block-header')) return; // Avoid duplicate
+
+          const codeEl = pre.querySelector('code');
+          const rawCode = (codeEl ? codeEl.innerText : (pre as HTMLElement).innerText) || '';
+
+          // Detect language
+          let lang = (pre as HTMLElement).dataset.language || '';
+          if (!lang && codeEl) {
+            const cls = codeEl.className || '';
+            const match = cls.match(/language-([a-zA-Z0-9_-]+)/);
+            if (match) lang = match[1];
+          }
+          if (!lang) {
+            const preCls = (pre as HTMLElement).className || '';
+            const preMatch = preCls.match(/language-([a-zA-Z0-9_-]+)/);
+            if (preMatch) lang = preMatch[1];
+          }
+          if (!lang) lang = 'code';
+
+          const header = document.createElement('div');
+          header.className = 'code-block-header';
+          header.innerHTML = `
+            <span class="code-lang-badge">${lang}</span>
+            <div class="code-header-actions">
+              <button type="button" class="code-ai-btn" title="Tanyakan atau minta penjelasan kode ini ke AI">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                  <circle cx="12" cy="12" r="4"></circle>
+                </svg>
+                <span>Tanya AI</span>
+              </button>
+              <button type="button" class="code-copy-btn" title="Salin Kode">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span>Salin</span>
+              </button>
+            </div>
+          `;
+
+          pre.insertBefore(header, pre.firstChild);
+
+          // AI Button Click
+          const aiBtn = header.querySelector('.code-ai-btn');
+          if (aiBtn) {
+            aiBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const currentCode = (pre.querySelector('code')?.innerText || rawCode || '').trim();
+              const prompt = `Saya sedang mempelajari modul '${lessonTitle}' pada kursus '${courseTitle}'. Tolong jelaskan potongan kode ${lang} berikut secara detail, baris per baris dan fungsinya:\n\n\`\`\`${lang}\n${currentCode}\n\`\`\``;
+              sendPromptToAwdBot(prompt, true);
+            });
+          }
+
+          // Copy Button Click
+          const copyBtn = header.querySelector('.code-copy-btn');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', async (e) => {
+              e.stopPropagation();
+              try {
+                const currentCode = (pre.querySelector('code')?.innerText || rawCode || '').trim();
+                await navigator.clipboard.writeText(currentCode);
+                const origHTML = copyBtn.innerHTML;
+                copyBtn.innerHTML = `<span>✓ Tersalin!</span>`;
+                (copyBtn as HTMLElement).style.color = '#10b981';
+                setTimeout(() => {
+                  copyBtn.innerHTML = origHTML;
+                  (copyBtn as HTMLElement).style.color = '';
+                }, 2000);
+              } catch (err) {
+                console.warn('Copy failed', err);
+              }
+            });
+          }
+        });
+
+        // 2. Setup In-Lesson AI Quick Action Cards
+        const aiQuickBtns = document.querySelectorAll('[data-ai-prompt]');
+        aiQuickBtns.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const prompt = btn.getAttribute('data-ai-prompt');
+            if (prompt) {
+              sendPromptToAwdBot(prompt, true);
+            }
+          });
+        });
+
+        // 3. Setup Text Selection Floating Tooltip
+        const tooltip = document.getElementById('awd-text-ai-tooltip');
+        const selectionBtn = document.getElementById('awd-selection-ai-btn');
+        const lessonBody = document.querySelector('.lesson-body');
+
+        let selectedTextToQuery = '';
+
+        if (tooltip && selectionBtn && lessonBody) {
+          document.addEventListener('mouseup', (e) => {
+            if (tooltip.contains(e.target as Node)) return;
+
+            setTimeout(() => {
+              const selection = window.getSelection();
+              const text = selection ? selection.toString().trim() : '';
+
+              if (text && text.length >= 3 && text.length <= 800) {
+                const range = selection?.getRangeAt(0);
+                if (range && lessonBody.contains(range.commonAncestorContainer)) {
+                  selectedTextToQuery = text;
+                  const rect = range.getBoundingClientRect();
+                  tooltip.style.top = `${window.scrollY + rect.top - 38}px`;
+                  tooltip.style.left = `${window.scrollX + rect.left + rect.width / 2}px`;
+                  tooltip.classList.remove('hidden');
+                  return;
+                }
+              }
+              tooltip.classList.add('hidden');
+            }, 50);
+          });
+
+          selectionBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (selectedTextToQuery) {
+              const prompt = `Saya sedang membaca modul '${lessonTitle}' pada kursus '${courseTitle}'. Tolong jelaskan secara mendalam maksud dan konsep dari bagian berikut:\n\n"${selectedTextToQuery}"`;
+              sendPromptToAwdBot(prompt, true);
+              tooltip.classList.add('hidden');
+              window.getSelection()?.removeAllRanges();
+            }
+          });
+        }
+      }
+
+      function setupReaderNavigation() {
+        // Mobile sidebar trigger
+        const mobileOpenBtn = document.getElementById('mobile-sidebar-open-btn');
+        const sidebar = document.getElementById('course-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+
+        mobileOpenBtn?.addEventListener('click', () => {
+          sidebar?.classList.add('open-mobile');
+          backdrop?.classList.remove('hidden');
+        });
+
+        // Mobile Table of Contents Sheet Trigger
+        const mobileTocOpenBtn = document.getElementById('mobile-toc-open-btn');
+        const mobileTocDrawer = document.getElementById('mobile-toc-drawer');
+        const mobileTocBackdrop = document.getElementById('mobile-toc-backdrop');
+        const mobileTocCloseBtn = document.getElementById('mobile-toc-close-btn');
+        const mobileTocLinks = document.querySelectorAll('.mobile-toc-link');
+
+        function openMobileToc() {
+          mobileTocDrawer?.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        }
+
+        function closeMobileToc() {
+          mobileTocDrawer?.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+
+        mobileTocOpenBtn?.addEventListener('click', openMobileToc);
+        mobileTocBackdrop?.addEventListener('click', closeMobileToc);
+        mobileTocCloseBtn?.addEventListener('click', closeMobileToc);
+
+        mobileTocLinks.forEach((link) => {
+          link.addEventListener('click', () => {
+            closeMobileToc();
+          });
+        });
+
+        // Mark done toggle
+        const markDoneBtn = document.getElementById('lesson-mark-done-btn');
+        if (!markDoneBtn) return;
+
+        const lessonId = markDoneBtn.getAttribute('data-lesson-id');
+        const courseId = markDoneBtn.getAttribute('data-course-id');
+        if (!lessonId || !courseId) return;
+
+        const storageKey = `progress_${courseId}`;
+        const btnText = markDoneBtn.querySelector('.done-btn-text');
+
+        function updateButtonUI() {
+          let list: string[] = [];
+          try {
+            list = JSON.parse(localStorage.getItem(storageKey) || '[]');
+          } catch (e) {
+            list = [];
+          }
+
+          if (list.includes(lessonId!)) {
+            markDoneBtn?.classList.add('is-done');
+            if (btnText) btnText.textContent = 'Modul Selesai ✓ (Klik untuk Batal)';
+          } else {
+            markDoneBtn?.classList.remove('is-done');
+            if (btnText) btnText.textContent = 'Tandai Selesai';
+          }
+        }
+
+        updateButtonUI();
+
+        // Check Supabase if user is logged in
+        if (isSupabaseConfigured && supabase) {
+          const client = supabase;
+          client.auth.getUser().then(({ data: { user } }) => {
+            if (user) {
+              client
+                .from('course_progress')
+                .select('lesson_id')
+                .eq('user_id', user.id)
+                .eq('course_id', courseId)
+                .then(({ data, error }) => {
+                  if (!error && data) {
+                    const dbList = data.map((d: any) => d.lesson_id);
+                    let list: string[] = [];
+                    try {
+                      list = JSON.parse(localStorage.getItem(storageKey) || '[]');
+                    } catch (e) {
+                      list = [];
+                    }
+                    const merged = Array.from(new Set([...list, ...dbList]));
+                    localStorage.setItem(storageKey, JSON.stringify(merged));
+                    updateButtonUI();
+                    window.dispatchEvent(new CustomEvent('courseProgressUpdated', { detail: { courseId, list: merged } }));
+                  }
+                });
+            }
+          });
+        }
+
+        markDoneBtn.addEventListener('click', async () => {
+          let list: string[] = [];
+          try {
+            list = JSON.parse(localStorage.getItem(storageKey) || '[]');
+          } catch (e) {
+            list = [];
+          }
+
+          const isNowDone = !list.includes(lessonId!);
+          if (isNowDone) {
+            list.push(lessonId!);
+          } else {
+            list = list.filter((id) => id !== lessonId);
+          }
+
+          localStorage.setItem(storageKey, JSON.stringify(list));
+          updateButtonUI();
+
+          // Dispatch event for sidebar & top bar
+          window.dispatchEvent(new CustomEvent('courseProgressUpdated', { detail: { courseId, list } }));
+
+          // Sync to Supabase in background
+          if (isSupabaseConfigured && supabase) {
+            const client = supabase;
+            try {
+              const { data: { user } } = await client.auth.getUser();
+              if (user) {
+                if (isNowDone) {
+                  await client.from('course_progress').upsert({
+                    user_id: user.id,
+                    course_id: courseId,
+                    lesson_id: lessonId,
+                  });
+                } else {
+                  await client.from('course_progress').delete().match({
+                    user_id: user.id,
+                    course_id: courseId,
+                    lesson_id: lessonId,
+                  });
+                }
+              }
+            } catch (err) {
+              console.warn('Supabase sync error:', err);
+            }
+          }
+        });
+
+        // ScrollSpy for Table of Contents
+        const tocLinks = document.querySelectorAll('.toc-nav-link');
+        if (tocLinks.length > 0) {
+          const headings = document.querySelectorAll('h2[id], h3[id], h4[id], h5[id]');
+          
+          function updateActiveHeading() {
+            let currentId = '';
+            headings.forEach((heading) => {
+              const top = heading.getBoundingClientRect().top;
+              if (top <= 150) {
+                currentId = heading.getAttribute('id') || '';
+              }
+            });
+
+            if (currentId) {
+              tocLinks.forEach((link) => {
+                if (link.getAttribute('href') === `#${currentId}`) {
+                  link.classList.add('active');
+                } else {
+                  link.classList.remove('active');
+                }
+              });
+
+              mobileTocLinks.forEach((link) => {
+                if (link.getAttribute('href') === `#${currentId}`) {
+                  link.classList.add('active');
+                } else {
+                  link.classList.remove('active');
+                }
+              });
+            }
+          }
+
+          window.addEventListener('scroll', updateActiveHeading, { passive: true });
+          updateActiveHeading();
+        }
+      }
+
+      setupReaderNavigation();
+      setupLessonAIInteractions();
+
+      document.addEventListener('astro:page-load', () => {
+        setupReaderNavigation();
+        setupLessonAIInteractions();
+      });
+    </script>
+  </body>
+</html>
+
+<style>
+  /* In-Lesson AI Assistant Box (Refined, Modern & Clean) */
+  .lesson-ai-action-box {
+    margin: 1.5rem 0 2rem 0;
+    padding: 1.15rem 1.25rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  }
+
+  [data-theme='dark'] .lesson-ai-action-box {
+    background-color: #0f172a;
+    border-color: #1e293b;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  .ai-box-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.85rem;
+    border-bottom: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+  }
+
+  .ai-box-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .ai-box-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background-color: var(--primary);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .ai-box-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .ai-box-heading {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .ai-box-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .ai-box-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.2rem 0.6rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .pulse-dot-small {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #10b981;
+  }
+
+  .ai-box-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.65rem;
+  }
+
+  .ai-quick-action-card {
+    text-align: left;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: var(--font-sans);
+  }
+
+  .ai-quick-action-card:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .ai-action-icon {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 0.1rem;
+  }
+
+  .ai-action-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .ai-action-info strong {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .ai-action-info span {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    line-height: 1.25;
+  }
+
+  @media (max-width: 640px) {
+    .ai-box-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Code Block AI Header & Actions */
+  :global(.lesson-body pre:has(.code-block-header)) {
+    position: relative !important;
+    padding-top: 2.6rem !important;
+  }
+
+  :global(.code-block-header) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.85rem;
+    background-color: var(--code-topbar-bg);
+    border-bottom: 1px solid var(--code-border);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    user-select: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  :global(.code-lang-badge) {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: lowercase;
+  }
+
+  :global(.code-header-actions) {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  :global(.code-copy-btn) {
+    background-color: var(--bg-surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    padding: 0.18rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: all 0.15s ease;
+    font-family: var(--font-sans);
+  }
+
+  :global(.code-copy-btn:hover) {
+    background-color: var(--bg-hover);
+    color: var(--text-main);
+    border-color: var(--border-medium);
+  }
+
+  :global(.code-ai-btn) {
+    background-color: var(--primary-light);
+    color: var(--primary);
+    border: 1px solid var(--primary-border);
+    border-radius: 4px;
+    padding: 0.18rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: all 0.15s ease;
+    font-family: var(--font-sans);
+  }
+
+  :global(.code-ai-btn:hover) {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(30, 64, 175, 0.25);
+  }
+
+  /* Dark Theme Overrides for code-block-header */
+  [data-theme='dark'] :global(.code-block-header) {
+    background-color: #161b22;
+    border-bottom: 1px solid #30363d;
+  }
+
+  [data-theme='dark'] :global(.code-lang-badge) {
+    color: #8b949e;
+  }
+
+  [data-theme='dark'] :global(.code-copy-btn) {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: #c9d1d9;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  [data-theme='dark'] :global(.code-copy-btn:hover) {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+  }
+
+  [data-theme='dark'] :global(.code-ai-btn) {
+    background: linear-gradient(135deg, rgba(30, 64, 175, 0.5) 0%, rgba(99, 102, 241, 0.5) 100%);
+    color: #bfdbfe;
+    border-color: rgba(147, 197, 253, 0.35);
+  }
+
+  [data-theme='dark'] :global(.code-ai-btn:hover) {
+    background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Floating Text Selection Tooltip */
+  .text-selection-ai-tooltip {
+    position: absolute;
+    z-index: 950;
+    transform: translate(-50%, -100%);
+    pointer-events: auto;
+    animation: tooltipPop 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .text-selection-ai-tooltip.hidden {
+    display: none;
+  }
+
+  @keyframes tooltipPop {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -85%) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -100%) scale(1);
+    }
+  }
+
+  .selection-ai-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, #1e40af 0%, #4338ca 100%);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    font-size: 0.775rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    transition: all 0.15s ease;
+  }
+
+  .selection-ai-btn:hover {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #1d4ed8 0%, #3730a3 100%);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+  }
+
+  .reader-body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-main);
+  }
+
+  .global-top-progress-track {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: transparent;
+    z-index: 100;
+  }
+
+  .global-top-progress-fill {
+    height: 100%;
+    background-color: var(--primary);
+    transition: width 0.25s ease;
+  }
+
+  /* Mobile Subheader Bar */
+  .mobile-reader-bar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 1rem;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+    position: sticky;
+    top: 64px;
+    z-index: 30;
+    gap: 0.5rem;
+  }
+
+  .mobile-reader-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .mobile-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .mobile-progress-badge {
+    font-size: 0.775rem;
+    font-weight: 700;
+    color: var(--primary);
+    white-space: nowrap;
+  }
+
+  .course-reader-layout {
+    display: flex;
+    flex-grow: 1;
+    min-height: calc(100vh - 64px);
+    width: 100%;
+  }
+
+  .reader-main {
+    flex-grow: 1;
+    min-width: 0;
+    padding: 2rem 2.5rem 4rem 2.5rem;
+    background-color: var(--bg-main);
+  }
+
+  .reader-inner {
+    max-width: 920px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .lesson-article-wrapper {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Breadcrumbs */
+  .reader-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.825rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .reader-breadcrumbs a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .reader-breadcrumbs a:hover {
+    color: var(--primary);
+  }
+
+  .crumb-sep {
+    color: var(--border-medium);
+  }
+
+  .current-crumb {
+    color: var(--text-main);
+    font-weight: 600;
+  }
+
+  /* Header */
+  .lesson-header {
+    margin-bottom: 2.25rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .lesson-title {
+    font-size: 2.2rem;
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--text-main);
+    margin: 0 0 1rem 0;
+    letter-spacing: -0.015em;
+  }
+
+  .lesson-meta-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .meta-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.825rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .meta-dot {
+    color: var(--border-medium);
+  }
+
+  .type-pill {
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+
+  .meta-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .media-container {
+    margin-bottom: 2rem;
+  }
+
+  /* Body */
+  .lesson-body {
+    margin-bottom: 3.5rem;
+  }
+
+  /* Modern Lesson Navigation & Completion Card */
+  .lesson-navigation-card {
+    padding: 1.5rem 1.75rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 1rem;
+  }
+
+  .lesson-completion-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .completion-prompt {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .completion-icon-bubble {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .completion-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .completion-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .completion-desc {
+    font-size: 0.775rem;
+    color: var(--text-muted);
+    line-height: 1.35;
+  }
+
+  .mark-done-btn {
+    padding: 0.55rem 1.15rem;
+    font-size: 0.825rem;
+    font-weight: 600;
+    border-radius: var(--radius-md);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+  }
+
+  .mark-done-btn.is-done {
+    background-color: #059669 !important;
+    border-color: #059669 !important;
+    color: #ffffff !important;
+  }
+
+  .lesson-nav-divider {
+    height: 1px;
+    background-color: var(--border-subtle);
+    width: 100%;
+  }
+
+  .lesson-nav-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .nav-direction-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 72px;
+  }
+
+  .nav-direction-card:hover {
+    border-color: var(--primary);
+    background-color: var(--bg-surface);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .prev-card {
+    justify-content: flex-start;
+  }
+
+  .next-card {
+    justify-content: space-between;
+    border-color: var(--border-medium);
+  }
+
+  .next-card:hover {
+    border-color: var(--primary);
+  }
+
+  .nav-direction-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .nav-direction-icon svg {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .prev-card:hover .nav-direction-icon {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .prev-card:hover .nav-direction-icon svg {
+    transform: translateX(-3px);
+  }
+
+  .nav-direction-icon.icon-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff !important;
+  }
+
+  .next-card:hover .nav-direction-icon.icon-primary {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
+    color: #ffffff !important;
+  }
+
+  .next-card:hover .nav-direction-icon svg {
+    transform: translateX(3px);
+  }
+
+  .nav-direction-icon.icon-emerald {
+    background-color: #059669;
+    border-color: #059669;
+    color: #ffffff !important;
+  }
+
+  .finish-card:hover .nav-direction-icon.icon-emerald {
+    background-color: #047857;
+    border-color: #047857;
+    color: #ffffff !important;
+  }
+
+  .nav-direction-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+
+  .nav-direction-sub {
+    font-size: 0.675rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    line-height: 1.2;
+  }
+
+  .nav-direction-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.4;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  @media (max-width: 768px) {
+    .reader-main {
+      padding: 1.25rem 1rem 3.5rem 1rem;
+    }
+
+    .lesson-header {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.25rem;
+    }
+
+    .lesson-title {
+      font-size: 1.65rem;
+      line-height: 1.3;
+    }
+
+    .lesson-navigation-card {
+      padding: 1.25rem 1rem;
+      gap: 1rem;
+    }
+
+    .lesson-completion-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.85rem;
+    }
+
+    .completion-prompt {
+      min-width: 0;
+    }
+
+    .mark-done-btn {
+      width: 100%;
+      justify-content: center;
+      padding: 0.65rem 1rem;
+    }
+
+    .lesson-nav-grid {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    .nav-direction-card {
+      padding: 0.9rem 1rem;
+      min-height: 64px;
+      gap: 0.75rem;
+    }
+
+    .nav-direction-title {
+      font-size: 0.85rem;
+    }
+  }
+
+  /* ToC Aside (Right Sidebar on Desktop) */
+  .toc-aside {
+    width: 260px;
+    flex-shrink: 0;
+    padding: 2rem 1.5rem 5rem 0;
+  }
+
+  .toc-sticky-container {
+    position: sticky;
+    top: 85px;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .toc-sticky-container::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .toc-sticky-container::-webkit-scrollbar-thumb {
+    background-color: var(--border-medium);
+    border-radius: 4px;
+  }
+
+  .toc-heading {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .toc-nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    border-left: 2px solid var(--border-subtle);
+  }
+
+  .toc-nav-item {
+    padding-left: 0.75rem;
+  }
+
+  .toc-level-2 {
+    padding-left: 0.75rem;
+    font-weight: 600;
+  }
+
+  .toc-level-3 {
+    padding-left: 1.25rem;
+    font-size: 0.8rem;
+  }
+
+  .toc-level-4 {
+    padding-left: 1.75rem;
+    font-size: 0.775rem;
+    opacity: 0.9;
+  }
+
+  .toc-nav-link {
+    font-size: 0.825rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    line-height: 1.4;
+    display: block;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+
+  .toc-nav-link:hover {
+    color: var(--primary);
+  }
+
+  .toc-nav-link.active {
+    color: var(--primary);
+    font-weight: 700;
+    border-left: 2px solid var(--primary);
+    margin-left: -0.75rem;
+    padding-left: 0.65rem;
+  }
+
+  /* Mobile Slide-Up Sheet for Table of Contents */
+  .mobile-toc-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .mobile-toc-backdrop {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+  }
+
+  .mobile-toc-panel {
+    position: relative;
+    z-index: 100;
+    width: 100%;
+    max-height: 80vh;
+    background-color: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    border-top-left-radius: 1.25rem;
+    border-top-right-radius: 1.25rem;
+    box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.25);
+    display: flex;
+    flex-direction: column;
+    animation: slideUpMobile 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideUpMobile {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .mobile-toc-handle-bar {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.65rem;
+  }
+
+  .mobile-toc-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 99px;
+    background-color: var(--border-medium);
+  }
+
+  .mobile-toc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .mobile-toc-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mobile-toc-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .mobile-toc-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .mobile-toc-close:hover {
+    color: var(--text-main);
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .mobile-toc-body {
+    overflow-y: auto;
+    padding: 1rem 1.25rem 2rem 1.25rem;
+    max-height: calc(80vh - 80px);
+  }
+
+  .mobile-toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mobile-toc-link {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    display: block;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    line-height: 1.4;
+    transition: all 0.15s ease;
+  }
+
+  .mobile-toc-link:hover, .mobile-toc-link.active {
+    background-color: var(--bg-surface-elevated);
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* Breakpoint Queries */
+  @media (max-width: 1200px) {
+    .toc-aside {
+      display: none;
+    }
+  }
+
+  @media (max-width: 1100px) {
+    .mobile-reader-bar {
+      display: flex;
+    }
+  }
+
+  @media (max-width: 960px) {
+    .reader-main {
+      padding: 1.5rem 1.25rem 4rem 1.25rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .reader-main {
+      padding: 1.25rem 0.85rem 3.5rem 0.85rem;
+    }
+    .lesson-title {
+      font-size: 1.6rem;
+    }
+    .prev-next-controls {
+      flex-direction: column;
+    }
+    .nav-btn {
+      max-width: 100%;
+      width: 100%;
+    }
+    .lesson-footer-card {
+      padding: 1.25rem 1rem;
+    }
+  }
+</style>

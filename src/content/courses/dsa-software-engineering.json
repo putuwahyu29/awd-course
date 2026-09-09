@@ -1,0 +1,16 @@
+{
+  "title": "Struktur Data, Algoritma & Rekayasa Perangkat Lunak Modern",
+  "description": "Kuasai analisis kompleksitas Big-O, struktur data fundamental (Array, Linked List, Stack, Queue), struktur tingkat lanjut (Hash Map, BST, Trie, Graph), dan algoritma pencarian rute Dijkstra.",
+  "category": "programming",
+  "level": "Semua Tingkat",
+  "duration": "6 Jam",
+  "instructor": "I Putu Agus Wahyu Dupayana",
+  "instructorRole": "Software Engineer di AWD.dev",
+  "instructorAvatar": "/images/instructors/wahyu-dupayana.jpg",
+  "thumbnail": "/images/courses/dsa.svg",
+  "isFeatured": true,
+  "isPublished": false,
+  "status": "draft",
+  "updatedAt": "2026-09-08",
+  "order": 5
+}

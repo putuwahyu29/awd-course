@@ -1,0 +1,75 @@
+---
+title: "Kuis Evaluasi Komprehensif: Laravel & Filament PHP"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 3: Dasbor Admin & API Enterprise"
+order: 7
+duration: "15 Menit"
+contentType: "quiz"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import Quiz from '../../components/mdx/Quiz.astro';
+
+Selamat telah menyelesaikan seluruh rangkaian materi kursus **Pengembangan Web Modern dengan Laravel & Filament PHP**!
+
+Ujilah pemahaman Anda mengenai arsitektur MVC, Eloquent ORM, Blade, Sanctum, dan Filament PHP di bawah ini.
+
+---
+
+## Evaluasi Akhir Pemahaman
+
+Pilihlah satu jawaban yang paling tepat:
+
+<Quiz
+  question="1. Dalam arsitektur MVC Laravel, komponen manakah yang bertugas menerima HTTP request dari pengguna dan menghubungkan logika Model ke View?"
+  options={[
+    "Controller",
+    "Model",
+    "View",
+    "Database Migration"
+  ]}
+  correctIndex={0}
+  explanation="Tepat sekali! Controller adalah otak pengendali aliran data yang menangani request, berinteraksi dengan Model, dan mengirimkan data ke View."
+/>
+
+<Quiz
+  question="2. Masalah performa 'N+1 Query Problem' pada Eloquent ORM dapat dicegah secara efisien dengan menggunakan teknik apa?"
+  options={[
+    "Eager Loading dengan memanggil method with()",
+    "Membuat tabel database baru",
+    "Menghapus relasi foreign key",
+    "Menggunakan perulangan while di Blade"
+  ]}
+  correctIndex={0}
+  explanation="Benar! Eager Loading dengan with(['relasi']) mengambil data relasi dalam satu kueri terpadu sehingga database tidak dieksekusi berulang di dalam perulangan."
+/>
+
+<Quiz
+  question="3. Tumpukan teknologi (Stack) modern apakah yang menjadi fondasi utama panel admin reaktif Filament PHP v3?"
+  options={[
+    "TALL Stack (Tailwind CSS, Alpine.js, Laravel, Livewire)",
+    "MERN Stack (MongoDB, Express, React, Node)",
+    "LAMP Stack Klasik",
+    "Django Python Stack"
+  ]}
+  correctIndex={0}
+  explanation="Tepat! Filament PHP dibangun di atas TALL Stack yang memberikan interaktivitas SPA reaktif tanpa perlu mengelola bundler frontend terpisah."
+/>
+
+<Quiz
+  question="4. Direktif Blade manakah yang secara otomatis memeriksa hak otorisasi pengguna berdasarkan Policy sebelum menampilkan tombol aksi di tampilan UI?"
+  options={[
+    "@can('action', $model)",
+    "@if (true)",
+    "@foreach ($items as $item)",
+    "@auth"
+  ]}
+  correctIndex={0}
+  explanation="Sempurna! Direktif @can('update', $model) memeriksa aturan Policy yang telah didefinisikan dan hanya merender blok jika pengguna memiliki hak akses."
+/>
+
+---
+
+<Callout type="tip" title="Selamat Atas Kelulusan Anda!">
+  Anda telah menyelesaikan seluruh kurikulum **Pengembangan Web Modern dengan Laravel & Filament PHP**. Tekan tombol **Tandai Selesai Pelajaran Ini** untuk melengkapi status kelulusan 100%!
+</Callout>

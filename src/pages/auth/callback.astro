@@ -1,0 +1,83 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Memproses Login..." description="Memverifikasi autentikasi akun Anda.">
+  <div class="callback-container">
+    <div class="callback-card card text-center">
+      <div class="spinner"></div>
+      <h2 class="callback-title">Memverifikasi Akun...</h2>
+      <p class="callback-subtitle">Mohon tunggu sebentar, Anda sedang dialihkan ke platform kursus.</p>
+    </div>
+  </div>
+</BaseLayout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  async function handleOAuthCallback() {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!error && data.session) {
+          window.location.href = '/courses';
+          return;
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+    setTimeout(() => {
+      window.location.href = '/courses';
+    }, 1000);
+  }
+
+  handleOAuthCallback();
+  document.addEventListener('astro:page-load', handleOAuthCallback);
+</script>
+
+<style>
+  .callback-container {
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+  }
+
+  .callback-card {
+    max-width: 400px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border-subtle);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .callback-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .callback-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+</style>

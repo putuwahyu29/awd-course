@@ -1,0 +1,128 @@
+---
+title: "Manajemen Multi-Kontainer dengan Docker Compose & Jaringan Terisolasi"
+courseSlug: "devops-cloud-mastery"
+chapter: "Bab 1: Fondasi DevOps & Kontainerisasi Docker"
+order: 3
+duration: "25 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Aplikasi web modern jarang berjalan sendirian. Biasanya aplikasi web membutuhkan basis data (PostgreSQL), penyimpanan cache (Redis), dan web server reverse proxy (NGINX). Menjalankan 4 kontainer terpisah dengan perintah `docker run` yang panjang sangat rentan kesalahan. **Docker Compose** memungkinkan Anda mendefinisikan seluruh infrastruktur stack aplikasi dalam satu berkas deklaratif YAML.
+
+---
+
+## 1. Anatomi Berkas `docker-compose.yml`
+
+Berikut adalah blueprint arsitektur stack produksi standar:
+
+```yaml
+version: '3.8'
+
+services:
+  # 1. Aplikasi Web Backend Node.js
+  api_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: awd_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://app_user:SuperSecretPassword123@postgres_db:5432/production_db
+      - REDIS_URL=redis://redis_cache:6379
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+      redis_cache:
+        condition: service_started
+    networks:
+      - internal_network
+
+  # 2. Database PostgreSQL Relasional
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: awd_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: SuperSecretPassword123
+      POSTGRES_DB: production_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d production_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal_network
+
+  # 3. In-Memory Caching Redis
+  redis_cache:
+    image: redis:7-alpine
+    container_name: awd_redis
+    restart: unless-stopped
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal_network
+
+# Definisi Persistent Storage (Data tidak hilang saat kontainer direstart)
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# Definisi Jaringan Internal Terisolasi (DNS antar kontainer)
+networks:
+  internal_network:
+    driver: bridge
+```
+
+---
+
+## 2. Fitur Kunci Docker Compose
+
+### A. Automatic Service Discovery via DNS
+Di dalam `internal_network`, setiap kontainer dapat menghubungi kontainer lain menggunakan **nama layanannya** sebagai host URL (misal: `postgres_db` dan `redis_cache`). Anda tidak perlu menggunakan IP address dinamis yang sering berubah.
+
+### B. Persistent Volumes
+Secara default, kontainer bersifat *ephemeral* (jika kontainer dihapus, semua data di dalamnya ikut terhapus). Dengan `volumes: - postgres_data:/var/lib/postgresql/data`, seluruh tabel dan relasi database disimpan di hard drive host dan tetap utuh saat versi kontainer di-upgrade.
+
+### C. Healthchecks & Startup Ordering
+Fitur `condition: service_healthy` memastikan bahwa aplikasi `api_service` tidak akan dijalankan sebelum PostgreSQL benar-benar siap menerima koneksi query SQL.
+
+---
+
+## 3. Perintah Utama Docker Compose
+
+```bash
+# Menyalakan seluruh service di background (-d: detached mode)
+docker compose up -d --build
+
+# Melihat status seluruh service
+docker compose ps
+
+# Membaca log gabungan seluruh kontainer secara real-time
+docker compose logs -f
+
+# Menjalankan migrasi database di dalam kontainer api
+docker compose exec api_service npx prisma migrate deploy
+
+# Menghentikan seluruh service tanpa menghapus data volume
+docker compose down
+
+# Menghentikan seluruh service BESERTA menghapus data volume (Hati-hati!)
+docker compose down -v
+```
+
+<Callout type="warning" title="Keamanan Password Database">
+  Jangan pernah melakukan *hardcode* password di dalam berkas `docker-compose.yml` yang di-push ke GitHub. Gunakan file `.env` di samping file compose dan panggil dengan sintaks `${POSTGRES_PASSWORD}`.
+</Callout>

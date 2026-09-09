@@ -1,0 +1,85 @@
+---
+title: "Kuis Evaluasi: Struktur Data, Algoritma & Rekayasa Perangkat Lunak"
+courseSlug: "dsa-software-engineering"
+chapter: "Bab 4: Evaluasi & Proyek Akhir"
+order: 9
+duration: "15 Menit"
+contentType: "quiz"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import Quiz from '../../components/mdx/Quiz.astro';
+
+Mari uji penguasaan analitik dan pemahaman Anda terhadap konsep notasi Big-O, struktur data linier vs non-linier, Tree, Trie, Hash Table, dan algoritma Dijkstra.
+
+---
+
+## Soal Evaluasi Pemahaman
+
+Pilih satu opsi jawaban yang paling tepat pada masing-masing pertanyaan berikut, lalu klik tombol **Periksa Jawaban**.
+
+<Quiz
+  question="1. Jika sebuah algoritma pencarian memotong ruang pencarian menjadi setengahnya pada setiap langkah iterasi (seperti Binary Search), berapakah Time Complexity-nya?"
+  options={[
+    "O(1)",
+    "O(log N)",
+    "O(N)",
+    "O(N^2)"
+  ]}
+  correctIndex={1}
+  explanation="Tepat sekali! Algoritma yang membagi ruang data menjadi separuh pada setiap langkah (Divide and Conquer) memiliki kompleksitas logaritmik O(log N)."
+/>
+
+<Quiz
+  question="2. Struktur data manakah yang paling ideal untuk mengimplementasikan fitur 'Undo' pada text editor dan evaluasi ekspresi aritmatika berimbang?"
+  options={[
+    "Queue (First-In First-Out)",
+    "Stack (Last-In First-Out)",
+    "Binary Search Tree",
+    "Adjacency Matrix"
+  ]}
+  correctIndex={1}
+  explanation="Benar! Prinsip LIFO (Last-In First-Out) pada Stack sangat cocok untuk fitur Undo karena aksi terakhir yang dilakukan pengguna adalah aksi pertama yang harus dibatalkan."
+/>
+
+<Quiz
+  question="3. Mengapa pencarian prefix kata pada struktur data Trie (Prefix Tree) sangat cepat untuk fitur Search Autocomplete?"
+  options={[
+    "Karena Trie mengurutkan semua kata menggunakan algoritma Bubble Sort.",
+    "Karena waktu pencarian hanya bergantung pada panjang karakter prefix kata (O(L)), bukan pada total jutaan kata di kamus.",
+    "Karena Trie menghapus seluruh spasi dari database.",
+    "Karena Trie hanya dapat menyimpan maksimal 10 kata."
+  ]}
+  correctIndex={1}
+  explanation="Luar biasa! Pada Trie, kita hanya perlu menelusuri node sebanyak huruf yang diketik pengguna (O(L)), sehingga waktu pencarian tetap instan meskipun kamus memiliki 10.000.000 kata."
+/>
+
+<Quiz
+  question="4. Apa yang terjadi jika dua Key berbeda menghasilkan nilai hash yang sama pada Hash Table?"
+  options={[
+    "Program akan crash dan mematikan server.",
+    "Terjadi Hash Collision yang dapat ditangani menggunakan metode Separate Chaining (Linked List) atau Open Addressing (Linear Probing).",
+    "Database otomatis menghapus salah satu data.",
+    "Key kedua otomatis diubah namanya oleh sistem operasi."
+  ]}
+  correctIndex={1}
+  explanation="Sempurna! Hash Collision adalah hal lumrah dalam Hash Table dan diatasi dengan menampung beberapa pasangan data pada bucket yang sama (Chaining) atau mencari slot kosong berikutnya (Probing)."
+/>
+
+<Quiz
+  question="5. Algoritma manakah yang dirancang khusus untuk menemukan rute terpendek dengan akumulasi jarak/bobot minimum pada Graf berbobot positif?"
+  options={[
+    "Algoritma Dijkstra",
+    "Algoritma Bubble Sort",
+    "Algoritma Linear Search",
+    "Algoritma Binary Search"
+  ]}
+  correctIndex={0}
+  explanation="Tepat! Algoritma Dijkstra adalah algoritma greedy klasik yang digunakan pada sistem navigasi peta (seperti Google Maps) dan routing jaringan internet untuk menemukan jalur berbobot terkecil."
+/>
+
+---
+
+<Callout type="tip" title="Langkah Terakhir">
+  Setelah menuntaskan kuis evaluasi ini, lanjutkan ke materi pamungkas untuk membaca panduan implementasi **Proyek Akhir Engine Mesin Pencari & Optimasi Rute**!
+</Callout>

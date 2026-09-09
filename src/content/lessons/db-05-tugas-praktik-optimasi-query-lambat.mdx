@@ -1,0 +1,108 @@
+---
+title: "Tugas Praktik: Refactoring Slow Queries & Window Functions"
+courseSlug: "database-engineering-sql-tuning"
+chapter: "Bab 2: Indeks Mendalam & Query Optimization"
+order: 5
+duration: "35 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Pada tugas praktik mandiri ini, Anda akan membedah query analitik kompleks yang mengalami performa buruk (*Slow Query*), lalu menulis ulang query tersebut menggunakan teknik **Common Table Expressions (CTE)** dan **Window Functions (`ROW_NUMBER()`, `RANK()`, `SUM() OVER`)**.
+
+---
+
+## 1. Studi Kasus Masalah: Menghitung Top 3 Produk Terlaris per Kategori
+
+Bayangkan Anda memiliki tabel `orders` dan `order_items` dengan 5.000.000 data transaksi.
+
+### Pola Buruk (Correlated Subquery Lambat):
+```sql
+-- ❌ SANGAT LAMBAT (Mengeksekusi subquery berulang kali untuk setiap baris!)
+SELECT * FROM products p
+WHERE p.id IN (
+  SELECT product_id FROM order_items oi
+  WHERE oi.category_id = p.category_id
+  ORDER BY quantity DESC LIMIT 3
+);
+```
+
+### Pola Modern & Cepat (Window Functions & CTE):
+```sql
+-- ✅ CEPAT & BERSIH (Hanya 1 kali lewatan pemindaian tabel!)
+WITH ranked_sales AS (
+  SELECT 
+    p.category,
+    p.title,
+    SUM(oi.quantity) AS total_sold,
+    ROW_NUMBER() OVER (PARTITION BY p.category ORDER BY SUM(oi.quantity) DESC) AS rank_in_category
+  FROM products p
+  INNER JOIN order_items oi ON p.id = oi.product_id
+  GROUP BY p.id, p.category, p.title
+)
+SELECT category, title, total_sold, rank_in_category
+FROM ranked_sales
+WHERE rank_in_category <= 3;
+```
+
+---
+
+## 2. Editor Interaktif: Implementasi & Pengujian Analitik Lanjutan
+
+Jalankan sandbox SQL di bawah ini untuk melihat kehebatan Window Functions dalam menghasilkan laporan analitik ranking dan running total:
+
+<MultiLangRunner
+  language="sql"
+  title="Tugas Praktik: CTE & Window Functions untuk Laporan Analitik Cepat"
+  initialCode={`-- 1. Buat Tabel Data Penjualan
+CREATE TABLE transactions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  sales_rep VARCHAR(50) NOT NULL,
+  region VARCHAR(50) NOT NULL,
+  sales_amount DECIMAL(12, 2) NOT NULL,
+  tx_month VARCHAR(7) NOT NULL
+);
+
+-- 2. SEEDING DATA PENJUALAN
+INSERT INTO transactions (sales_rep, region, sales_amount, tx_month) VALUES 
+  ('Wahyu Dupayana', 'Jawa Timur', 45000000, '2026-01'),
+  ('Wahyu Dupayana', 'Jawa Timur', 60000000, '2026-02'),
+  ('Budi Santoso', 'Jawa Timur', 30000000, '2026-01'),
+  ('Budi Santoso', 'Jawa Timur', 35000000, '2026-02'),
+  ('Siti Aminah', 'DKI Jakarta', 75000000, '2026-01'),
+  ('Siti Aminah', 'DKI Jakarta', 80000000, '2026-02'),
+  ('Dewi Lestari', 'DKI Jakarta', 50000000, '2026-01'),
+  ('Dewi Lestari', 'DKI Jakarta', 48000000, '2026-02');
+
+-- 3. QUERY ANALITIK WINDOW FUNCTIONS:
+-- - Menghitung Ranking Sales per Region
+-- - Menghitung Akumulasi Penjualan Berjalan (Running Total)
+WITH sales_summary AS (
+  SELECT 
+    sales_rep,
+    region,
+    SUM(sales_amount) AS total_sales
+  FROM transactions
+  GROUP BY sales_rep, region
+)
+SELECT 
+  region,
+  sales_rep,
+  total_sales,
+  -- Ranking dalam setiap region
+  DENSE_RANK() OVER (PARTITION BY region ORDER BY total_sales DESC) AS regional_rank,
+  -- Total penjualan seluruh region
+  SUM(total_sales) OVER (PARTITION BY region) AS region_grand_total,
+  -- Kontribusi persentase terhadap total region
+  ROUND((total_sales * 100.0 / SUM(total_sales) OVER (PARTITION BY region)), 2) AS contribution_percent
+FROM sales_summary
+ORDER BY region, regional_rank;`}
+/>
+
+---
+
+## 3. Checklist Mandiri
+- [ ] Mampu membedakan penggunaan `ROW_NUMBER()`, `RANK()`, dan `DENSE_RANK()`.
+- [ ] Memahami klausul `PARTITION BY` untuk membagi partisi agregasi tanpa menghilangkan baris individual (berbeda dengan `GROUP BY`).

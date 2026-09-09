@@ -1,0 +1,477 @@
+---
+import { Code } from 'astro:components';
+
+interface Props {
+  initialCode?: string;
+  title?: string;
+  colabUrl?: string;
+  ipynbFile?: string;
+  autoLoadPackages?: string[]; // e.g. ['numpy', 'pandas', 'matplotlib']
+  staticOutput?: string;
+  staticImage?: string;
+}
+
+const {
+  initialCode = `# Tulis kode Python Anda di sini\nnama = "Peserta Awd Course"\nangka = [10, 20, 30, 40, 50]\n\nprint(f"Halo, {nama}!")\nprint(f"Total nilai: {sum(angka)}")\nprint(f"Rata-rata: {sum(angka) / len(angka)}")`,
+  title = 'Python Interactive Sandbox',
+  colabUrl,
+  ipynbFile,
+  autoLoadPackages = [],
+  staticOutput,
+  staticImage,
+} = Astro.props;
+
+const runnerId = `py-runner-${Math.random().toString(36).substring(2, 9)}`;
+const packagesAttr = autoLoadPackages.join(',');
+const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
+---
+
+<div class="code-runner-card card my-6" id={runnerId} data-packages={packagesAttr} data-runner-enabled={isRunnerEnabled ? 'true' : 'false'}>
+  <!-- Top Bar -->
+  <div class="runner-topbar">
+    <div class="runner-info">
+      <div class="lang-tag">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+          <path d="M11.91 0c-3.15 0-5.7 1.55-5.7 3.52v2.54h5.81v.85H4.24C1.9 6.91 0 8.78 0 11.08c0 2.33 1.94 4.18 4.28 4.18h2.04v-2.88c0-2.3 1.93-4.18 4.28-4.18h5.71V5.66c0-2.03-2.61-3.66-5.7-3.66zm-2.8 1.83a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8zm2.98 10.34c3.15 0 5.7-1.55 5.7-3.52V6.11h-5.81v-.85h7.78C22.1 5.26 24 7.13 24 9.43c0 2.33-1.94 4.18-4.28 4.18h-2.04v2.88c0 2.3-1.93 4.18-4.28 4.18H7.69v2.54c0 2.03 2.61 3.66 5.7 3.66 3.15 0 5.7-1.55 5.7-3.52v-2.54h-5.81v-.85h7.78c2.34 0 4.24-1.87 4.24-4.17 0-2.33-1.94-4.18-4.28-4.18h-2.04v-2.88c0-2.3-1.93-4.18-4.28-4.18H7.69v2.54c0 2.03 2.61 3.66 5.7 3.66zm2.8 9.94a.9.9 0 1 1 0-1.8.9.9 0 0 1 0 1.8z" fill="#3b82f6"/>
+        </svg>
+        <span>{isRunnerEnabled ? 'Python 3 (WASM)' : 'Python 3'}</span>
+      </div>
+      <span class="runner-title">{title}</span>
+    </div>
+
+    <div class="runner-actions">
+      {colabUrl && (
+        <a href={colabUrl} target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm colab-link-btn" title="Buka di Google Colab">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="#F9AB00">
+            <path d="M16.9 7.4c-.6-.6-1.5-.9-2.4-.9s-1.8.3-2.4.9l-5.6 5.6c-.6.6-.9 1.5-.9 2.4s.3 1.8.9 2.4c.6.6 1.5.9 2.4.9s1.8-.3 2.4-.9l5.6-5.6c.6-.6.9-1.5.9-2.4s-.3-1.8-.9-2.4z"/>
+          </svg>
+          <span>Open in Colab</span>
+        </a>
+      )}
+
+      {ipynbFile && (
+        <a href={ipynbFile} download class="btn btn-outline btn-sm" title="Unduh Notebook .ipynb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>.ipynb</span>
+        </a>
+      )}
+
+      <button type="button" class="btn btn-secondary btn-sm copy-code-btn" title="Salin Kode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span>Salin</span>
+      </button>
+
+      {isRunnerEnabled && (
+        <button type="button" class="btn btn-primary btn-sm run-btn">
+          <svg class="run-icon" viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span class="btn-label">Jalankan Kode</span>
+        </button>
+      )}
+    </div>
+  </div>
+
+  <!-- Code Editor Body -->
+  <div class="editor-wrap" data-code={initialCode}>
+    {isRunnerEnabled ? (
+      <textarea class="code-textarea" spellcheck="false" autocomplete="off" rows={initialCode.split('\n').length + 1}>{initialCode}</textarea>
+    ) : (
+      <div class="code-shiki-container">
+        <Code code={initialCode} lang="python" themes={{ light: 'github-light', dark: 'github-dark' }} wrap={false} />
+      </div>
+    )}
+  </div>
+
+  <!-- Output Console -->
+  <div class={`output-wrapper ${staticOutput || staticImage ? '' : 'hidden'}`}>
+    <div class="output-header">
+      <span class="output-label">{isRunnerEnabled ? 'Output Terminal:' : 'Hasil Output (Statis):'}</span>
+      <button type="button" class="clear-output-btn" title="Bersihkan Output">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+          <polyline points="3 6 5 6 21 6"></polyline>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        </svg>
+        <span>Bersihkan</span>
+      </button>
+    </div>
+    {staticImage && (
+      <div class="static-image-wrap mb-2">
+        <img src={staticImage} alt="Hasil Output Visual" class="rounded max-w-full border border-border" loading="lazy" />
+      </div>
+    )}
+    <pre class={`output-console ${staticOutput ? '' : (staticImage ? 'hidden' : '')}`}><code class="output-text">{staticOutput || ''}</code></pre>
+  </div>
+</div>
+
+<script>
+  let pyodidePromise: Promise<any> | null = null;
+
+  function loadPyodideEngine() {
+    if (!pyodidePromise) {
+      pyodidePromise = new Promise((resolve, reject) => {
+        const existingScript = document.getElementById('pyodide-script');
+        if (existingScript) {
+          // @ts-ignore
+          if (window.loadPyodide) {
+            // @ts-ignore
+            resolve(window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/' }));
+          } else {
+            existingScript.addEventListener('load', () => {
+              // @ts-ignore
+              resolve(window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/' }));
+            });
+          }
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.id = 'pyodide-script';
+        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js';
+        script.async = true;
+        script.onload = async () => {
+          try {
+            // @ts-ignore
+            const pyodide = await window.loadPyodide({
+              indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/',
+            });
+            resolve(pyodide);
+          } catch (err) {
+            reject(err);
+          }
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+    return pyodidePromise;
+  }
+
+  function setupPythonRunners() {
+    document.querySelectorAll('.code-runner-card').forEach((card) => {
+      const runBtn = card.querySelector('.run-btn') as HTMLButtonElement;
+      const copyBtn = card.querySelector('.copy-code-btn') as HTMLButtonElement;
+      const clearBtn = card.querySelector('.clear-output-btn') as HTMLButtonElement;
+      const textarea = card.querySelector('.code-textarea') as HTMLTextAreaElement;
+      const outputWrap = card.querySelector('.output-wrapper');
+      const outputText = card.querySelector('.output-text');
+      const btnLabel = runBtn?.querySelector('.btn-label');
+      const packages = (card.getAttribute('data-packages') || '').split(',').filter(Boolean);
+
+      // Copy code
+      copyBtn?.addEventListener('click', () => {
+        const rawCode = card.querySelector('.editor-wrap')?.getAttribute('data-code') || textarea?.value || '';
+        if (rawCode) {
+          navigator.clipboard.writeText(rawCode);
+          const orig = copyBtn.querySelector('span');
+          if (orig) {
+            orig.textContent = 'Tersalin!';
+            setTimeout(() => { orig.textContent = 'Salin'; }, 1500);
+          }
+        }
+      });
+
+      // Support Tab indentation & Ctrl+Enter to execute
+      textarea?.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          textarea.value = textarea.value.substring(0, start) + '    ' + textarea.value.substring(end);
+          textarea.selectionStart = textarea.selectionEnd = start + 4;
+        } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          runBtn?.click();
+        }
+      });
+
+      // Clear output
+      clearBtn?.addEventListener('click', () => {
+        if (outputText) outputText.textContent = '';
+        outputWrap?.classList.add('hidden');
+      });
+
+      // Run code in browser WASM
+      runBtn?.addEventListener('click', async () => {
+        if (!textarea || !outputText) return;
+
+        runBtn.disabled = true;
+        if (btnLabel) btnLabel.textContent = 'Menjalankan...';
+        outputWrap?.classList.remove('hidden');
+        outputText.textContent = 'Menyiapkan modul Python WebAssembly...\n';
+
+        try {
+          const pyodide = await loadPyodideEngine();
+          outputText.textContent = '';
+
+          // Intercept stdout
+          let outputLogs = '';
+          pyodide.setStdout({
+            batched: (msg: string) => {
+              outputLogs += msg + '\n';
+            },
+          });
+          pyodide.setStderr({
+            batched: (msg: string) => {
+              outputLogs += 'Error: ' + msg + '\n';
+            },
+          });
+
+          // Load extra packages if requested (e.g. numpy, pandas)
+          if (packages.length > 0) {
+            outputText.textContent = `Mengunduh package (${packages.join(', ')})...\n`;
+            await pyodide.loadPackage(packages);
+            outputText.textContent = '';
+          }
+
+          // Run user code
+          const result = await pyodide.runPythonAsync(textarea.value);
+          
+          if (outputLogs) {
+            outputText.textContent = outputLogs;
+          } else if (result !== undefined) {
+            outputText.textContent = String(result);
+          } else {
+            outputText.textContent = '[Program selesai dieksekusi tanpa output console]';
+          }
+        } catch (err: any) {
+          console.error('PythonRunner error:', err);
+          const errStr = String(err?.message || err || '').toLowerCase();
+          if (
+            errStr.includes('fetch') ||
+            errStr.includes('network') ||
+            errStr.includes('cdn') ||
+            errStr.includes('script')
+          ) {
+            outputText.textContent =
+              'Gagal mengunduh modul Python dari server CDN. Pastikan perangkat Anda terhubung ke internet yang stabil.';
+          } else {
+            outputText.textContent = `Pesan Kesalahan Kode:\n${err.message || err}`;
+          }
+        } finally {
+          runBtn.disabled = false;
+          if (btnLabel) btnLabel.textContent = 'Jalankan Kode';
+        }
+      });
+    });
+  }
+
+  setupPythonRunners();
+  document.addEventListener('astro:page-load', setupPythonRunners);
+</script>
+
+<style>
+  .code-runner-card {
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    margin: 1.75rem 0;
+  }
+
+  .runner-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .runner-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .lang-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .runner-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  .runner-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .colab-link-btn {
+    border-color: #f59e0b;
+    color: var(--text-main);
+  }
+
+  .colab-link-btn:hover {
+    background-color: rgba(245, 158, 11, 0.1);
+  }
+
+  .editor-wrap {
+    position: relative;
+    background-color: var(--code-bg);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+    transition: background-color 0.2s ease;
+  }
+
+  .code-textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 1rem;
+    background-color: transparent;
+    color: var(--code-text);
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    line-height: 1.55;
+    border: none;
+    resize: vertical;
+    outline: none;
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+    tab-size: 4;
+    transition: color 0.2s ease;
+  }
+
+  .editor-wrap :global(pre.astro-code) {
+    margin: 0 !important;
+    padding: 1rem !important;
+    background-color: transparent !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.875rem !important;
+    line-height: 1.55 !important;
+    white-space: pre !important;
+    word-break: normal !important;
+    word-wrap: normal !important;
+    tab-size: 4 !important;
+  }
+
+  .editor-wrap :global(code) {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    background: transparent !important;
+  }
+
+  /* Output console */
+  .output-wrapper {
+    background-color: var(--code-out-bg);
+    border-top: 1px solid var(--code-border);
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .output-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 1rem;
+    background-color: var(--code-topbar-bg);
+    border-bottom: 1px solid var(--code-border);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .output-label {
+    font-size: 0.725rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  .clear-output-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.725rem;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+  }
+
+  .clear-output-btn:hover {
+    color: var(--text-main);
+    background-color: var(--code-copy-hover);
+  }
+
+  .output-console {
+    margin: 0;
+    padding: 0.85rem 1rem;
+    max-height: 260px;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    font-family: var(--font-mono);
+    font-size: 0.825rem;
+    line-height: 1.5;
+    color: var(--code-out-text);
+    transition: color 0.2s ease;
+    white-space: pre;
+    word-break: normal;
+    word-wrap: normal;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 640px) {
+    .runner-topbar {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0.75rem 0.85rem;
+      gap: 0.65rem;
+    }
+    .runner-actions {
+      width: 100%;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .runner-actions .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.75rem;
+    }
+    .code-textarea {
+      padding: 0.75rem 0.85rem;
+      font-size: 0.8rem;
+      min-height: 120px;
+    }
+    .output-console {
+      padding: 0.65rem 0.85rem;
+      font-size: 0.775rem;
+    }
+  }
+</style>

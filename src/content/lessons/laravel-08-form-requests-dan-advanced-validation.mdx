@@ -1,0 +1,101 @@
+---
+title: "Form Requests, Validasi Lanjutan & Unggah Media"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 2: Database & Validasi Lanjutan"
+order: 8
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Memvalidasi data pengguna di dalam Controller dapat membuat kode menjadi kembung (*fat controllers*). Laravel menyediakan kelas **Form Request** mandiri untuk mengenkapsulasi aturan validasi, sanitasi input, dan penanganan unggah file media (*file uploads*).
+
+---
+
+## 1. Membuat Kelas Form Request Khusus
+
+```bash
+php artisan make:request StoreCourseRequest
+```
+
+File akan dibuat di `app/Http/Requests/StoreCourseRequest.php`:
+
+```php
+namespace App\Http\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class StoreCourseRequest extends FormRequest
+{
+    // Otorisasi apakah pengguna diizinkan mengirim request ini
+    public function authorize(): bool
+    {
+        return $this->user() && $this->user()->role === 'instructor';
+    }
+
+    // Aturan validasi ketat
+    public function rules(): array
+    {
+        return [
+            'title' => ['required', 'string', 'min:5', 'max:200', 'unique:courses,title'],
+            'category_id' => ['required', 'exists:categories,id'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'thumbnail' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:2048'], // Maks 2MB
+            'level' => ['required', Rule::in(['Pemula', 'Menengah', 'Mahir'])],
+        ];
+    }
+
+    // Pesan error kustom dalam Bahasa Indonesia
+    public function messages(): array
+    {
+        return [
+            'title.required' => 'Judul kursus wajib diisi.',
+            'title.unique' => 'Judul kursus ini sudah pernah digunakan.',
+            'thumbnail.max' => 'Ukuran gambar thumbnail tidak boleh melebihi 2MB.',
+        ];
+    }
+}
+```
+
+---
+
+## 2. Menggunakan Form Request di Controller
+
+Ketika tipe parameter `StoreCourseRequest` di-type-hint di controller, Laravel secara otomatis menjalankan validasi sebelum kode di dalam fungsi dieksekusi:
+
+```php
+namespace App\Http\Controllers;
+
+use App\Http\Requests\StoreCourseRequest;
+use App\Models\Course;
+use Illuminate\Support\Str;
+
+class CourseController extends Controller
+{
+    public function store(StoreCourseRequest $request)
+    {
+        // 1. Ambil data yang telah tervalidasi 100%
+        $validated = $request->validated();
+        $validated['slug'] = Str::slug($validated['title']);
+
+        // 2. Tangani Unggah Gambar Thumbnail ke Storage Publik
+        if ($request->hasFile('thumbnail')) {
+            $path = $request->file('thumbnail')->store('courses/thumbnails', 'public');
+            $validated['thumbnail'] = '/storage/' . $path;
+        }
+
+        // 3. Simpan ke Database
+        $course = Course::create($validated);
+
+        return redirect()->route('courses.show', $course->slug)
+            ->with('success', 'Kursus baru berhasil diterbitkan!');
+    }
+}
+```
+
+<Callout type="tip" title="Tautan Simbolik Storage">
+  Agar file yang diunggah ke `storage/app/public` dapat diakses dari browser, jalankan perintah:
+  `php artisan storage:link`
+</Callout>

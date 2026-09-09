@@ -1,0 +1,117 @@
+---
+title: "Antrean Asinkron (Queues), Delayed Jobs & Redis Worker"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 4: Arsitektur Lanjutan & Background Jobs"
+order: 10
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Tugas-tugas berat seperti pembuatan dokumen laporan PDF ratusan halaman, kompresi video rekaman kelas, atau pengiriman ribuan email buletin tidak boleh menahan respon HTTP pengguna. **Laravel Queues** memindahkan pekerjaan berat tersebut ke antrean di latar belakang (*background workers*).
+
+---
+
+## 1. Konfigurasi Driver Antrean (Redis)
+
+Ubah konfigurasi antrean pada file `.env`:
+
+```bash
+QUEUE_CONNECTION=redis
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+---
+
+## 2. Membuat Job Asinkron (`app/Jobs`)
+
+```bash
+php artisan make:job GenerateCertificatePdfJob
+```
+
+```php
+namespace App\Jobs;
+
+use App\Models\Course;
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
+
+class GenerateCertificatePdfJob implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    // Batas percobaan ulang jika terjadi kegagalan
+    public int $tries = 3;
+    public int $timeout = 120; // 2 Menit
+
+    public function __construct(
+        public User $user,
+        public Course $course
+    ) {}
+
+    public function handle(): void
+    {
+        // 1. Generate sertifikat kelulusan dalam bentuk PDF
+        $pdf = Pdf::loadView('certificates.template', [
+            'userName' => $this->user->fullname,
+            'courseTitle' => $this->course->title,
+            'date' => now()->translatedFormat('d F Y'),
+            'instructor' => $this->course->instructor
+        ]);
+
+        // 2. Simpan ke disk penyimpanan
+        $fileName = "certificates/{$this->user->id}_{$this->course->id}.pdf";
+        Storage::disk('public')->put($fileName, $pdf->output());
+    }
+}
+```
+
+---
+
+## 3. Menjalankan & Menjadwalkan Job
+
+```php
+// Dispatch Job seketika ke antrean Redis
+GenerateCertificatePdfJob::dispatch($user, $course);
+
+// Dispatch Job dengan penundaan waktu (Delayed Job 10 menit ke depan)
+GenerateCertificatePdfJob::dispatch($user, $course)
+    ->delay(now()->addMinutes(10));
+```
+
+---
+
+## 4. Menjalankan Queue Worker di Server Produksi
+
+```bash
+# Menjalankan worker di terminal lokal
+php artisan queue:work redis --tries=3 --timeout=90
+```
+
+Pada server produksi Linux, gunakan **Supervisor** untuk menjaga agar proses `queue:work` selalu aktif secara otomatis:
+
+```ini
+[program:laravel-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/awd-course/artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+user=www-data
+numprocs=4
+redirect_stderr=true
+stdout_logfile=/var/www/awd-course/storage/logs/worker.log
+```
+
+<Callout type="tip" title="Manajemen Gagal (Failed Jobs)">
+  Jika sebuah job gagal setelah 3 kali percobaan, data job akan dicatat di tabel `failed_jobs`. Anda dapat memeriksa dan mencoba menjalankannya kembali menggunakan `php artisan queue:retry all`.
+</Callout>

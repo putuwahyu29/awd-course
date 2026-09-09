@@ -1,0 +1,117 @@
+---
+title: "Arsitektur Event-Driven, Listeners & Notifikasi Email"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 4: Arsitektur Lanjutan & Background Jobs"
+order: 9
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Arsitektur **Event-Driven** memisahkan pemicu aksi (*action trigger*) dari efek sampingnya (*side effects*). Sebagai contoh: saat seorang siswa berhasil mendaftar kursus, sistem utama cukup memicu event `CourseEnrolled`, sementara pengiriman email konfirmasi, pembuatan invoice PDF, dan notifikasi Slack didelegasikan ke *Listeners*.
+
+---
+
+## 1. Membuat Event & Listener
+
+```bash
+php artisan make:event CourseEnrolled
+php artisan make:listener SendEnrollmentConfirmationEmail --event=CourseEnrolled
+```
+
+### Definisi Event (`app/Events/CourseEnrolled.php`):
+
+```php
+namespace App\Events;
+
+use App\Models\Course;
+use App\Models\User;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+
+class CourseEnrolled
+{
+    use Dispatchable, SerializesModels;
+
+    public function __construct(
+        public User $user,
+        public Course $course
+    ) {}
+}
+```
+
+---
+
+## 2. Implementasi Listener Pengiriman Notifikasi
+
+```php
+namespace App\Listeners;
+
+use App\Events\CourseEnrolled;
+use App\Notifications\EnrollmentSuccessNotification;
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+// Implementasikan ShouldQueue agar eksekusi email berjalan di background worker
+class SendEnrollmentConfirmationEmail implements ShouldQueue
+{
+    public function handle(CourseEnrolled $event): void
+    {
+        $event->user->notify(new EnrollmentSuccessNotification($event->course));
+    }
+}
+```
+
+---
+
+## 3. Merancang Notifikasi Multi-Channel (Email & Database)
+
+```php
+namespace App\Notifications;
+
+use App\Models\Course;
+use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
+
+class EnrollmentSuccessNotification extends Notification
+{
+    use Queueable;
+
+    public function __construct(public Course $course) {}
+
+    // Saluran pengiriman: Email dan Notifikasi Database di Website
+    public function via(object $notifiable): array
+    {
+        return ['mail', 'database'];
+    }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject("Selamat Bergabung di Kursus: {$this->course->title}")
+            ->greeting("Halo {$notifiable->fullname}!")
+            ->line("Pendaftaran Anda untuk kursus '{$this->course->title}' telah berhasil diproses.")
+            ->action('Mulai Belajar Sekarang', url("/courses/{$this->course->slug}"))
+            ->line('Terima kasih telah mempercayakan pembelajaran Anda di Awd Course!');
+    }
+
+    public function toArray(object $notifiable): array
+    {
+        return [
+            'course_id' => $this->course->id,
+            'title' => "Pendaftaran Berhasil: {$this->course->title}",
+            'url' => "/courses/{$this->course->slug}",
+        ];
+    }
+}
+```
+
+```php
+// Memicu event di Controller:
+event(new CourseEnrolled($user, $course));
+```
+
+<Callout type="tip" title="Pemisahan Tanggung Jawab">
+  Dengan Event & Listeners, Anda dapat menambahkan listener baru (misal: pemberian sertifikat atau analitik) di kemudian hari tanpa menyentuh baris kode pendaftaran di Controller.
+</Callout>

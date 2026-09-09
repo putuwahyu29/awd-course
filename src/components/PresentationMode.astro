@@ -1,0 +1,2687 @@
+---
+// PresentationMode.astro - Mode Presentasi / Slide Deck Interaktif dengan Live Code Execution & Dukungan Dark/Light Mode
+interface Props {
+  course: any;
+  currentLesson: any;
+}
+
+const { course, currentLesson } = Astro.props;
+---
+
+<div id="presentation-mode-modal" class="presentation-modal hidden" data-pres-theme="dark" aria-hidden="true">
+  <!-- Blackout / Whiteout Overlay -->
+  <div id="presentation-blank-overlay" class="blank-overlay hidden"></div>
+
+  <!-- Virtual Laser Pointer Element -->
+  <div id="virtual-laser-dot" class="laser-dot hidden"></div>
+
+  <!-- Virtual Spotlight Element -->
+  <div id="virtual-spotlight" class="spotlight-overlay hidden"></div>
+
+  <!-- Keyboard Shortcuts Help Modal -->
+  <div id="presentation-help-modal" class="pres-help-overlay hidden">
+    <div class="pres-help-dialog">
+      <div class="pres-help-header">
+        <h3>Pintasan Keyboard Presenter</h3>
+        <button type="button" id="pres-close-help-btn" class="pres-help-close-btn" aria-label="Tutup Bantuan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="pres-help-grid">
+        <div class="shortcut-item">
+          <kbd>&rarr;</kbd> / <kbd>Space</kbd> / <kbd>PgDn</kbd>
+          <span>Slide Berikutnya</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>&larr;</kbd> / <kbd>Backspace</kbd> / <kbd>PgUp</kbd>
+          <span>Slide Sebelumnya</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>T</kbd>
+          <span>Ganti Tema (Dark / Light)</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>L</kbd>
+          <span>Laser Pointer Virtual</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>S</kbd>
+          <span>Spotlight / Sorotan Fokus</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>B</kbd> / <kbd>.</kbd>
+          <span>Layar Gelap (Blackout)</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>F</kbd>
+          <span>Layar Penuh (Fullscreen)</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>?</kbd> / <kbd>H</kbd>
+          <span>Buka / Tutup Bantuan</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
+          <span>Eksekusi Kode Python</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>E</kbd>
+          <span>Ekspor Seluruh Slide ke PDF</span>
+        </div>
+        <div class="shortcut-item">
+          <kbd>Esc</kbd>
+          <span>Keluar Mode Presentasi</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Presenter Status Bar -->
+  <header class="presentation-topbar">
+    <div class="topbar-left">
+      <span class="pres-course-badge">{course.data.title}</span>
+      <span class="pres-divider">/</span>
+      <span class="pres-lesson-title">{currentLesson.data.title}</span>
+    </div>
+
+    <div class="topbar-center">
+      <div class="pres-status-pill" title="Indikator Slide & Waktu Berjalan">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" class="text-primary-svg">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <span class="pill-counter">Slide <strong id="pres-current-slide-num">1</strong>/<span id="pres-total-slides-num">1</span></span>
+        <span class="pill-sep">•</span>
+        <div class="pill-timer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span id="presentation-timer-text">00:00</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <!-- Group 1: Laser, Spotlight, Blank (Presenter Interactive Tools) -->
+      <div class="pres-tool-group">
+        <button type="button" id="pres-laser-btn" class="pres-tool-btn icon-only" title="Laser Pointer Virtual (Tekan L)" aria-label="Laser Pointer">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" class="text-rose">
+            <circle cx="12" cy="12" r="6"></circle>
+          </svg>
+        </button>
+
+        <button type="button" id="pres-spotlight-btn" class="pres-tool-btn icon-only" title="Spotlight / Sorotan Fokus (Tekan S)" aria-label="Spotlight">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="2" x2="12" y2="6"></line>
+            <line x1="12" y1="18" x2="12" y2="22"></line>
+          </svg>
+        </button>
+
+        <button type="button" id="pres-blank-btn" class="pres-tool-btn icon-only" title="Layar Hitam / Blank (Tekan B)" aria-label="Layar Hitam">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          </svg>
+        </button>
+      </div>
+
+      <div class="topbar-v-divider" aria-hidden="true"></div>
+
+      <!-- Group 2: Theme & PDF Export -->
+      <div class="pres-tool-group">
+        <button type="button" id="pres-theme-btn" class="pres-tool-btn icon-only" title="Ganti Tema Dark/Light (Tekan T)" aria-label="Ganti Tema">
+          <span class="theme-icon-sun hidden">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </span>
+          <span class="theme-icon-moon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </span>
+        </button>
+
+        <button type="button" id="pres-export-pdf-btn" class="pres-tool-btn btn-export-highlight" title="Ekspor Seluruh Slide ke PDF (Tekan E)" aria-label="Ekspor PDF">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <polyline points="9 15 12 18 15 15"></polyline>
+          </svg>
+          <span class="tool-label-compact">PDF</span>
+        </button>
+      </div>
+
+      <div class="topbar-v-divider" aria-hidden="true"></div>
+
+      <!-- Group 3: Help, Fullscreen, Exit -->
+      <div class="pres-tool-group">
+        <button type="button" id="pres-help-btn" class="pres-tool-btn icon-only" title="Bantuan Pintasan (Tekan ?)" aria-label="Bantuan">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        </button>
+
+        <button type="button" id="pres-fullscreen-btn" class="pres-tool-btn icon-only" title="Layar Penuh (Tekan F / F11)" aria-label="Layar Penuh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+        </button>
+
+        <button type="button" id="pres-close-btn" class="pres-tool-btn btn-exit" title="Keluar Mode Presentasi (Tekan Esc)" aria-label="Keluar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          <span class="exit-label">Tutup</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Slide Stage Viewport -->
+  <main class="presentation-stage">
+    <!-- Touch Nav Side Overlay Hints for Tablet & Mobile -->
+    <button type="button" id="pres-touch-prev" class="pres-side-nav-zone left-zone" aria-label="Slide Sebelumnya">
+      <span class="side-nav-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </span>
+    </button>
+
+    <div id="presentation-slides-track" class="slides-track">
+      <!-- Slides will be rendered dynamically with 1 concept / 1 code cell per slide -->
+    </div>
+
+    <button type="button" id="pres-touch-next" class="pres-side-nav-zone right-zone" aria-label="Slide Berikutnya">
+      <span class="side-nav-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </span>
+    </button>
+  </main>
+
+  <!-- Bottom Navigation & Clicker Bar -->
+  <footer class="presentation-bottombar">
+    <div class="bottom-left">
+      <div class="instructor-tag">
+        <span class="inst-label">Pemateri:</span>
+        <span class="inst-name">{course.data.instructor || 'I Putu Agus Wahyu Dupayana'}</span>
+      </div>
+    </div>
+
+    <div class="bottom-center">
+      <button type="button" id="pres-prev-slide-btn" class="pres-nav-arrow" title="Slide Sebelumnya (PageUp / Panah Kiri)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <div class="bottom-progress-group">
+        <div class="progress-bar-track">
+          <div id="presentation-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+        </div>
+        <div class="bottom-counter-text" title="Slide Saat Ini / Total Slide">
+          Slide <span id="pres-bottom-current-num">1</span> dari <span id="pres-bottom-total-num">1</span>
+        </div>
+      </div>
+
+      <button type="button" id="pres-next-slide-btn" class="pres-nav-arrow" title="Slide Berikutnya (PageDown / Panah Kanan / Space)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<script>
+  let pyodidePromiseInstance: Promise<any> | null = null;
+
+  function getSharedPyodide() {
+    if (!pyodidePromiseInstance) {
+      pyodidePromiseInstance = new Promise(async (resolve, reject) => {
+        try {
+          // @ts-ignore
+          if (!window.loadPyodide) {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js';
+            document.head.appendChild(s);
+            await new Promise((res) => (s.onload = res));
+          }
+          // @ts-ignore
+          const py = await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/',
+          });
+          resolve(py);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+    return pyodidePromiseInstance;
+  }
+
+  function setupPresentationEngine() {
+    const modal = document.getElementById('presentation-mode-modal');
+    const track = document.getElementById('presentation-slides-track');
+    const currentNumEl = document.getElementById('pres-current-slide-num');
+    const totalNumEl = document.getElementById('pres-total-slides-num');
+    const bottomCurrentNumEl = document.getElementById('pres-bottom-current-num');
+    const bottomTotalNumEl = document.getElementById('pres-bottom-total-num');
+    const progressFill = document.getElementById('presentation-progress-fill');
+    const timerText = document.getElementById('presentation-timer-text');
+    const blankOverlay = document.getElementById('presentation-blank-overlay');
+    const laserDot = document.getElementById('virtual-laser-dot');
+    const spotlight = document.getElementById('virtual-spotlight');
+    const helpModal = document.getElementById('presentation-help-modal');
+
+    const prevBtn = document.getElementById('pres-prev-slide-btn');
+    const nextBtn = document.getElementById('pres-next-slide-btn');
+    const touchPrevBtn = document.getElementById('pres-touch-prev');
+    const touchNextBtn = document.getElementById('pres-touch-next');
+    const closeBtn = document.getElementById('pres-close-btn');
+    const themeBtn = document.getElementById('pres-theme-btn');
+    const laserBtn = document.getElementById('pres-laser-btn');
+    const spotlightBtn = document.getElementById('pres-spotlight-btn');
+    const blankBtn = document.getElementById('pres-blank-btn');
+    const helpBtn = document.getElementById('pres-help-btn');
+    const closeHelpBtn = document.getElementById('pres-close-help-btn');
+    const fsBtn = document.getElementById('pres-fullscreen-btn');
+
+    if (!modal || !track) return;
+
+    let slides: HTMLElement[] = [];
+    let currentIndex = 0;
+    let timerInterval: any = null;
+    let elapsedSeconds = 0;
+    let isLaserActive = false;
+    let isSpotlightActive = false;
+    let isBlankActive = false;
+    let isHelpActive = false;
+
+    // Theme Management for Presentation Mode
+    function syncInitialTheme() {
+      const pageTheme = document.documentElement.getAttribute('data-theme') || localStorage.getItem('theme') || 'dark';
+      setPresentationTheme(pageTheme);
+    }
+
+    function setPresentationTheme(theme: string) {
+      modal?.setAttribute('data-pres-theme', theme);
+      document.documentElement.setAttribute('data-theme', theme);
+      try {
+        localStorage.setItem('theme', theme);
+      } catch {}
+
+      const sunIcon = themeBtn?.querySelector('.theme-icon-sun');
+      const moonIcon = themeBtn?.querySelector('.theme-icon-moon');
+
+      if (theme === 'light') {
+        sunIcon?.classList.remove('hidden');
+        moonIcon?.classList.add('hidden');
+      } else {
+        sunIcon?.classList.add('hidden');
+        moonIcon?.classList.remove('hidden');
+      }
+    }
+
+    function togglePresentationTheme() {
+      const current = modal?.getAttribute('data-pres-theme') || document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = current === 'dark' ? 'light' : 'dark';
+      setPresentationTheme(newTheme);
+    }
+
+    // Toggle Help Modal
+    function toggleHelpModal() {
+      isHelpActive = !isHelpActive;
+      if (isHelpActive) {
+        helpModal?.classList.remove('hidden');
+        helpBtn?.classList.add('active');
+      } else {
+        helpModal?.classList.add('hidden');
+        helpBtn?.classList.remove('active');
+      }
+    }
+
+    // Run code cell in slide using Pyodide
+    async function runSlideCodeCell(cell: Element) {
+      const runBtn = cell.querySelector('.btn-run-code') as HTMLButtonElement;
+      const playIcon = cell.querySelector('.icon-play');
+      const spinner = cell.querySelector('.spin-loader');
+      const runLabel = cell.querySelector('.run-label');
+      const textarea = cell.querySelector('.code-input') as HTMLTextAreaElement;
+      const outWrapper = cell.querySelector('.code-output-wrapper');
+      const outCode = cell.querySelector('.output-console code');
+
+      if (!textarea || !outCode) return;
+
+      playIcon?.classList.add('hidden');
+      spinner?.classList.remove('hidden');
+      if (runLabel) runLabel.textContent = 'Menjalankan...';
+      if (runBtn) runBtn.disabled = true;
+
+      outWrapper?.classList.remove('hidden');
+      outCode.textContent = 'Menjalankan kode Python live di slide...';
+
+      try {
+        const py = await getSharedPyodide();
+        outCode.textContent = '';
+
+        let logs = '';
+        py.setStdout({ batched: (m: string) => { logs += m + '\n'; } });
+        py.setStderr({ batched: (m: string) => { logs += 'Error: ' + m + '\n'; } });
+
+        const rawCode = textarea.value;
+        const lines = rawCode.split('\n');
+        const filteredLines: string[] = [];
+        const packagesToInstall: string[] = [];
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          const pipMatch = trimmed.match(/^(!\s*pip|%\s*pip|pip)\s+install\s+(.+)$/i);
+          if (pipMatch) {
+            const pkgArgs = pipMatch[2].split(/\s+/).filter((p) => p && !p.startsWith('-'));
+            packagesToInstall.push(...pkgArgs);
+          } else {
+            filteredLines.push(line);
+          }
+        }
+
+        const importMatches = Array.from(rawCode.matchAll(/(?:from|import)\s+([a-zA-Z0-9_]+)/g));
+        for (const match of importMatches) {
+          const mod = match[1];
+          if (['numpy', 'pandas', 'matplotlib', 'seaborn', 'scipy', 'sklearn', 'requests'].includes(mod)) {
+            if (!packagesToInstall.includes(mod)) {
+              packagesToInstall.push(mod);
+            }
+          }
+        }
+
+        if (packagesToInstall.length > 0) {
+          for (const pkg of packagesToInstall) {
+            outCode.textContent = `Memuat paket '${pkg}' ke slide...`;
+            try {
+              await py.loadPackage(pkg);
+            } catch {
+              try {
+                await py.loadPackage('micropip');
+                const micropip = py.pyimport('micropip');
+                await micropip.install(pkg);
+              } catch (micropipErr: any) {
+                logs += `[Informasi Paket ${pkg}]: ${micropipErr.message || micropipErr}\n`;
+              }
+            }
+          }
+          outCode.textContent = '';
+        }
+
+        const cleanCode = filteredLines.join('\n').trim();
+        let result: any = undefined;
+
+        if (cleanCode) {
+          result = await py.runPythonAsync(cleanCode);
+        } else if (packagesToInstall.length > 0) {
+          logs = `Paket berhasil dimuat: ${packagesToInstall.join(', ')}`;
+        }
+
+        if (logs) {
+          outCode.textContent = logs.trim();
+        } else if (result !== undefined) {
+          outCode.textContent = String(result);
+        } else {
+          outCode.textContent = '[Kode berhasil dieksekusi tanpa keluaran]';
+        }
+      } catch (err: any) {
+        outCode.textContent = `Traceback (most recent call last):\n${err.message || err}`;
+      } finally {
+        playIcon?.classList.remove('hidden');
+        spinner?.classList.add('hidden');
+        if (runLabel) runLabel.textContent = 'Jalankan';
+        if (runBtn) runBtn.disabled = false;
+      }
+    }
+
+    // Attach interactive handlers to all code cells inside slide containers
+    function attachSlideInteractions(container: HTMLElement) {
+      container.querySelectorAll('.code-cell-container').forEach((cell) => {
+        const runBtn = cell.querySelector('.btn-run-code');
+        const copyBtn = cell.querySelector('.btn-copy-code');
+        const clearBtn = cell.querySelector('.btn-clear-out');
+        const textarea = cell.querySelector('.code-input') as HTMLTextAreaElement;
+        const outWrapper = cell.querySelector('.code-output-wrapper');
+        const outCode = cell.querySelector('.output-console code');
+
+        runBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          runSlideCodeCell(cell);
+        });
+
+        copyBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!textarea) return;
+          navigator.clipboard.writeText(textarea.value);
+          const copyLabel = copyBtn.querySelector('span');
+          if (copyLabel) {
+            const originalText = copyLabel.textContent;
+            copyLabel.textContent = 'Tersalin!';
+            setTimeout(() => {
+              copyLabel.textContent = originalText || 'Salin';
+            }, 1500);
+          }
+        });
+
+        clearBtn?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (outCode) outCode.textContent = '';
+          outWrapper?.classList.add('hidden');
+        });
+
+        // Static print block to ensure full code visibility without scrollbar in PDF export
+        if (textarea && !cell.querySelector('.code-static-print')) {
+          const printPre = document.createElement('pre');
+          printPre.className = 'code-static-print';
+          const printCode = document.createElement('code');
+          printCode.textContent = textarea.value || textarea.textContent || '';
+          printPre.appendChild(printCode);
+          if (textarea.parentElement) {
+            textarea.parentElement.appendChild(printPre);
+          } else {
+            cell.appendChild(printPre);
+          }
+
+          textarea.addEventListener('input', () => {
+            printCode.textContent = textarea.value;
+          });
+        }
+
+        // Ctrl+Enter or Shift+Enter to run code in slide
+        textarea?.addEventListener('keydown', (e) => {
+          if ((e.ctrlKey || e.shiftKey) && e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            runSlideCodeCell(cell);
+          }
+          if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+            e.stopPropagation();
+          }
+        });
+      });
+    }
+
+    // 1. Build Slides from the Page Content with strict 1-code-cell / 1-concept granularity
+    function generateSlides() {
+      track!.innerHTML = '';
+      const generated: HTMLElement[] = [];
+
+      // Slide 0: Title Cover Slide
+      const titleSlide = document.createElement('div');
+      titleSlide.className = 'pres-slide title-cover-slide';
+      
+      const courseTitle = document.querySelector('.pres-course-badge')?.textContent || 'Kursus';
+      const lessonTitle = document.querySelector('.lesson-title')?.textContent || 'Materi';
+      const instructor = document.querySelector('.inst-name')?.textContent || 'I Putu Agus Wahyu Dupayana';
+
+      titleSlide.innerHTML = `
+        <div class="cover-container">
+          <div class="cover-badge">${courseTitle}</div>
+          <h1 class="cover-title">${lessonTitle}</h1>
+          <div class="cover-slide-count-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+            <span>Total Materi: <strong class="cover-total-num">...</strong> Slide Interaktif</span>
+          </div>
+          <div class="cover-footer">
+            <div class="cover-instructor">
+              <span class="cover-inst-role">Pemateri:</span>
+              <span class="cover-inst-name">${instructor}</span>
+            </div>
+            <div class="cover-start-hint">Tekan <strong>Spasi</strong> atau <strong>Panah Kanan</strong> untuk mulai &rarr;</div>
+          </div>
+        </div>
+      `;
+      generated.push(titleSlide);
+
+      // Inspect document content
+      const contentContainer = document.querySelector('.lesson-article-wrapper') || document.querySelector('.lesson-body');
+      
+      if (contentContainer) {
+        const notebookViewer = contentContainer.querySelector('.notebook-content-flow');
+        
+        if (notebookViewer) {
+          const children = Array.from(notebookViewer.children);
+          let currentTopicTitle = lessonTitle;
+          let currentSlide: HTMLElement | null = null;
+          let currentContent: HTMLElement | null = null;
+          let slideCodeCellCount = 0;
+          let slideTextLength = 0;
+
+          function pushCurrentSlide() {
+            if (currentSlide && currentContent && currentContent.children.length > 0) {
+              currentSlide.appendChild(currentContent);
+              attachSlideInteractions(currentSlide);
+              generated.push(currentSlide);
+              currentSlide = null;
+              currentContent = null;
+              slideCodeCellCount = 0;
+              slideTextLength = 0;
+            }
+          }
+
+          function initSlide() {
+            currentSlide = document.createElement('div');
+            currentSlide.className = 'pres-slide content-slide';
+            currentContent = document.createElement('div');
+            currentContent.className = 'slide-inner-content';
+          }
+
+          children.forEach((child) => {
+            const headingEl = child.querySelector('.nb-heading-1, .nb-heading-2, .nb-heading-3, .nb-heading-4, h1, h2, h3, h4');
+            const isCodeCell = child.classList.contains('code-cell-container');
+
+            if (headingEl) {
+              pushCurrentSlide();
+              currentTopicTitle = headingEl.textContent?.trim() || currentTopicTitle;
+              initSlide();
+            } else if (isCodeCell) {
+              // Code cells with runner topbar & output get their own dedicated slide if previous content exists
+              if (slideCodeCellCount >= 1 || slideTextLength > 80 || (currentContent && currentContent.children.length > 0)) {
+                pushCurrentSlide();
+                initSlide();
+                const badge = document.createElement('div');
+                badge.className = 'slide-topic-badge';
+                badge.textContent = currentTopicTitle;
+                currentContent!.appendChild(badge);
+              } else if (!currentSlide) {
+                initSlide();
+                const badge = document.createElement('div');
+                badge.className = 'slide-topic-badge';
+                badge.textContent = currentTopicTitle;
+                currentContent!.appendChild(badge);
+              }
+              slideCodeCellCount++;
+            } else {
+              // Text or explanation blocks: split if following a code cell or if text length exceeds comfortable slide limit
+              if (slideCodeCellCount >= 1 || slideTextLength > 260) {
+                pushCurrentSlide();
+                initSlide();
+                const badge = document.createElement('div');
+                badge.className = 'slide-topic-badge';
+                badge.textContent = currentTopicTitle;
+                currentContent!.appendChild(badge);
+              } else if (!currentSlide) {
+                initSlide();
+              }
+              slideTextLength += child.textContent?.trim().length || 0;
+            }
+
+            if (currentContent) {
+              const clone = child.cloneNode(true) as HTMLElement;
+              const origTextarea = child.querySelector('.code-input') as HTMLTextAreaElement;
+              const cloneTextarea = clone.querySelector('.code-input') as HTMLTextAreaElement;
+              if (origTextarea && cloneTextarea) {
+                cloneTextarea.value = origTextarea.value || origTextarea.textContent || '';
+              }
+              currentContent.appendChild(clone);
+            }
+          });
+
+          pushCurrentSlide();
+        } else {
+          // Standard Markdown Lesson segmentation
+          const rawElements = Array.from(contentContainer.children);
+          let currentTopicTitle = lessonTitle;
+          let currentSlide: HTMLElement | null = null;
+          let currentContent: HTMLElement | null = null;
+          let slideCodeCount = 0;
+          let slideTextLength = 0;
+
+          function pushCurrentSlide() {
+            if (currentSlide && currentContent && currentContent.children.length > 0) {
+              currentSlide.appendChild(currentContent);
+              attachSlideInteractions(currentSlide);
+              generated.push(currentSlide);
+              currentSlide = null;
+              currentContent = null;
+              slideCodeCount = 0;
+              slideTextLength = 0;
+            }
+          }
+
+          function initSlide() {
+            currentSlide = document.createElement('div');
+            currentSlide.className = 'pres-slide content-slide';
+            currentContent = document.createElement('div');
+            currentContent.className = 'slide-inner-content';
+          }
+
+          rawElements.forEach((el) => {
+            const isHeading = ['H1', 'H2', 'H3', 'H4'].includes(el.tagName);
+            const isCode = el.tagName === 'PRE' || el.querySelector('pre') !== null;
+
+            if (isHeading || el.tagName === 'HR') {
+              pushCurrentSlide();
+              if (isHeading) {
+                currentTopicTitle = el.textContent?.trim() || currentTopicTitle;
+              }
+              if (el.tagName !== 'HR') {
+                initSlide();
+              }
+            } else if (isCode) {
+              if (slideCodeCount >= 1 || (currentContent && currentContent.children.length > 0)) {
+                pushCurrentSlide();
+                initSlide();
+                const badge = document.createElement('div');
+                badge.className = 'slide-topic-badge';
+                badge.textContent = currentTopicTitle;
+                currentContent!.appendChild(badge);
+              } else if (!currentSlide) {
+                initSlide();
+              }
+              slideCodeCount++;
+            } else {
+              if (slideCodeCount >= 1 || slideTextLength > 260) {
+                pushCurrentSlide();
+                initSlide();
+                const badge = document.createElement('div');
+                badge.className = 'slide-topic-badge';
+                badge.textContent = currentTopicTitle;
+                currentContent!.appendChild(badge);
+              } else if (!currentSlide) {
+                initSlide();
+              }
+              slideTextLength += el.textContent?.trim().length || 0;
+            }
+
+            if (currentContent && el.tagName !== 'HR') {
+              const clone = el.cloneNode(true) as HTMLElement;
+              currentContent.appendChild(clone);
+            }
+          });
+
+          pushCurrentSlide();
+        }
+      }
+
+      // Slide Last: Conclusion / Q&A Slide
+      const endSlide = document.createElement('div');
+      endSlide.className = 'pres-slide end-qa-slide';
+      endSlide.innerHTML = `
+        <div class="cover-container text-center">
+          <div class="cover-badge">Sesi Pembelajaran Selesai</div>
+          <h1 class="cover-title">Tanya Jawab & Diskusi</h1>
+          <p class="end-subtitle">Silakan ajukan pertanyaan atau coba jalankan kembali latihan kode interaktif.</p>
+        </div>
+      `;
+      generated.push(endSlide);
+
+      // Add print header, footer, and watermark to each slide so PDF export looks EXACTLY like the presentation screen
+      const totalCount = generated.length;
+      generated.forEach((s, idx) => {
+        // Top Bar header for PDF print (matches presentation mode topbar)
+        const printHeader = document.createElement('div');
+        printHeader.className = 'slide-print-header';
+        printHeader.innerHTML = `
+          <div class="print-header-left">
+            <span class="print-course-badge">${courseTitle}</span>
+            <span class="print-divider">/</span>
+            <span class="print-lesson-title">${lessonTitle}</span>
+          </div>
+          <div class="print-header-right">
+            <span class="print-mode-tag">AWD Course • Mode Presentasi</span>
+          </div>
+        `;
+        s.insertBefore(printHeader, s.firstChild);
+
+        // Slide Corner Watermark
+        const cornerBadge = document.createElement('div');
+        cornerBadge.className = 'slide-corner-watermark';
+        cornerBadge.textContent = `${idx + 1} / ${totalCount}`;
+        s.appendChild(cornerBadge);
+
+        // Bottom Bar footer for PDF print (matches presentation mode bottombar)
+        const printFooter = document.createElement('div');
+        printFooter.className = 'slide-print-footer';
+        const progressPct = ((idx + 1) / totalCount) * 100;
+        printFooter.innerHTML = `
+          <div class="print-footer-left">
+            <span class="print-inst-label">Pemateri:</span>
+            <span class="print-inst-name">${instructor}</span>
+          </div>
+          <div class="print-footer-center">
+            <div class="print-progress-track">
+              <div class="print-progress-bar" style="width: ${progressPct}%;"></div>
+            </div>
+          </div>
+          <div class="print-footer-right">
+            <span>Slide <strong>${idx + 1}</strong> dari <strong>${totalCount}</strong></span>
+          </div>
+        `;
+        s.appendChild(printFooter);
+
+        track!.appendChild(s);
+      });
+
+      slides = generated;
+
+      // Update total slide indicators
+      if (totalNumEl) totalNumEl.textContent = totalCount.toString();
+      if (bottomTotalNumEl) bottomTotalNumEl.textContent = totalCount.toString();
+      
+      const coverTotalEl = document.querySelector('.cover-total-num');
+      if (coverTotalEl) coverTotalEl.textContent = totalCount.toString();
+    }
+
+    // Auto-fit helper: ensures all content on any slide always fits comfortably within viewport or A4 print page
+    function autoFitSlide(slide: HTMLElement, maxAllowedHeight: number) {
+      const inner = slide.querySelector('.slide-inner-content') as HTMLElement;
+      if (!inner) return;
+
+      inner.style.transform = '';
+      inner.style.transformOrigin = '';
+
+      const contentHeight = inner.scrollHeight;
+      if (contentHeight > maxAllowedHeight && maxAllowedHeight > 120) {
+        const scale = Math.max(0.65, Math.min(1, (maxAllowedHeight - 12) / contentHeight));
+        if (scale < 0.98) {
+          inner.style.transform = `scale(${scale})`;
+          inner.style.transformOrigin = 'center center';
+        }
+      }
+    }
+
+    // 2. Slide Navigation Logic
+    function showSlide(index: number) {
+      if (slides.length === 0) return;
+      
+      currentIndex = Math.max(0, Math.min(index, slides.length - 1));
+
+      slides.forEach((s, idx) => {
+        if (idx === currentIndex) {
+          s.classList.add('active');
+          s.classList.remove('hidden-slide');
+        } else {
+          s.classList.remove('active');
+          s.classList.add('hidden-slide');
+        }
+      });
+
+      const currentDisplayNum = (currentIndex + 1).toString();
+      if (currentNumEl) currentNumEl.textContent = currentDisplayNum;
+      if (bottomCurrentNumEl) bottomCurrentNumEl.textContent = currentDisplayNum;
+
+      if (progressFill && slides.length > 1) {
+        const percent = (currentIndex / (slides.length - 1)) * 100;
+        progressFill.style.width = `${percent}%`;
+      }
+
+      const activeSlide = slides[currentIndex];
+      if (activeSlide) {
+        activeSlide.scrollTop = 0;
+        const stageEl = modal?.querySelector('.presentation-stage') as HTMLElement;
+        const availableHeight = (stageEl ? stageEl.clientHeight : window.innerHeight - 100) - 36;
+        autoFitSlide(activeSlide, availableHeight);
+      }
+    }
+
+    function nextSlide() {
+      if (currentIndex < slides.length - 1) {
+        showSlide(currentIndex + 1);
+      }
+    }
+
+    function prevSlide() {
+      if (currentIndex > 0) {
+        showSlide(currentIndex - 1);
+      }
+    }
+
+    // 3. Presentation Timer
+    function startTimer() {
+      elapsedSeconds = 0;
+      updateTimerText();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        elapsedSeconds++;
+        updateTimerText();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    function updateTimerText() {
+      if (!timerText) return;
+      const mins = Math.floor(elapsedSeconds / 60).toString().padStart(2, '0');
+      const secs = (elapsedSeconds % 60).toString().padStart(2, '0');
+      timerText.textContent = `${mins}:${secs}`;
+    }
+
+    // 4. Open and Close Presentation Mode
+    function openPresentation() {
+      syncInitialTheme();
+      generateSlides();
+      modal?.classList.remove('hidden');
+      modal?.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      showSlide(0);
+      startTimer();
+    }
+
+    function isFullscreenActive() {
+      const doc = document as any;
+      return !!(
+        doc.fullscreenElement ||
+        doc.webkitFullscreenElement ||
+        doc.mozFullScreenElement ||
+        doc.msFullscreenElement
+      );
+    }
+
+    function updateFullscreenUI() {
+      const isFs = isFullscreenActive();
+      if (!fsBtn) return;
+      if (isFs) {
+        fsBtn.classList.add('active');
+        fsBtn.setAttribute('title', 'Keluar Layar Penuh (Tekan F / Esc)');
+        fsBtn.setAttribute('aria-label', 'Keluar Layar Penuh');
+        fsBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+          </svg>
+        `;
+      } else {
+        fsBtn.classList.remove('active');
+        fsBtn.setAttribute('title', 'Layar Penuh (Tekan F / F11)');
+        fsBtn.setAttribute('aria-label', 'Layar Penuh');
+        fsBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+          </svg>
+        `;
+      }
+    }
+
+    function closePresentation() {
+      modal?.classList.add('hidden');
+      modal?.setAttribute('aria-hidden', 'true');
+      helpModal?.classList.add('hidden');
+      isHelpActive = false;
+      document.body.style.overflow = '';
+      stopTimer();
+
+      if (isFullscreenActive()) {
+        const doc = document as any;
+        if (doc.exitFullscreen) {
+          doc.exitFullscreen().catch(() => {});
+        } else if (doc.webkitExitFullscreen) {
+          doc.webkitExitFullscreen();
+        }
+      }
+      updateFullscreenUI();
+    }
+
+    // 5. Presenter Tools (Laser, Spotlight, Blank, Fullscreen)
+    function toggleLaser() {
+      isLaserActive = !isLaserActive;
+      if (isLaserActive) {
+        laserDot?.classList.remove('hidden');
+        laserBtn?.classList.add('active');
+      } else {
+        laserDot?.classList.add('hidden');
+        laserBtn?.classList.remove('active');
+      }
+    }
+
+    function toggleSpotlight() {
+      isSpotlightActive = !isSpotlightActive;
+      if (isSpotlightActive) {
+        spotlight?.classList.remove('hidden');
+        spotlightBtn?.classList.add('active');
+      } else {
+        spotlight?.classList.add('hidden');
+        spotlightBtn?.classList.remove('active');
+      }
+    }
+
+    function toggleBlank() {
+      isBlankActive = !isBlankActive;
+      if (isBlankActive) {
+        blankOverlay?.classList.remove('hidden');
+        blankBtn?.classList.add('active');
+      } else {
+        blankOverlay?.classList.add('hidden');
+        blankBtn?.classList.remove('active');
+      }
+    }
+
+    async function toggleFullscreen() {
+      const doc = document as any;
+      const docEl = document.documentElement as any;
+
+      if (!isFullscreenActive()) {
+        try {
+          if (docEl.requestFullscreen) {
+            await docEl.requestFullscreen();
+          } else if (docEl.webkitRequestFullscreen) {
+            docEl.webkitRequestFullscreen();
+          } else if (docEl.msRequestFullscreen) {
+            docEl.msRequestFullscreen();
+          } else if (modal && (modal as any).requestFullscreen) {
+            await (modal as any).requestFullscreen();
+          }
+        } catch (err) {
+          console.warn('Gagal fullscreen pada documentElement, mencoba fallback modal:', err);
+          try {
+            if (modal?.requestFullscreen) {
+              await modal.requestFullscreen();
+            }
+          } catch (err2) {
+            console.error('Fullscreen ditolak oleh browser:', err2);
+          }
+        }
+      } else {
+        try {
+          if (doc.exitFullscreen) {
+            await doc.exitFullscreen();
+          } else if (doc.webkitExitFullscreen) {
+            doc.webkitExitFullscreen();
+          } else if (doc.msExitFullscreen) {
+            doc.msExitFullscreen();
+          }
+        } catch (err) {
+          console.warn('Gagal keluar dari fullscreen:', err);
+        }
+      }
+      updateFullscreenUI();
+    }
+
+    function exportPresentationToPdf() {
+      if (!modal || !track) return;
+      if (slides.length === 0) {
+        generateSlides();
+      }
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      const exportBtn = document.getElementById('pres-export-pdf-btn');
+      const origHtml = exportBtn ? exportBtn.innerHTML : '';
+
+      if (exportBtn) {
+        exportBtn.innerHTML = `
+          <svg class="spin-anim" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+          </svg>
+          <span class="tool-label">Menyiapkan...</span>
+        `;
+      }
+
+      const savedIndex = currentIndex;
+      const originalTitle = document.title;
+      const lessonTitleText = document.querySelector('.lesson-title')?.textContent?.trim() || 'Materi';
+      document.title = `Slide - ${lessonTitleText} - AWD Course`;
+
+      if (isLaserActive) toggleLaser();
+      if (isSpotlightActive) toggleSpotlight();
+      if (isBlankActive) toggleBlank();
+
+      modal.classList.add('pres-exporting-pdf');
+      slides.forEach((slide) => {
+        slide.classList.remove('hidden-slide');
+        const inner = slide.querySelector('.slide-inner-content') as HTMLElement;
+        if (inner) {
+          inner.style.transform = '';
+          inner.style.transformOrigin = '';
+        }
+      });
+
+      setTimeout(() => {
+        window.print();
+
+        setTimeout(() => {
+          document.title = originalTitle;
+          modal.classList.remove('pres-exporting-pdf');
+          slides.forEach((slide) => {
+            const inner = slide.querySelector('.slide-inner-content') as HTMLElement;
+            if (inner) {
+              inner.style.transform = '';
+              inner.style.transformOrigin = '';
+            }
+          });
+          showSlide(savedIndex);
+          if (exportBtn && origHtml) {
+            exportBtn.innerHTML = origHtml;
+          }
+        }, 400);
+      }, 350);
+    }
+
+    // Track mouse for laser and spotlight
+    window.addEventListener('mousemove', (e) => {
+      if (isLaserActive && laserDot) {
+        laserDot.style.left = `${e.clientX}px`;
+        laserDot.style.top = `${e.clientY}px`;
+      }
+      if (isSpotlightActive && spotlight) {
+        spotlight.style.background = `radial-gradient(circle 180px at ${e.clientX}px ${e.clientY}px, transparent 0%, rgba(0, 0, 0, 0.85) 100%)`;
+      }
+    });
+
+    // Auto fit on window resize
+    window.addEventListener('resize', () => {
+      if (!modal?.classList.contains('hidden') && slides[currentIndex]) {
+        const stageEl = modal.querySelector('.presentation-stage') as HTMLElement;
+        const availableHeight = (stageEl ? stageEl.clientHeight : window.innerHeight - 100) - 36;
+        autoFitSlide(slides[currentIndex], availableHeight);
+      }
+    });
+
+    // Global print listeners: ensures presentation slides print cleanly whether via button, Ctrl+P, or browser menu
+    window.addEventListener('beforeprint', () => {
+      if (slides.length === 0) {
+        generateSlides();
+      }
+      const lessonTitleText = document.querySelector('.lesson-title')?.textContent?.trim() || 'Materi';
+      document.title = `Slide - ${lessonTitleText} - AWD Course`;
+
+      modal?.classList.remove('hidden');
+      modal?.classList.add('pres-exporting-pdf');
+      slides.forEach((slide) => {
+        slide.classList.remove('hidden-slide');
+        const inner = slide.querySelector('.slide-inner-content') as HTMLElement;
+        if (inner) {
+          inner.style.transform = '';
+          inner.style.transformOrigin = '';
+        }
+      });
+    });
+
+    window.addEventListener('afterprint', () => {
+      modal?.classList.remove('pres-exporting-pdf');
+      slides.forEach((slide) => {
+        const inner = slide.querySelector('.slide-inner-content') as HTMLElement;
+        if (inner) {
+          inner.style.transform = '';
+          inner.style.transformOrigin = '';
+        }
+      });
+      showSlide(currentIndex);
+    });
+
+    // 6. Global Hardware Clicker & Keyboard Listener
+    window.addEventListener('keydown', (e) => {
+      // Intercept Ctrl+P / Cmd+P to always export presentation slide PDF instead of webpage
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        exportPresentationToPdf();
+        return;
+      }
+
+      if (modal?.classList.contains('hidden')) {
+        if ((e.key === 'p' || e.key === 'P') && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+          e.preventDefault();
+          openPresentation();
+        }
+        return;
+      }
+
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        if (e.key === 'Escape') {
+          (e.target as HTMLElement).blur();
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case 'PageDown':
+        case 'ArrowRight':
+        case 'ArrowDown':
+        case ' ':
+        case 'Enter':
+          e.preventDefault();
+          nextSlide();
+          break;
+
+        case 'PageUp':
+        case 'ArrowLeft':
+        case 'ArrowUp':
+        case 'Backspace':
+          e.preventDefault();
+          prevSlide();
+          break;
+
+        case 't':
+        case 'T':
+          e.preventDefault();
+          togglePresentationTheme();
+          break;
+
+        case 'b':
+        case 'B':
+        case '.':
+          e.preventDefault();
+          toggleBlank();
+          break;
+
+        case 'l':
+        case 'L':
+          e.preventDefault();
+          toggleLaser();
+          break;
+
+        case 's':
+        case 'S':
+          e.preventDefault();
+          toggleSpotlight();
+          break;
+
+        case 'h':
+        case 'H':
+        case '?':
+          e.preventDefault();
+          toggleHelpModal();
+          break;
+
+        case 'f':
+        case 'F':
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+
+        case 'e':
+        case 'E':
+          e.preventDefault();
+          exportPresentationToPdf();
+          break;
+
+        case 'Escape':
+          e.preventDefault();
+          if (isHelpActive) {
+            toggleHelpModal();
+          } else if (isBlankActive) {
+            toggleBlank();
+          } else {
+            closePresentation();
+          }
+          break;
+      }
+    });
+
+    // Touch swipe gesture support for mobile and tablet devices
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    modal.addEventListener('touchstart', (e: TouchEvent) => {
+      touchStartX = e.changedTouches[0].screenX;
+      touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    modal.addEventListener('touchend', (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      const touchEndY = e.changedTouches[0].screenY;
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      // Trigger horizontal swipe if movement is predominantly horizontal and > 45px
+      if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX < 0) {
+          nextSlide();
+        } else {
+          prevSlide();
+        }
+      }
+    }, { passive: true });
+
+    // Button event listeners
+    prevBtn?.addEventListener('click', prevSlide);
+    nextBtn?.addEventListener('click', nextSlide);
+    touchPrevBtn?.addEventListener('click', prevSlide);
+    touchNextBtn?.addEventListener('click', nextSlide);
+    closeBtn?.addEventListener('click', closePresentation);
+    themeBtn?.addEventListener('click', togglePresentationTheme);
+    laserBtn?.addEventListener('click', toggleLaser);
+    spotlightBtn?.addEventListener('click', toggleSpotlight);
+    blankBtn?.addEventListener('click', toggleBlank);
+    helpBtn?.addEventListener('click', toggleHelpModal);
+    closeHelpBtn?.addEventListener('click', toggleHelpModal);
+    fsBtn?.addEventListener('click', toggleFullscreen);
+    const exportPdfBtn = document.getElementById('pres-export-pdf-btn');
+    exportPdfBtn?.addEventListener('click', exportPresentationToPdf);
+
+    // Fullscreen change events listener to sync UI state
+    document.addEventListener('fullscreenchange', updateFullscreenUI);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+    document.addEventListener('mozfullscreenchange', updateFullscreenUI);
+    document.addEventListener('MSFullscreenChange', updateFullscreenUI);
+
+    // Global trigger button listener from page
+    document.querySelectorAll('.btn-trigger-presentation').forEach((btn) => {
+      btn.addEventListener('click', openPresentation);
+    });
+  }
+
+  setupPresentationEngine();
+  document.addEventListener('astro:page-load', setupPresentationEngine);
+</script>
+
+<style>
+  /* Base Presentation Container */
+  .presentation-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    font-family: var(--font-sans);
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  /* Explicit Fullscreen Mode Display rules */
+  :fullscreen .presentation-modal,
+  :-webkit-full-screen .presentation-modal,
+  .presentation-modal:fullscreen,
+  .presentation-modal:-webkit-full-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    z-index: 99999 !important;
+    background-color: var(--pres-bg) !important;
+  }
+
+  /* Dark Mode Palette (Default) */
+  .presentation-modal[data-pres-theme="dark"] {
+    background-color: #0b0f19;
+    color: #f0f6fc;
+    --pres-bg-topbar: #111827;
+    --pres-border-subtle: #1f2937;
+    --pres-border-hover: #374151;
+    --pres-btn-bg: #1f2937;
+    --pres-btn-text: #e5e7eb;
+    --pres-badge-bg: rgba(59, 130, 246, 0.15);
+    --pres-badge-text: #60a5fa;
+    --pres-badge-border: rgba(59, 130, 246, 0.3);
+    --pres-code-bg: #0d1117;
+    --pres-code-border: #388bfd;
+    --pres-code-out-bg: #161b22;
+    --pres-code-out-text: #c9d1d9;
+    --pres-heading-color: #60a5fa;
+    --pres-subheading-color: #93c5fd;
+    --pres-text-muted: #9ca3af;
+    --pres-watermark-bg: rgba(17, 24, 39, 0.7);
+  }
+
+  /* Light Mode Palette */
+  .presentation-modal[data-pres-theme="light"] {
+    background-color: #f8fafc;
+    color: #0f172a;
+    --pres-bg-topbar: #ffffff;
+    --pres-border-subtle: #e2e8f0;
+    --pres-border-hover: #cbd5e1;
+    --pres-btn-bg: #f1f5f9;
+    --pres-btn-text: #1e293b;
+    --pres-badge-bg: rgba(30, 64, 175, 0.1);
+    --pres-badge-text: #1e40af;
+    --pres-badge-border: rgba(30, 64, 175, 0.2);
+    --pres-code-bg: #ffffff;
+    --pres-code-border: #3b82f6;
+    --pres-code-out-bg: #f8fafc;
+    --pres-code-out-text: #1e293b;
+    --pres-heading-color: #1e40af;
+    --pres-subheading-color: #2563eb;
+    --pres-text-muted: #475569;
+    --pres-watermark-bg: rgba(255, 255, 255, 0.85);
+  }
+
+  /* Light Mode Slide Overrides (Ensures complete visual theme switch) */
+  .presentation-modal[data-pres-theme="light"] :global(.pres-slide) {
+    background-color: #f8fafc !important;
+    color: #0f172a !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.cover-title) {
+    color: #0f172a !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.cover-instructor),
+  .presentation-modal[data-pres-theme="light"] :global(.cover-inst-name) {
+    color: #1e293b !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide h2),
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-heading-1),
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-heading-2) {
+    color: #1e40af !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide h3),
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-heading-3) {
+    color: #2563eb !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide p),
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-paragraph),
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide ul),
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-list) {
+    color: #1e293b !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.code-cell-container) {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.code-cell-topbar) {
+    background-color: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.code-input) {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.code-output-wrapper) {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.output-console) {
+    background-color: #f8fafc !important;
+    color: #15803d !important;
+  }
+
+  /* Dark Mode Slide Overrides */
+  .presentation-modal[data-pres-theme="dark"] :global(.pres-slide) {
+    background-color: #0b0f19 !important;
+    color: #f0f6fc !important;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* Blackout Overlay */
+  .blank-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: #000000;
+    z-index: 1000;
+  }
+
+  /* Laser Dot */
+  .laser-dot {
+    position: fixed;
+    width: 14px;
+    height: 14px;
+    background-color: #ff3344;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1001;
+    box-shadow: 0 0 12px 4px rgba(255, 51, 68, 0.85), 0 0 24px 8px rgba(255, 51, 68, 0.5);
+    transition: width 0.1s ease, height 0.1s ease;
+  }
+
+  /* Spotlight Overlay */
+  .spotlight-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    background: radial-gradient(circle 180px at 50% 50%, transparent 0%, rgba(0, 0, 0, 0.85) 100%);
+  }
+
+  /* Keyboard Shortcut Help Modal */
+  .pres-help-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    z-index: 1002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .pres-help-dialog {
+    width: 100%;
+    max-width: 520px;
+    background-color: var(--pres-bg-topbar);
+    border: 1px solid var(--pres-border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  .pres-help-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--pres-border-subtle);
+  }
+
+  .pres-help-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--pres-heading-color);
+  }
+
+  .pres-help-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--pres-text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+  }
+
+  .pres-help-close-btn:hover {
+    color: var(--pres-btn-text);
+  }
+
+  .pres-help-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--pres-btn-text);
+  }
+
+  .shortcut-item kbd {
+    background-color: var(--pres-btn-bg);
+    border: 1px solid var(--pres-border-subtle);
+    color: var(--pres-badge-text);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.775rem;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Topbar */
+  .presentation-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1.25rem;
+    background-color: var(--pres-bg-topbar);
+    border-bottom: 1px solid var(--pres-border-subtle);
+    z-index: 10;
+    gap: 0.75rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    flex-wrap: nowrap;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .pres-course-badge {
+    font-weight: 700;
+    color: var(--pres-badge-text);
+  }
+
+  .pres-divider {
+    color: var(--pres-text-muted);
+  }
+
+  .pres-lesson-title {
+    color: var(--pres-text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .topbar-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* Unified Status Pill in Topbar Center */
+  .pres-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--pres-btn-text);
+    background-color: var(--pres-btn-bg);
+    border: 1px solid var(--pres-border-subtle);
+    padding: 0.25rem 0.75rem;
+    border-radius: 99px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .pill-counter {
+    color: var(--pres-text-muted);
+  }
+
+  .pill-counter strong {
+    color: var(--pres-badge-text);
+    font-weight: 800;
+  }
+
+  .pill-sep {
+    color: var(--pres-border-hover);
+    font-size: 0.75rem;
+  }
+
+  .pill-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: var(--font-mono);
+    color: #10b981;
+    font-weight: 700;
+  }
+
+  /* Grouped Controls in Topbar Right */
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+
+  .pres-tool-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .topbar-v-divider {
+    width: 1px;
+    height: 18px;
+    background-color: var(--pres-border-subtle);
+    margin: 0 0.15rem;
+  }
+
+  .pres-tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    height: 32px;
+    min-width: 32px;
+    background-color: var(--pres-btn-bg);
+    border: 1px solid var(--pres-border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--pres-btn-text);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .pres-tool-btn.icon-only {
+    padding: 0;
+    width: 32px;
+  }
+
+  .pres-tool-btn:hover {
+    background-color: var(--pres-border-hover);
+    color: var(--pres-heading-color);
+    border-color: var(--pres-border-hover);
+  }
+
+  .pres-tool-btn.active {
+    background-color: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+  }
+
+  .btn-export-highlight {
+    background-color: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: var(--pres-badge-text);
+    padding: 0 0.65rem;
+  }
+
+  .btn-export-highlight:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+  }
+
+  .tool-label-compact {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-exit {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    padding: 0 0.65rem;
+  }
+
+  .btn-exit:hover {
+    background-color: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+  }
+
+  .exit-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  /* Stage & Slides */
+  .presentation-stage {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    padding: 1.25rem 2rem;
+  }
+
+  /* Side tap zones for touch tablets & mobile devices */
+  .pres-side-nav-zone {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 60px;
+    z-index: 5;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .pres-side-nav-zone.left-zone {
+    left: 0;
+  }
+
+  .pres-side-nav-zone.right-zone {
+    right: 0;
+  }
+
+  .pres-side-nav-zone:hover, .pres-side-nav-zone:focus {
+    opacity: 1;
+  }
+
+  .side-nav-pill {
+    background-color: var(--pres-btn-bg);
+    border: 1px solid var(--pres-border-subtle);
+    color: var(--pres-btn-text);
+    padding: 0.65rem 0.45rem;
+    border-radius: 99px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .slides-track {
+    width: 100%;
+    max-width: min(1080px, 94vw);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  :global(.pres-slide) {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
+    align-items: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 1.25rem 1.75rem;
+    position: relative;
+    box-sizing: border-box;
+    animation: fadeInSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :global(.hidden-slide) {
+    display: none !important;
+  }
+
+  /* Slide Print Elements (Only visible when printing / exporting PDF) */
+  :global(.slide-print-header),
+  :global(.slide-print-footer),
+  :global(.code-static-print) {
+    display: none !important;
+  }
+
+  @keyframes fadeInSlide {
+    from {
+      opacity: 0;
+      transform: scale(0.985) translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Watermark badge on bottom-right of slide */
+  :global(.slide-corner-watermark) {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--pres-text-muted);
+    background-color: var(--pres-watermark-bg);
+    border: 1px solid var(--pres-border-subtle);
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  /* Cover Slide */
+  :global(.title-cover-slide .cover-container) {
+    max-width: 860px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    text-align: left;
+  }
+
+  :global(.cover-badge) {
+    align-self: flex-start;
+    padding: 0.35rem 0.85rem;
+    background-color: var(--pres-badge-bg);
+    color: var(--pres-badge-text);
+    border: 1px solid var(--pres-badge-border);
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  :global(.cover-title) {
+    font-size: clamp(1.8rem, 4.5vw, 3.2rem);
+    font-weight: 900;
+    line-height: 1.2;
+    color: var(--pres-btn-text);
+    margin: 0;
+  }
+
+  :global(.cover-slide-count-badge) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--pres-bg-topbar);
+    border: 1px solid var(--pres-border-subtle);
+    padding: 0.4rem 0.85rem;
+    border-radius: var(--radius-sm);
+    color: #10b981;
+    font-size: 0.95rem;
+    font-weight: 600;
+    align-self: flex-start;
+  }
+
+  :global(.cover-slide-count-badge strong) {
+    color: var(--pres-badge-text);
+    font-size: 1.1rem;
+  }
+
+  :global(.cover-footer) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--pres-border-subtle);
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  :global(.cover-instructor) {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 1rem;
+  }
+
+  :global(.cover-inst-role) {
+    color: var(--pres-text-muted);
+  }
+
+  :global(.cover-inst-name) {
+    color: var(--pres-badge-text);
+    font-weight: 700;
+  }
+
+  :global(.cover-start-hint) {
+    font-size: 0.85rem;
+    color: var(--pres-text-muted);
+    background-color: var(--pres-bg-topbar);
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--pres-border-subtle);
+  }
+
+  /* Content Slide */
+  :global(.slide-inner-content) {
+    width: 100%;
+    max-width: 960px;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: transform 0.15s ease-out;
+    transform-origin: center center;
+  }
+
+  :global(.slide-topic-badge) {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--pres-badge-text);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+    display: inline-block;
+  }
+
+  :global(.content-slide h2), :global(.content-slide .nb-heading-1), :global(.content-slide .nb-heading-2) {
+    font-size: clamp(1.3rem, 3vw, 2rem) !important;
+    font-weight: 800 !important;
+    color: var(--pres-heading-color) !important;
+    margin-bottom: 0.75rem !important;
+    padding-bottom: 0.35rem !important;
+    border-bottom: 2px solid var(--pres-border-subtle) !important;
+  }
+
+  :global(.content-slide h3), :global(.content-slide .nb-heading-3) {
+    font-size: clamp(1.15rem, 2.4vw, 1.45rem) !important;
+    font-weight: 700 !important;
+    color: var(--pres-subheading-color) !important;
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  :global(.content-slide h4), :global(.content-slide .nb-heading-4) {
+    font-size: clamp(1rem, 2vw, 1.2rem) !important;
+    font-weight: 700 !important;
+    color: var(--pres-heading-color) !important;
+    margin-bottom: 0.4rem !important;
+  }
+
+  :global(.content-slide p), :global(.content-slide .nb-paragraph) {
+    font-size: clamp(0.925rem, 1.7vw, 1.125rem) !important;
+    line-height: 1.6 !important;
+    color: var(--pres-btn-text) !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  :global(.content-slide ul), :global(.content-slide .nb-list) {
+    font-size: clamp(0.9rem, 1.6vw, 1.05rem) !important;
+    line-height: 1.65 !important;
+    margin-bottom: 1rem !important;
+    padding-left: 1.5rem !important;
+    color: var(--pres-btn-text) !important;
+  }
+
+  :global(.content-slide .code-cell-container) {
+    font-size: 0.95rem !important;
+    margin: 0.5rem 0 !important;
+    background-color: var(--pres-code-bg) !important;
+    border: 1px solid var(--pres-code-border) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    width: 100%;
+  }
+
+  :global(.content-slide .code-input) {
+    font-size: clamp(0.825rem, 1.4vw, 0.95rem) !important;
+    line-height: 1.45 !important;
+    padding: 0.65rem 0.85rem;
+    background-color: var(--pres-code-bg) !important;
+    color: var(--pres-btn-text) !important;
+    max-height: 48vh;
+    box-sizing: border-box;
+  }
+
+  :global(.content-slide .code-output-wrapper) {
+    background-color: var(--pres-code-out-bg) !important;
+    border-top: 1px solid var(--pres-border-subtle) !important;
+  }
+
+  :global(.content-slide .output-console) {
+    font-size: clamp(0.775rem, 1.3vw, 0.875rem) !important;
+    max-height: 22vh;
+    overflow-y: auto;
+    background-color: var(--pres-code-out-bg) !important;
+    color: var(--pres-code-out-text) !important;
+  }
+
+  /* Bottombar */
+  .presentation-bottombar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1.25rem;
+    background-color: var(--pres-bg-topbar);
+    border-top: 1px solid var(--pres-border-subtle);
+    z-index: 10;
+    gap: 0.75rem;
+    box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .instructor-tag {
+    font-size: 0.8rem;
+    color: var(--pres-text-muted);
+  }
+
+  .inst-name {
+    color: var(--pres-btn-text);
+    font-weight: 600;
+  }
+
+  .bottom-center {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-grow: 1;
+    max-width: 520px;
+    justify-content: center;
+  }
+
+  .bottom-progress-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-grow: 1;
+  }
+
+  .bottom-counter-text {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--pres-badge-text);
+    white-space: nowrap;
+    background-color: var(--pres-btn-bg);
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    border: 1px solid var(--pres-border-subtle);
+  }
+
+  .pres-nav-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--pres-btn-bg);
+    border: 1px solid var(--pres-border-subtle);
+    color: var(--pres-btn-text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .pres-nav-arrow:hover {
+    background-color: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+    transform: scale(1.05);
+  }
+
+  .progress-bar-track {
+    flex-grow: 1;
+    height: 6px;
+    background-color: var(--pres-btn-bg);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background-color: #2563eb;
+    border-radius: 99px;
+    transition: width 0.2s ease;
+  }
+
+  /* Mobile & Tablet Responsiveness */
+  @media (max-width: 900px) {
+    .tool-label, .instructor-tag {
+      display: none;
+    }
+    .presentation-topbar {
+      padding: 0.45rem 0.75rem;
+      gap: 0.4rem;
+    }
+    .presentation-bottombar {
+      padding: 0.45rem 0.75rem;
+    }
+    .presentation-stage {
+      padding: 0.5rem 0.75rem;
+    }
+    :global(.pres-slide) {
+      padding: 0.75rem 1rem;
+    }
+    .pres-side-nav-zone {
+      width: 44px;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .pres-divider, .pres-lesson-title {
+      display: none;
+    }
+    .timer-box {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.45rem;
+    }
+    .slide-indicator-box {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+    }
+    .bottom-counter-text {
+      font-size: 0.75rem;
+    }
+    .pres-tool-btn {
+      padding: 0.3rem 0.45rem;
+    }
+  }
+
+  .spin-anim {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Presentation PDF Export (Print Styles) */
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
+
+    /* Support both Dark and Light theme print with exact palette */
+    .presentation-modal[data-pres-theme="dark"] {
+      background-color: #0b0f19 !important;
+      color: #f0f6fc !important;
+      --pres-bg-topbar: #111827 !important;
+      --pres-border-subtle: #1f2937 !important;
+      --pres-border-hover: #374151 !important;
+      --pres-btn-bg: #1f2937 !important;
+      --pres-btn-text: #e5e7eb !important;
+      --pres-badge-bg: rgba(59, 130, 246, 0.15) !important;
+      --pres-badge-text: #60a5fa !important;
+      --pres-badge-border: rgba(59, 130, 246, 0.3) !important;
+      --pres-code-bg: #0d1117 !important;
+      --pres-code-border: #388bfd !important;
+      --pres-code-out-bg: #161b22 !important;
+      --pres-code-out-text: #c9d1d9 !important;
+      --pres-heading-color: #60a5fa !important;
+      --pres-subheading-color: #93c5fd !important;
+      --pres-text-muted: #9ca3af !important;
+      --pres-watermark-bg: rgba(17, 24, 39, 0.8) !important;
+    }
+
+    .presentation-modal[data-pres-theme="light"] {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+      --pres-bg-topbar: #ffffff !important;
+      --pres-border-subtle: #e2e8f0 !important;
+      --pres-border-hover: #cbd5e1 !important;
+      --pres-btn-bg: #f1f5f9 !important;
+      --pres-btn-text: #1e293b !important;
+      --pres-badge-bg: rgba(30, 64, 175, 0.1) !important;
+      --pres-badge-text: #1e40af !important;
+      --pres-badge-border: rgba(30, 64, 175, 0.2) !important;
+      --pres-code-bg: #ffffff !important;
+      --pres-code-border: #3b82f6 !important;
+      --pres-code-out-bg: #f8fafc !important;
+      --pres-code-out-text: #1e293b !important;
+      --pres-heading-color: #1e40af !important;
+      --pres-subheading-color: #2563eb !important;
+      --pres-text-muted: #475569 !important;
+      --pres-watermark-bg: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .presentation-modal[data-pres-theme="dark"] :global(.pres-slide) {
+      background-color: #0b0f19 !important;
+      color: #f0f6fc !important;
+    }
+
+    .presentation-modal[data-pres-theme="light"] :global(.pres-slide) {
+      background-color: #ffffff !important;
+      color: #0f172a !important;
+    }
+
+    /* Hide outer site elements when exporting presentation */
+    :global(body > *:not(#presentation-mode-modal)) {
+      display: none !important;
+    }
+
+    :global(.reader-body > *:not(#presentation-mode-modal)) {
+      display: none !important;
+    }
+
+    :global(#presentation-mode-modal),
+    :global(#presentation-mode-modal.hidden),
+    :global(.presentation-modal.pres-exporting-pdf) {
+      position: static !important;
+      display: block !important;
+      width: 297mm !important;
+      height: auto !important;
+      overflow: visible !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      inset: auto !important;
+    }
+
+    /* Hide screen-only interactive controls in print */
+    .presentation-topbar,
+    .presentation-bottombar,
+    .pres-side-nav-zone,
+    .blank-overlay,
+    .laser-dot,
+    .spotlight-overlay,
+    .pres-help-overlay,
+    .topbar-right,
+    .btn-run-code,
+    .btn-copy-code,
+    .btn-clear-out,
+    .btn-ai-explain,
+    .code-cell-topbar .topbar-right,
+    .code-input,
+    .play-icon {
+      display: none !important;
+    }
+
+    .presentation-stage {
+      display: block !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      height: auto !important;
+    }
+
+    .slides-track {
+      display: block !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      height: auto !important;
+      transform: none !important;
+    }
+
+    /* Each Slide is an exact 16:9 Presentation Frame on A4 Landscape */
+    :global(.pres-slide),
+    :global(.pres-slide.hidden-slide) {
+      page-break-after: always !important;
+      break-after: page !important;
+      page-break-inside: avoid !important;
+      width: 297mm !important;
+      height: 210mm !important;
+      max-width: 297mm !important;
+      max-height: 210mm !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
+      box-sizing: border-box !important;
+      padding: 16mm 22mm 15mm 22mm !important;
+      overflow: hidden !important;
+      animation: none !important;
+      position: relative !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    /* Top Bar Header on Each Slide (matches screen presentation topbar) */
+    :global(.slide-print-header) {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      height: 14mm !important;
+      padding: 0 22mm !important;
+      box-sizing: border-box !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      background-color: var(--pres-bg-topbar) !important;
+      border-bottom: 1px solid var(--pres-border-subtle) !important;
+      z-index: 10 !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    :global(.print-header-left) {
+      display: flex !important;
+      align-items: center !important;
+      gap: 3mm !important;
+      font-size: 10pt !important;
+    }
+
+    :global(.print-course-badge) {
+      font-weight: 800 !important;
+      color: var(--pres-badge-text) !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.5px !important;
+    }
+
+    :global(.print-divider) {
+      color: var(--pres-text-muted) !important;
+      opacity: 0.5 !important;
+    }
+
+    :global(.print-lesson-title) {
+      color: var(--pres-text-muted) !important;
+      font-weight: 600 !important;
+    }
+
+    :global(.print-header-right) {
+      display: flex !important;
+      align-items: center !important;
+    }
+
+    :global(.print-mode-tag) {
+      font-family: var(--font-mono) !important;
+      font-size: 8.5pt !important;
+      font-weight: 700 !important;
+      color: var(--pres-badge-text) !important;
+      background-color: var(--pres-badge-bg) !important;
+      border: 1px solid var(--pres-badge-border) !important;
+      padding: 1.5mm 3.5mm !important;
+      border-radius: 99px !important;
+      letter-spacing: 0.5px !important;
+    }
+
+    /* Bottom Bar Footer on Each Slide (matches screen presentation bottombar) */
+    :global(.slide-print-footer) {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      width: 100% !important;
+      height: 13mm !important;
+      padding: 0 22mm !important;
+      box-sizing: border-box !important;
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      background-color: var(--pres-bg-topbar) !important;
+      border-top: 1px solid var(--pres-border-subtle) !important;
+      z-index: 10 !important;
+      font-size: 9.5pt !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    :global(.print-footer-left) {
+      display: flex !important;
+      align-items: center !important;
+      gap: 2.5mm !important;
+      color: var(--pres-text-muted) !important;
+    }
+
+    :global(.print-inst-name) {
+      color: var(--pres-btn-text) !important;
+      font-weight: 700 !important;
+    }
+
+    :global(.print-footer-center) {
+      display: flex !important;
+      align-items: center !important;
+      flex-grow: 1 !important;
+      max-width: 90mm !important;
+      margin: 0 6mm !important;
+    }
+
+    :global(.print-progress-track) {
+      width: 100% !important;
+      height: 3mm !important;
+      background-color: var(--pres-btn-bg) !important;
+      border: 1px solid var(--pres-border-subtle) !important;
+      border-radius: 99px !important;
+      overflow: hidden !important;
+    }
+
+    :global(.print-progress-bar) {
+      height: 100% !important;
+      background-color: #2563eb !important;
+      border-radius: 99px !important;
+    }
+
+    :global(.print-footer-right) {
+      color: var(--pres-text-muted) !important;
+      font-family: var(--font-mono) !important;
+      font-size: 9.5pt !important;
+      white-space: nowrap !important;
+    }
+
+    :global(.print-footer-right strong) {
+      color: var(--pres-badge-text) !important;
+      font-weight: 800 !important;
+    }
+
+    /* Watermark Badge */
+    :global(.slide-corner-watermark) {
+      font-family: var(--font-mono) !important;
+      font-size: 11pt !important;
+      font-weight: 700 !important;
+      position: absolute !important;
+      bottom: 16mm !important;
+      right: 22mm !important;
+      opacity: 0.9 !important;
+      background-color: var(--pres-watermark-bg) !important;
+      border: 1px solid var(--pres-border-subtle) !important;
+      color: var(--pres-text-muted) !important;
+      padding: 1.5mm 3.5mm !important;
+      border-radius: 4px !important;
+      z-index: 5 !important;
+    }
+
+    /* Title Cover Slide Print Overrides (Clean, grandiose cover page) */
+    :global(.title-cover-slide .slide-print-header),
+    :global(.title-cover-slide .slide-print-footer),
+    :global(.title-cover-slide .slide-corner-watermark) {
+      display: none !important;
+    }
+
+    :global(.title-cover-slide .cover-container) {
+      max-width: 240mm !important;
+      width: 100% !important;
+      gap: 6mm !important;
+    }
+
+    :global(.title-cover-slide .cover-badge) {
+      font-size: 12pt !important;
+      padding: 2.5mm 6mm !important;
+      font-weight: 700 !important;
+    }
+
+    :global(.title-cover-slide .cover-title) {
+      font-size: 34pt !important;
+      line-height: 1.25 !important;
+      font-weight: 900 !important;
+    }
+
+    :global(.title-cover-slide .cover-slide-count-badge) {
+      font-size: 11.5pt !important;
+      padding: 2.5mm 5mm !important;
+    }
+
+    :global(.title-cover-slide .cover-footer) {
+      margin-top: 8mm !important;
+      padding-top: 5mm !important;
+      border-top: 1px solid var(--pres-border-subtle) !important;
+    }
+
+    :global(.title-cover-slide .cover-instructor) {
+      font-size: 12.5pt !important;
+      gap: 0.5rem !important;
+    }
+
+    :global(.title-cover-slide .cover-inst-name) {
+      font-size: 12.5pt !important;
+      font-weight: 700 !important;
+    }
+
+    :global(.title-cover-slide .cover-start-hint) {
+      display: none !important;
+    }
+
+    /* End Slide */
+    :global(.end-qa-slide .cover-title) {
+      font-size: 32pt !important;
+      margin-bottom: 6mm !important;
+      font-weight: 900 !important;
+    }
+
+    :global(.end-qa-slide .end-subtitle) {
+      font-size: 15pt !important;
+      color: var(--pres-text-muted) !important;
+    }
+
+    /* Content Typography tuned for 16:9 Presentation Frame */
+    :global(.slide-inner-content) {
+      width: 100% !important;
+      max-width: 255mm !important;
+      margin: auto !important;
+      transition: none !important;
+    }
+
+    :global(.slide-topic-badge) {
+      font-size: 11pt !important;
+      font-weight: 700 !important;
+      margin-bottom: 3.5mm !important;
+      letter-spacing: 0.5px !important;
+      text-transform: uppercase !important;
+      color: var(--pres-badge-text) !important;
+    }
+
+    :global(.content-slide h2),
+    :global(.content-slide .nb-heading-1),
+    :global(.content-slide .nb-heading-2) {
+      font-size: 26pt !important;
+      font-weight: 800 !important;
+      line-height: 1.3 !important;
+      margin-bottom: 4mm !important;
+      padding-bottom: 2mm !important;
+      border-bottom: 2px solid var(--pres-border-subtle) !important;
+      color: var(--pres-heading-color) !important;
+    }
+
+    :global(.content-slide h3),
+    :global(.content-slide .nb-heading-3) {
+      font-size: 19pt !important;
+      font-weight: 700 !important;
+      line-height: 1.3 !important;
+      margin-top: 3.5mm !important;
+      margin-bottom: 3.5mm !important;
+      color: var(--pres-subheading-color) !important;
+    }
+
+    :global(.content-slide h4),
+    :global(.content-slide .nb-heading-4) {
+      font-size: 16pt !important;
+      font-weight: 700 !important;
+      margin-bottom: 3mm !important;
+      color: var(--pres-heading-color) !important;
+    }
+
+    :global(.content-slide p),
+    :global(.content-slide .nb-paragraph) {
+      font-size: 15pt !important;
+      line-height: 1.6 !important;
+      margin-bottom: 3.5mm !important;
+      color: var(--pres-btn-text) !important;
+    }
+
+    :global(.content-slide ul),
+    :global(.content-slide .nb-list) {
+      font-size: 15pt !important;
+      line-height: 1.6 !important;
+      margin-bottom: 3.5mm !important;
+      padding-left: 7mm !important;
+      color: var(--pres-btn-text) !important;
+    }
+
+    :global(.content-slide li) {
+      margin-bottom: 2mm !important;
+    }
+
+    :global(.content-slide strong),
+    :global(.content-slide b) {
+      font-weight: 700 !important;
+      color: var(--pres-heading-color) !important;
+    }
+
+    /* Code Card Presentation Formatting in PDF */
+    :global(.code-cell-container) {
+      max-width: 100% !important;
+      width: 100% !important;
+      box-shadow: none !important;
+      border: 1.5px solid var(--pres-code-border) !important;
+      border-radius: 8px !important;
+      page-break-inside: avoid !important;
+      background-color: var(--pres-code-bg) !important;
+      margin: 3mm 0 !important;
+      overflow: hidden !important;
+    }
+
+    :global(.code-cell-topbar) {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      padding: 2.5mm 4.5mm !important;
+      background-color: var(--pres-bg-topbar) !important;
+      border-bottom: 1px solid var(--pres-border-subtle) !important;
+    }
+
+    :global(.code-cell-topbar .topbar-left) {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.4rem !important;
+    }
+
+    :global(.code-cell-topbar .cell-index-badge) {
+      font-family: var(--font-mono) !important;
+      font-size: 9.5pt !important;
+      font-weight: 700 !important;
+      color: #10b981 !important;
+    }
+
+    :global(.code-cell-topbar .lang-tag) {
+      font-family: var(--font-mono) !important;
+      font-size: 9pt !important;
+      color: var(--pres-text-muted) !important;
+    }
+
+    :global(.code-editor-wrapper) {
+      background-color: var(--pres-code-bg) !important;
+      width: 100% !important;
+    }
+
+    :global(.line-numbers) {
+      display: none !important;
+    }
+
+    .code-static-print {
+      display: block !important;
+      font-family: var(--font-mono) !important;
+      font-size: 12pt !important;
+      line-height: 1.45 !important;
+      color: var(--pres-btn-text) !important;
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+      margin: 0 !important;
+      padding: 3.5mm 5mm !important;
+      background: transparent !important;
+      border: none !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+
+    :global(.content-slide pre) {
+      background-color: var(--pres-code-bg) !important;
+      border: 1.5px solid var(--pres-code-border) !important;
+      border-radius: 8px !important;
+      padding: 3.5mm 5mm !important;
+      font-family: var(--font-mono) !important;
+      font-size: 12pt !important;
+      line-height: 1.45 !important;
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+      color: var(--pres-btn-text) !important;
+      margin: 3mm 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    :global(.code-output-wrapper) {
+      background-color: var(--pres-code-out-bg) !important;
+      border-top: 1px solid var(--pres-border-subtle) !important;
+    }
+
+    :global(.output-console) {
+      font-size: 10.5pt !important;
+      line-height: 1.4 !important;
+      max-height: 52mm !important;
+      overflow: hidden !important;
+      background-color: var(--pres-code-out-bg) !important;
+      color: var(--pres-code-out-text) !important;
+      padding: 3mm 5mm !important;
+    }
+  }
+</style>

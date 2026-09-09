@@ -1,0 +1,184 @@
+---
+// ScrollToTop.astro - Tombol Kembali ke Atas Presisi dengan Indikator Progres Scroll
+---
+
+<button
+  type="button"
+  id="global-scroll-to-top-btn"
+  class="scroll-to-top-btn hidden"
+  aria-label="Kembali ke atas halaman"
+  title="Kembali ke atas"
+>
+  <svg class="progress-ring" width="38" height="38" viewBox="0 0 38 38">
+    <circle
+      class="progress-ring-bg"
+      stroke="currentColor"
+      stroke-width="2.5"
+      fill="transparent"
+      r="17"
+      cx="19"
+      cy="19"
+    />
+    <circle
+      id="scroll-progress-circle"
+      class="progress-ring-circle"
+      stroke="currentColor"
+      stroke-width="2.5"
+      stroke-dasharray="106.81"
+      stroke-dashoffset="106.81"
+      stroke-linecap="round"
+      fill="transparent"
+      r="17"
+      cx="19"
+      cy="19"
+    />
+  </svg>
+  <span class="arrow-icon-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="15" height="15">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  </span>
+</button>
+
+<script>
+  function setupScrollToTop() {
+    const btn = document.getElementById('global-scroll-to-top-btn');
+    const circle = document.getElementById('scroll-progress-circle');
+    if (!btn || !circle) return;
+
+    const circumference = 2 * Math.PI * 17; // ~106.814
+
+    function onScroll() {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+
+      if (scrollTop > 250) {
+        btn?.classList.remove('hidden');
+        btn?.classList.add('visible');
+      } else {
+        btn?.classList.remove('visible');
+        btn?.classList.add('hidden');
+      }
+
+      if (docHeight > 0) {
+        const progress = Math.min(Math.max(scrollTop / docHeight, 0), 1);
+        const offset = circumference - progress * circumference;
+        circle?.setAttribute('stroke-dashoffset', offset.toString());
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    btn.addEventListener('click', () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth',
+      });
+    });
+  }
+
+  setupScrollToTop();
+  document.addEventListener('astro:page-load', setupScrollToTop);
+</script>
+
+<style>
+  .scroll-to-top-btn {
+    position: fixed;
+    bottom: 4.25rem;
+    right: 1.25rem;
+    z-index: 980;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: var(--bg-surface);
+    color: var(--text-main);
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px) scale(0.9);
+    transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+    box-sizing: border-box;
+  }
+
+  [data-theme='dark'] .scroll-to-top-btn {
+    background-color: #161b22;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  }
+
+  .scroll-to-top-btn.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  .scroll-to-top-btn:hover {
+    background-color: var(--bg-surface-elevated);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+    transform: translateY(-2px) scale(1.05);
+  }
+
+  .scroll-to-top-btn:active {
+    transform: translateY(0) scale(0.95);
+  }
+
+  /* Sembunyikan scroll-to-top saat modal chat AI sedang dibuka */
+  :global(body.awd-chat-open) .scroll-to-top-btn {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .progress-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 38px;
+    height: 38px;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+
+  .progress-ring-bg {
+    color: var(--border-medium);
+    opacity: 0.8;
+  }
+
+  .progress-ring-circle {
+    color: var(--primary);
+    transition: stroke-dashoffset 0.1s linear;
+  }
+
+  .arrow-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+    transition: transform 0.15s ease, color 0.15s ease;
+    z-index: 1;
+  }
+
+  .scroll-to-top-btn:hover .arrow-icon-box {
+    transform: translateY(-2px);
+    color: var(--primary);
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 768px) {
+    .scroll-to-top-btn {
+      bottom: 4.25rem;
+      right: 1.25rem;
+      width: 38px;
+      height: 38px;
+    }
+  }
+</style>

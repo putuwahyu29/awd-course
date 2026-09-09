@@ -1,0 +1,68 @@
+---
+title: "Tugas Akhir: Membangun Platform SaaS Multi-Tenant Enterprise"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 5: Testing, Deployment & Proyek Enterprise"
+order: 14
+duration: "60 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Selamat telah mencapai puncak kurikulum **Pengembangan Web Modern dengan Laravel & Filament PHP**! Pada tugas proyek akhir ini, Anda akan merancang dan membangun arsitektur aplikasi **Software as a Service (SaaS)** skala enterprise yang menggabungkan seluruh modul pembelajaran dari tingkat dasar hingga mahir.
+
+---
+
+## 1. Spesifikasi Fitur Utama Proyek Akhir
+
+Platform SaaS yang Anda bangun wajib memiliki arsitektur lengkap berikut:
+
+1. **Lapisan Database & Eloquent**:
+   * Skema multi-relasi antara Model `Tenant` (Organisasi), `User` (Pengguna), `Product` (Barang), `Order` (Transaksi Pesanan), dan `OrderItem`.
+   * Implementasi *Global Scope* untuk isolasi data antar organisasi (*Multi-Tenancy data isolation*).
+2. **Lapisan Panel Admin Reaktif (Filament PHP 3)**:
+   * Dasbor metrik real-time: Total Omzet Penjualan Bulanan, Grafik Tren Transaksi, dan Notifikasi Stok Menipis.
+   * Tabel Filament dengan export data Excel/CSV dan filtering tanggal interaktif.
+3. **Lapisan RESTful API & Keamanan**:
+   * Endpoint otentikasi Sanctum untuk mobile/frontend clients.
+   * Validasi ketat menggunakan kelas Form Request mandiri.
+4. **Background Jobs & Event-Driven**:
+   * Event `OrderPlaced` yang men-dispatch `GenerateInvoicePdfJob` ke antrean Redis secara asinkron.
+5. **Jaminan Kualitas**:
+   * Minimal 5 automated Feature Tests menggunakan Pest PHP dengan status seluruh tes lulus 100% (*Green*).
+
+---
+
+## 2. Diagram Alur Sistem (Architecture Blueprint)
+
+```
+[ Frontend / Mobile App ] ---> [ Laravel Sanctum API ]
+                                       |
+                                       v
+                                [ OrderController ]
+                                       |
+                     +-----------------+-----------------+
+                     |                                   |
+                     v                                   v
+             [ Event: OrderPlaced ]             [ Database PostgreSQL ]
+                     |
+                     v
+       [ Queue Worker: Redis Job ]
+                     |
+                     v
+        [ Generate PDF Invoice & Email ]
+```
+
+---
+
+## 3. Rubrik Penilaian & Syarat Kelulusan
+
+* [x] **Fondasi MVC & Routing**: Struktur controller bersih (*Skinny Controller*) dengan pemisahan Business Logic ke Service Classes.
+* [x] **Pemodelan Data Eloquent**: Implementasi Eager Loading (`with()`) untuk mencegah $N+1$ query.
+* [x] **Panel Filament**: Resource CRUD terkonfigurasi dengan form input rapi dan tabel terindeks.
+* [x] **Antrean Asinkron**: Redis worker menangani background task pengiriman invoice.
+* [x] **Pest Testing**: Seluruh alur kritis (Login, Create Order, Stock Update) teruji otomatis.
+
+<Callout type="tip" title="Selamat Atas Prestasi Belajar Anda!">
+  Menyelesaikan proyek ini membuktikan bahwa Anda telah menguasai keahlian rekayasa web Laravel tingkat mahir (*Enterprise Full-Stack Developer*). Selamat berkarya!
+</Callout>

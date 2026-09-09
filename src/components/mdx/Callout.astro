@@ -1,0 +1,146 @@
+---
+interface Props {
+  type?: 'tip' | 'info' | 'warning' | 'danger' | 'note';
+  title?: string;
+}
+
+const { type = 'info', title } = Astro.props;
+
+const defaultTitles = {
+  tip: 'Tips Praktis',
+  info: 'Informasi Penting',
+  warning: 'Perhatian',
+  danger: 'Peringatan',
+  note: 'Catatan',
+};
+
+const displayTitle = title || defaultTitles[type] || 'Catatan';
+---
+
+<div class={`callout-box callout-${type} my-4`}>
+  <div class="callout-header">
+    <span class="callout-icon">
+      {type === 'tip' && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      )}
+      {type === 'info' && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+      )}
+      {type === 'warning' && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      )}
+      {type === 'danger' && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon>
+          <line x1="15" y1="9" x2="9" y2="15"></line>
+          <line x1="9" y1="9" x2="15" y2="15"></line>
+        </svg>
+      )}
+      {type === 'note' && (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+      )}
+    </span>
+    <span class="callout-title">{displayTitle}</span>
+  </div>
+  <div class="callout-content">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .callout-box {
+    border-radius: var(--radius-md);
+    padding: 1rem 1.15rem;
+    margin: 1.25rem 0;
+    border-left: 3px solid;
+    background-color: var(--bg-surface-elevated);
+    border-top: 1px solid var(--border-subtle);
+    border-right: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .callout-header {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+
+  .callout-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .callout-title {
+    font-size: 0.875rem;
+    font-family: var(--font-display);
+  }
+
+  .callout-content {
+    font-size: 0.925rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+  }
+
+  .callout-content :global(p:last-child) {
+    margin-bottom: 0;
+  }
+
+  /* Variants */
+  .callout-tip {
+    border-left-color: var(--accent-emerald);
+  }
+  .callout-tip .callout-icon,
+  .callout-tip .callout-title {
+    color: var(--accent-emerald);
+  }
+
+  .callout-info {
+    border-left-color: var(--primary);
+  }
+  .callout-info .callout-icon,
+  .callout-info .callout-title {
+    color: var(--primary);
+  }
+
+  .callout-warning {
+    border-left-color: var(--accent-amber);
+  }
+  .callout-warning .callout-icon,
+  .callout-warning .callout-title {
+    color: var(--accent-amber);
+  }
+
+  .callout-danger {
+    border-left-color: var(--accent-rose);
+  }
+  .callout-danger .callout-icon,
+  .callout-danger .callout-title {
+    color: var(--accent-rose);
+  }
+
+  .callout-note {
+    border-left-color: var(--accent-cyan);
+  }
+  .callout-note .callout-icon,
+  .callout-note .callout-title {
+    color: var(--accent-cyan);
+  }
+</style>

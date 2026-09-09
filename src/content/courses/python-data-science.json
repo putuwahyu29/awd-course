@@ -1,0 +1,16 @@
+{
+  "title": "Dasar Python & Analisis Data untuk Pemula",
+  "description": "Kuasai dasar sintaksis Python, manipulasi struktur data, analisis statistik dengan library modern NumPy & Pandas, dan visualisasi data eksploratif.",
+  "category": "data-ai",
+  "level": "Pemula hingga Mahir",
+  "duration": "7 Jam",
+  "instructor": "I Putu Agus Wahyu Dupayana",
+  "instructorRole": "Software Engineer di AWD.dev",
+  "instructorAvatar": "/images/instructors/wahyu-dupayana.jpg",
+  "thumbnail": "/images/courses/data-science.svg",
+  "isFeatured": true,
+  "isPublished": true,
+  "status": "published",
+  "updatedAt": "2026-09-08",
+  "order": 1
+}

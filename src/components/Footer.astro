@@ -1,0 +1,167 @@
+---
+// Footer.astro
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <!-- Brand & Description -->
+      <div class="brand-col">
+        <div class="footer-brand">
+          <div class="logo-icon-sm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16" aria-hidden="true">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+          </div>
+          <span class="footer-brand-name">Awd <span class="brand-highlight">Course</span></span>
+        </div>
+        <p class="footer-desc">
+          Platform pembelajaran teknis terstruktur untuk sains data dan pemrograman dengan panduan komprehensif serta modul latihan interaktif.
+        </p>
+      </div>
+
+      <!-- Links Grid -->
+      <div class="links-grid">
+        <div class="links-group">
+          <h4 class="links-heading">Navigasi</h4>
+          <ul class="footer-links-list">
+            <li><a href="/" class="footer-link">Beranda</a></li>
+            <li><a href="/courses" class="footer-link">Katalog Kursus</a></li>
+          </ul>
+        </div>
+
+        <div class="links-group">
+          <h4 class="links-heading">Topik Pembelajaran</h4>
+          <ul class="footer-links-list">
+            <li><a href="/courses" class="footer-link">Sains Data & Python</a></li>
+            <li><a href="/courses" class="footer-link">Pemrograman & Algoritma</a></li>
+            <li><a href="/courses" class="footer-link">Rekayasa Web & Cloud</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p class="copyright-text">© {new Date().getFullYear()} Awd Course. Seluruh hak cipta dilindungi.</p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    background-color: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    margin-top: auto;
+    padding: 3.5rem 0 2rem 0;
+  }
+
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 2fr;
+    gap: 3rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .brand-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    max-width: 360px;
+  }
+
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .logo-icon-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background-color: var(--primary);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .footer-brand-name {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .brand-highlight {
+    color: var(--primary);
+  }
+
+  .footer-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .links-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .links-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .links-heading {
+    font-size: 0.775rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-main);
+    margin: 0;
+  }
+
+  .footer-links-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .footer-link {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .footer-link:hover {
+    color: var(--primary);
+  }
+
+  .footer-bottom {
+    padding-top: 1.75rem;
+  }
+
+  .copyright-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .footer-grid {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+  }
+</style>

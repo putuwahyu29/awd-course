@@ -1,0 +1,177 @@
+---
+title: "Keamanan Backend: Autentikasi JWT, Password Hashing & Otorisasi RBAC"
+courseSlug: "backend-web-development"
+chapter: "Bab 4: Autentikasi, Keamanan API & Otorisasi RBAC"
+order: 7
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Keamanan adalah pilar paling fundamental dalam arsitektur backend. Kesalahan kecil dalam pengelolaan otentikasi dapat mengekspos seluruh basis data sensitif pengguna.
+
+---
+
+## 1. Password Hashing: Mengapa Plaintext & MD5 Dilarang Keras?
+
+Password **tidak boleh pernah disimpan dalam bentuk teks biasa (plaintext)** atau algoritma usang seperti MD5/SHA1 (karena rentan serangan *Rainbow Table* dan *GPU Brute-force*).
+
+Gunakan algoritma lambat berbasis memori yang dirancang khusus untuk password: **Argon2id** (pemenang Password Hashing Competition) atau **Bcrypt**:
+
+```javascript
+import bcrypt from 'bcrypt';
+
+const SALT_ROUNDS = 12;
+
+// Saat Registrasi Pengguna
+export async function hashPassword(plainPassword) {
+  return await bcrypt.hash(plainPassword, SALT_ROUNDS);
+}
+
+// Saat Login Pengguna
+export async function verifyPassword(inputPassword, storedHash) {
+  return await bcrypt.compare(inputPassword, storedHash);
+}
+```
+
+---
+
+## 2. Anatomi JSON Web Token (JWT) & Best Practices
+
+JWT adalah standar terbuka (RFC 7519) untuk mentransmisikan klaim identitas secara aman antara pihak-pihak sebagai objek JSON yang ditandatangani secara kriptografis.
+
+```text
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImVtYWlsIjoiYnVkaUBtYWlsLmNvbSIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTYxNjIzOTAyMiwiZXhwIjoxNjE2MjQyNjIyfQ.4PzO3...
+│                 HEADER                  │                                PAYLOAD                                  │                   SIGNATURE                    │
+```
+
+### Rekomendasi Arsitektur Token Produksi:
+1. **Access Token (Masa Aktif Pendek: 15 Menit)**: Berisi `userId` dan `role`. Digunakan untuk mengakses protected API endpoints.
+2. **Refresh Token (Masa Aktif Panjang: 7 Hari)**: Disimpan di cookie bertipe `HttpOnly; Secure; SameSite=Strict` untuk mencegah pencurian token melalui serangan Cross-Site Scripting (XSS). Disertai mekanisme *Token Rotation*.
+
+---
+
+## 3. Role-Based Access Control (RBAC) Middleware
+
+RBAC memastikan bahwa hanya pengguna dengan wewenang tertentu yang dapat mengakses endpoint tertentu (misal: hanya role `SUPERADMIN` atau `EDITOR` yang dapat menghapus artikel):
+
+```javascript
+export const requireRoles = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthenticated' });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: `Forbidden: Hak akses role '${req.user.role}' tidak mencukupi`,
+      });
+    }
+
+    next();
+  };
+};
+
+// Contoh Penggunaan di Route
+// app.delete('/api/users/:id', authenticateJWT, requireRoles('SUPERADMIN'), deleteUserHandler);
+```
+
+---
+
+## 4. Praktik Interaktif: Simulasi JWT Signing, Verifikasi & RBAC Guard
+
+Eksplorasi pembuatan token kriptografis, verifikasi tanda tangan digital, dan pengujian otorisasi role di bawah ini:
+
+<MultiLangRunner
+  language="javascript"
+  title="Simulasi JWT Generator, Signature Verification & RBAC Guard"
+  initialCode={`// Simulasi JWT Utility menggunakan HMAC-SHA256 sederhana
+const JWT_SECRET = "rahasia_super_aman_awd_backend_2026";
+
+// Helper Base64URL
+function base64UrlEncode(str) {
+  return btoa(str).replace(/=/g, "").replace(/\\+/g, "-").replace(/\\//g, "_");
+}
+
+function base64UrlDecode(str) {
+  str = str.replace(/-/g, "+").replace(/_/g, "/");
+  while (str.length % 4) str += "=";
+  return atob(str);
+}
+
+// Simulasi Sign Token
+function createMockJWT(payload, secret, expiresInSeconds = 3600) {
+  const header = { alg: "HS256", typ: "JWT" };
+  const exp = Math.floor(Date.now() / 1000) + expiresInSeconds;
+  const fullPayload = { ...payload, exp };
+
+  const encodedHeader = base64UrlEncode(JSON.stringify(header));
+  const encodedPayload = base64UrlEncode(JSON.stringify(fullPayload));
+  
+  // Simulasi Hash Signature sederhana untuk demonstrasi logika
+  const signatureInput = \`\${encodedHeader}.\${encodedPayload}\`;
+  const signature = base64UrlEncode(\`\${signatureInput}__\${secret}\`);
+
+  return \`\${encodedHeader}.\${encodedPayload}.\${signature}\`;
+}
+
+// Simulasi Verify Token
+function verifyMockJWT(token, secret) {
+  const parts = token.split(".");
+  if (parts.length !== 3) throw new Error("Format token tidak valid");
+
+  const [headerB64, payloadB64, signatureB64] = parts;
+  const expectedSignature = base64UrlEncode(\`\${headerB64}.\${payloadB64}__\${secret}\`);
+
+  if (signatureB64 !== expectedSignature) {
+    throw new Error("Invalid Signature: Token telah dimanipulasi!");
+  }
+
+  const payload = JSON.parse(base64UrlDecode(payloadB64));
+  const currentTimestamp = Math.floor(Date.now() / 1000);
+
+  if (payload.exp && payload.exp < currentTimestamp) {
+    throw new Error("TokenExpiredError: Token telah kadaluarsa");
+  }
+
+  return payload;
+}
+
+// --- DEMO AUTHENTICATION & RBAC ---
+console.log("=== 1. GENERATE TOKEN PENGGUNA ===");
+const userToken = createMockJWT({ id: "usr_99", name: "Budi Santoso", role: "CUSTOMER" }, JWT_SECRET);
+const adminToken = createMockJWT({ id: "usr_01", name: "Admin Utama", role: "ADMIN" }, JWT_SECRET);
+console.log("Customer Token:\\n", userToken);
+
+console.log("\\n=== 2. VERIFIKASI TOKEN VALID ===");
+const decoded = verifyMockJWT(userToken, JWT_SECRET);
+console.log("Hasil Verifikasi Berhasil:", decoded);
+
+console.log("\\n=== 3. DETEKSI TOKEN PALSU / DIMANIPULASI ===");
+try {
+  // Manipulasi token dengan secret palsu
+  const fakeToken = userToken.slice(0, -5) + "HACKED";
+  verifyMockJWT(fakeToken, JWT_SECRET);
+} catch (err) {
+  console.log("Proteksi Keamanan Aktif:", err.message);
+}
+
+console.log("\\n=== 4. PENGUJIAN RBAC GUARD (Endpoint Hapus Database) ===");
+function deleteDatabaseHandler(token) {
+  const user = verifyMockJWT(token, JWT_SECRET);
+  if (user.role !== "ADMIN") {
+    return \`❌ Akses Ditolak untuk \${user.name} (Role: \${user.role}). Wajib role ADMIN!\`;
+  }
+  return \`✅ Akses Diberikan untuk \${user.name}. Menghapus resource...\`;
+}
+
+console.log("Customer mencoba akses:", deleteDatabaseHandler(userToken));
+console.log("Admin mencoba akses:", deleteDatabaseHandler(adminToken));`}
+/>
+
+<Callout type="warning" title="Peringatan Keamanan Kritis">
+  Jangan pernah menyimpan data sensitif seperti password, nomor kartu kredit, atau API Secret Key di dalam payload JWT. Payload JWT **hanya di-encode dengan Base64**, bukan dienkripsi secara rahasia, sehingga siapapun yang memegang string token dapat membaca isi payload tersebut!
+</Callout>

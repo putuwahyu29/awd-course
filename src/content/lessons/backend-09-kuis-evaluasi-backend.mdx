@@ -1,0 +1,85 @@
+---
+title: "Kuis Evaluasi Komprehensif: Rekayasa Backend Modern"
+courseSlug: "backend-web-development"
+chapter: "Bab 5: Arsitektur Mahir, Caching & Evaluasi"
+order: 9
+duration: "15 Menit"
+contentType: "quiz"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import Quiz from '../../components/mdx/Quiz.astro';
+
+Uji pemahaman mendalam Anda mengenai seluruh materi yang telah dipelajari, mulai dari protokol HTTP, Event Loop Node.js, REST API, Database Relasional, Autentikasi JWT, hingga Caching Redis.
+
+---
+
+## Soal Evaluasi Pemahaman
+
+Silakan pilih satu jawaban yang paling tepat pada masing-masing pertanyaan di bawah ini, lalu klik **Periksa Jawaban**.
+
+<Quiz
+  question="1. Manakah dari pernyataan berikut yang paling tepat mengenai sifat 'Idempotency' pada HTTP Methods?"
+  options={[
+    "POST adalah method yang bersifat idempoten karena selalu membuat baris data baru di database.",
+    "GET, PUT, dan DELETE adalah method idempoten karena memanggilnya berkali-kali dengan payload yang sama menghasilkan status data di server yang identik dengan pemanggilan 1 kali.",
+    "PATCH selalu idempoten di seluruh standar implementasi RFC.",
+    "Idempotency berarti request dapat dieksekusi tanpa memerlukan koneksi internet."
+  ]}
+  correctIndex={1}
+  explanation="Tepat sekali! Operasi idempoten menjamin bahwa eksekusi berulang tidak akan menghasilkan efek samping data yang berbeda dari eksekusi tunggal (seperti PUT yang menimpa state penuh atau DELETE yang memastikan resource sudah tidak ada)."
+/>
+
+<Quiz
+  question="2. Mengapa Node.js dapat menangani puluhan ribu koneksi I/O secara bersamaan meskipun berjalan pada Single-Threaded Event Loop?"
+  options={[
+    "Karena Node.js membuat proses CPU baru untuk setiap request masuk.",
+    "Karena operasi I/O yang memakan waktu didelegasikan ke OS Kernel dan Thread Pool Libuv secara asynchronous dan non-blocking.",
+    "Karena JavaScript menghentikan seluruh komputasi saat menunggu respon database.",
+    "Karena V8 Engine mengubah seluruh kode menjadi multi-threaded secara otomatis."
+  ]}
+  correctIndex={1}
+  explanation="Benar! Node.js memanfaatkan arsitektur Non-Blocking I/O yang ditangani oleh pustaka C/C++ Libuv dan kernel sistem operasi, sehingga thread utama JavaScript bebas melayani request lain tanpa terblokir."
+/>
+
+<Quiz
+  question="3. Pada basis data relasional, apa fungsi utama dari penambahan B-Tree Index pada kolom yang sering dicari (WHERE)?"
+  options={[
+    "Mengubah kompleksitas pencarian dari Full Table Scan O(N) menjadi Binary Tree Search O(log N).",
+    "Membuat ukuran file database menjadi lebih kecil dan hemat memori.",
+    "Mencegah tabel agar tidak bisa diubah oleh pengguna lain.",
+    "Mengenkripsi isi data kolom agar tidak bisa dibaca oleh hacker."
+  ]}
+  correctIndex={0}
+  explanation="Luar biasa! Index B-Tree mengorganisir pointer data dalam struktur pohon berimbang sehingga engine database dapat melompat langsung ke baris yang dicari dalam kompleksitas O(log N) alih-alih memindai seluruh baris tabel satu per satu."
+/>
+
+<Quiz
+  question="4. Manakah praktik keamanan terbaik dalam penyimpanan token otentikasi di sisi klien web?"
+  options={[
+    "Menyimpan Access Token dan Refresh Token di localStorage peramban.",
+    "Menyimpan Refresh Token di Cookie bertipe HttpOnly, Secure, dan SameSite=Strict untuk mencegah pencurian melalui skrip XSS.",
+    "Menyimpan password pengguna dalam format MD5 di dalam payload JWT.",
+    "Menonaktifkan CORS dan mengizinkan Access-Control-Allow-Origin: * pada seluruh endpoint pembayaran."
+  ]}
+  correctIndex={1}
+  explanation="Sempurna! Cookie bertipe HttpOnly tidak dapat diakses oleh skrip JavaScript peramban (document.cookie), sehingga kebal terhadap serangan pencurian token via Cross-Site Scripting (XSS)."
+/>
+
+<Quiz
+  question="5. Dalam pola 'Cache-Aside' dengan Redis, apa yang dilakukan server saat terjadi 'Cache Miss'?"
+  options={[
+    "Mengembalikan status error 404 ke klien.",
+    "Menghapus seluruh database dan membuat instance baru.",
+    "Mengambil data dari database utama, menyimpannya ke Redis dengan TTL tertentu, lalu mengembalikannya ke klien.",
+    "Menolak request dan menyuruh klien mencoba kembali beberapa saat lagi."
+  ]}
+  correctIndex={2}
+  explanation="Tepat sekali! Saat terjadi Cache Miss, backend akan membaca data asli dari database utama (PostgreSQL), memasukkannya ke cache Redis dengan durasi masa aktif (TTL), dan mengembalikan data tersebut ke pengguna."
+/>
+
+---
+
+<Callout type="tip" title="Langkah Selanjutnya">
+  Setelah menyelesaikan kuis ini, silakan lanjutkan ke materi terakhir untuk mempelajari spesifikasi dan panduan pengerjaan **Proyek Akhir Enterprise REST API**!
+</Callout>

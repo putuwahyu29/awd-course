@@ -1,0 +1,85 @@
+---
+title: "Kuis Evaluasi: Kompetensi DevOps, Docker, CI/CD & Cloud"
+courseSlug: "devops-cloud-mastery"
+chapter: "Bab 5: Monitoring, Observabilitas & Evaluasi"
+order: 9
+duration: "15 Menit"
+contentType: "quiz"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import Quiz from '../../components/mdx/Quiz.astro';
+
+Mari uji pemahaman Anda mengenai seluruh siklus DevOps, teknik optimasi Dockerfile, konfigurasi NGINX reverse proxy, pipeline CI/CD GitHub Actions, orkestrasi Kubernetes, dan observabilitas sistem.
+
+---
+
+## Soal Evaluasi Pemahaman
+
+Silakan tentukan jawaban yang paling tepat pada masing-masing soal di bawah ini, lalu klik **Periksa Jawaban**.
+
+<Quiz
+  question="1. Apa manfaat utama dari teknik Multi-Stage Build pada penulisan Dockerfile untuk aplikasi web?"
+  options={[
+    "Menjalankan beberapa kontainer sekaligus di port yang sama.",
+    "Memisahkan tahapan kompilasi dependensi (yang membutuhkan toolchain besar) dari image runtime akhir, sehingga ukuran image produksi menjadi sangat kecil dan aman.",
+    "Mengubah container Linux menjadi sistem operasi Windows.",
+    "Menonaktifkan kebutuhan password root pada container."
+  ]}
+  correctIndex={1}
+  explanation="Tepat sekali! Multi-stage build memungkinkan Anda menyalin hanya binary/artifact hasil kompilasi bersih ke image akhir yang minimalis (seperti alpine), memangkas ukuran dari ratusan MB menjadi puluhan MB serta meminimalkan celah keamanan."
+/>
+
+<Quiz
+  question="2. Di dalam file docker-compose.yml, bagaimana satu kontainer dapat memanggil kontainer lain yang berada di dalam network yang sama?"
+  options={[
+    "Harus mengetahui dan memasukkan IP Address lokal kontainer tujuan secara manual.",
+    "Cukup menggunakan nama layanan (Service Name) sebagai hostname karena Docker memiliki internal DNS Service Discovery bawaan.",
+    "Harus membuka port kontainer tujuan ke internet publik dengan 0.0.0.0.",
+    "Harus menghubungkan kedua kontainer menggunakan kabel LAN fisik."
+  ]}
+  correctIndex={1}
+  explanation="Benar! Docker Engine memiliki sistem DNS internal yang otomatis memetakan nama layanan (misal: 'postgres_db' atau 'redis_cache') ke alamat IP internal kontainer tersebut."
+/>
+
+<Quiz
+  question="3. Mengapa server aplikasi backend (seperti Node.js) sebaiknya diletakkan di belakang NGINX Reverse Proxy?"
+  options={[
+    "Karena Node.js tidak bisa menerima request HTTP sama sekali.",
+    "Karena NGINX menangani SSL termination, kompresi GZIP, proteksi DDoS/rate limiting, dan static caching secara jauh lebih efisien pada level jaringan.",
+    "Agar database bisa langsung diakses oleh browser tanpa login.",
+    "Karena NGINX otomatis memperbaiki bug logika di dalam kode JavaScript."
+  ]}
+  correctIndex={1}
+  explanation="Sempurna! NGINX adalah web server tingkat tinggi berbasis asynchronous C event-driven yang dioptimalkan untuk menangani ribuan koneksi TCP simultan, enkripsi SSL/TLS, dan proteksi gateway terdepan."
+/>
+
+<Quiz
+  question="4. Pada Kubernetes, apa yang terjadi secara otomatis ketika 'livenessProbe' pada sebuah Pod gagal merespon beberapa kali berturut-turut?"
+  options={[
+    "Kubernetes akan menghapus seluruh cluster dan mematikan server fisik.",
+    "Kubernetes mengabaikan error tersebut dan tetap mengirim trafik pengguna.",
+    "Kubelet akan secara otomatis me-restart/membuat ulang kontainer baru untuk memulihkan layanan (Self-Healing).",
+    "Kubernetes mengirim email penagihan biaya tambahan ke developer."
+  ]}
+  correctIndex={2}
+  explanation="Tepat sekali! Mekanisme Self-Healing Kubernetes mendeteksi kontainer yang hang atau mengalami deadlock/memory leak melalui livenessProbe dan secara otomatis merestart kontainer tersebut."
+/>
+
+<Quiz
+  question="5. Manakah rumus yang benar untuk menghitung 'Error Budget' pada metrik keandalan sistem?"
+  options={[
+    "Error Budget = Total Request / 100",
+    "Error Budget = 100% - SLO (Service Level Objective)",
+    "Error Budget = Jumlah Uptime Server dalam Hari",
+    "Error Budget = Biaya sewa server cloud per bulan"
+  ]}
+  correctIndex={1}
+  explanation="Tepat! Error Budget adalah toleransi kegagalan yang diizinkan (100% dikurangi target SLO). Jika SLO Anda 99.9%, maka Error Budget Anda adalah 0.1% dari total trafik."
+/>
+
+---
+
+<Callout type="tip" title="Langkah Pamungkas">
+  Setelah menuntaskan kuis evaluasi ini, silakan lanjutkan ke materi pamungkas untuk membaca panduan pengerjaan **Proyek Akhir Cloud Deployment**!
+</Callout>

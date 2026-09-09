@@ -1,0 +1,97 @@
+---
+title: "Pengujian Otomatis (Automated Testing) dengan Pest PHP"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 5: Testing, Deployment & Proyek Enterprise"
+order: 12
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Perangkat lunak tingkat industri tidak boleh dirilis ke publik tanpa jaminan pengujian otomatis (*Automated Testing*). **Pest PHP** adalah framework testing modern untuk PHP dengan sintaks yang sangat elegan, ekspresif, dan human-readable.
+
+---
+
+## 1. Menyiapkan Pest PHP di Laravel
+
+```bash
+composer require pestphp/pest --dev --with-all-dependencies
+composer require pestphp/pest-plugin-laravel --dev
+php artisan pest:install
+```
+
+---
+
+## 2. Menulis Feature Test (Endpoint API & Auth)
+
+Buat file uji `tests/Feature/CourseApiTest.php`:
+
+```php
+use App\Models\Category;
+use App\Models\Course;
+use App\Models\User;
+
+// 1. Pengujian: Pengunjung umum dapat melihat daftar kursus
+test('public visitors can list published courses', function () {
+    $category = Category::factory()->create();
+    Course::factory()->count(3)->create([
+        'category_id' => $category->id,
+        'is_published' => true,
+    ]);
+
+    $response = $this->getJson('/api/v1/courses');
+
+    $response->assertStatus(200)
+        ->assertJsonCount(3, 'data')
+        ->assertJsonStructure([
+            'status',
+            'data' => [
+                '*' => ['id', 'title', 'slug', 'price']
+            ]
+        ]);
+});
+
+// 2. Pengujian: Pengguna yang belum login ditolak saat membuat kursus
+test('unauthenticated users cannot create a course', function () {
+    $response = $this->postJson('/api/v1/courses', [
+        'title' => 'Kursus Baru Tanpa Izin',
+    ]);
+
+    $response->assertStatus(401);
+});
+
+// 3. Pengujian: Pemateri berhasil mendaftarkan kursus baru
+it('allows an instructor to create a new course', function () {
+    $instructor = User::factory()->create(['role' => 'instructor']);
+    $category = Category::factory()->create();
+
+    $response = $this->actingAs($instructor, 'sanctum')->postJson('/api/v1/courses', [
+        'title' => 'Mastering Pest Testing in Laravel',
+        'category_id' => $category->id,
+        'instructor' => $instructor->fullname,
+        'price' => 150000,
+        'level' => 'Mahir',
+    ]);
+
+    $response->assertStatus(201)
+        ->assertJsonPath('data.title', 'Mastering Pest Testing in Laravel');
+
+    $this->assertDatabaseHas('courses', [
+        'title' => 'Mastering Pest Testing in Laravel',
+    ]);
+});
+```
+
+---
+
+## 3. Menjalankan Uji Otomatis
+
+```bash
+# Menjalankan seluruh rangkaian tes
+php artisan test --parallel
+```
+
+<Callout type="tip" title="Database Testing In-Memory (SQLite)">
+  Gunakan trait `RefreshDatabase` atau konfigurasi database SQLite in-memory `:memory:` di file `phpunit.xml` agar eksekusi ribuan tes selesai dalam hitungan detik tanpa memengaruhi database lokal Anda.
+</Callout>

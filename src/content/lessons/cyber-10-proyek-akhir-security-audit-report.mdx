@@ -1,0 +1,67 @@
+---
+title: "Proyek Akhir: Laporan Audit Penetrasi Web & Server Hardening Checklist"
+courseSlug: "cybersecurity-web-defense"
+chapter: "Bab 4: Incident Response & Evaluasi"
+order: 10
+duration: "45 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Selamat! Anda telah mempelajari seluruh spektrum pertahanan aplikasi web modern, mulai dari CIA Triad, mitigasi kerentanan OWASP Top 10, perlindungan REST API dan token JWT, integrasi DevSecOps, hingga protokol manajemen insiden.
+
+Pada tugas proyek akhir ini, Anda akan berperan sebagai **Lead Security Consultant** yang bertugas menyusun **Dokumen Laporan Audit Penetrasi Keamanan Standar Industri (Penetration Test Report)** dan menerapkan **Security Hardening Checklist**.
+
+---
+
+## 1. Spesifikasi Tugas Proyek Akhir
+
+Pilih salah satu dari 2 skenario audit di bawah ini:
+1. **Audit Aplikasi Portal Perbankan / E-Commerce API**: Mengidentifikasi potensi celah IDOR pada mutasi rekening, SQL Injection pada pencarian produk, dan Weak JWT Secret pada sistem autentikasi.
+2. **Audit Sistem Informasi Manajemen Pegawai (Kepegawaian)**: Mengidentifikasi potensi celah Broken Access Control (pegawai biasa mengakses data gaji manajer), Stored XSS pada formulir profil, dan kebocoran credential di file repository Git.
+
+---
+
+## 2. Struktur Dokumen Laporan Audit yang Wajib Dibuat
+
+Laporan audit keamanan profesional wajib memiliki bab-bab terstandarisasi berikut:
+
+### Bagian 1: Executive Summary (Ringkasan untuk Manajemen)
+- Ruang lingkup pengujian (*Scope of Testing*).
+- Ringkasan tingkat risiko sistem secara keseluruhan (Grafik Sebaran Temuan: Critical, High, Medium, Low).
+- Rekomendasi strategis perbaikan prioritas.
+
+### Bagian 2: Rincian Temuan Kerentanan (Vulnerability Details)
+Untuk setiap celah keamanan yang ditemukan, cantumkan:
+1. **Nama Kerentanan & Kategori OWASP** (misal: *CWE-89: SQL Injection*).
+2. **Skor Keparahan CVSS v3.1** (misal: *CVSS 9.8 - CRITICAL*).
+3. **Deskripsi & Lokasi Endpoint Terdampak** (misal: `POST /api/v1/users/search`).
+4. **Langkah Reproduksi Bukti Konsep (*Proof of Concept / PoC*)**: Payload request yang membuktikan celah tersebut nyata.
+5. **Dampak Bisnis (*Business Impact*)**: Risiko kerugian finansial atau reputasi jika celah dieksploitasi pihak jahat.
+6. **Langkah Remediasi (*Remediation / Patching Code*)**: Contoh kode perbaikan yang tepat.
+
+---
+
+## 3. Checklist Server Hardening yang Wajib Diterapkan
+
+- [ ] **Lapisan Web Server (NGINX / Edge)**:
+  - Nonaktifkan server tokens (`server_tokens off;`).
+  - Pasang sertifikat SSL/TLS dengan protokol minimum TLS 1.2 dan TLS 1.3.
+  - Aktifkan Security Headers lengkap: `Content-Security-Policy`, `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security`.
+- [ ] **Lapisan Aplikasi Backend (Node.js / Express)**:
+  - Middleware `helmet()` dan CORS terkonfigurasi dengan domain whitelist ketat.
+  - Rate Limiting aktif pada seluruh endpoint login dan register (maksimum 5 request/menit).
+  - Skema validasi input Zod terpasang di seluruh endpoint.
+  - Password di-hash menggunakan Argon2id atau Bcrypt dengan Salt.
+- [ ] **Lapisan Basis Data (PostgreSQL / MySQL)**:
+  - Seluruh query menggunakan Prepared Statement / ORM.
+  - Akun database aplikasi tidak menggunakan user `root` / `superuser`.
+
+---
+
+<Callout type="tip" title="Selamat Atas Kelulusan Anda!">
+  Dengan menuntaskan seluruh materi dan laporan audit akhir ini, Anda telah memiliki bekal keahlian yang sangat dicari di industri teknologi informasi sebagai seorang **Web Security Specialist & Defensive Engineer**.
+  
+  Klik tombol **Tandai Selesai Pelajaran Ini** di bawah untuk menyelesaikan kursus ini secara paripurna!
+</Callout>

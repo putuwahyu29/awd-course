@@ -1,0 +1,105 @@
+---
+title: "Tugas Praktik: Membuat Program Kalkulator Interaktif"
+courseSlug: "python-data-science"
+chapter: "Bab 1: Dasar Pemrograman Python"
+order: 8
+duration: "30 Menit"
+contentType: "assignment"
+isPublished: true
+updatedAt: "2026-09-08"
+---
+
+import AdminSolution from '../../components/mdx/AdminSolution.astro';
+
+Pada tugas praktik mandiri ini, Anda diminta untuk mengintegrasikan seluruh konsep dasar pemrograman Python yang telah dipelajari pada Bab 1 (variabel, tipe data, operator aritmatika, percabangan kondisi, dan pembuatan fungsi modular).
+
+---
+
+## 1. Deskripsi & Tujuan Tugas
+
+Tugas Anda adalah merancang modul program kalkulator fungsional yang mampu melakukan empat operasi aritmatika dasar melalui pemanggilan fungsi modular, sekaligus memiliki mekanisme validasi untuk menangani kondisi khusus pembagian dengan angka nol (*zero division error handling*).
+
+### Petunjuk Pengerjaan:
+1. Buka editor kode pilihan Anda (seperti Visual Studio Code, PyCharm, Jupyter Notebook, atau terminal Python).
+2. Tulis dan lengkapi implementasi empat fungsi kalkulator sesuai dengan spesifikasi teknis di bawah.
+3. Jalankan pengujian fungsi dengan parameter angka yang ditentukan untuk memverifikasi kebenaran logika program Anda.
+
+---
+
+## 2. Spesifikasi Teknis Fungsi
+
+Program kalkulator wajib mengimplementasikan empat fungsi berikut:
+
+| Nama Fungsi | Parameter Input | Nilai Kembalian (*Return*) | Penjelasan Logika |
+| :--- | :--- | :--- | :--- |
+| `tambah(a, b)` | `a` (angka), `b` (angka) | `a + b` | Mengembalikan hasil penjumlahan dua angka. |
+| `kurang(a, b)` | `a` (angka), `b` (angka) | `a - b` | Mengembalikan hasil pengurangan nilai `a` dikurangi `b`. |
+| `kali(a, b)` | `a` (angka), `b` (angka) | `a * b` | Mengembalikan hasil perkalian nilai `a` dan `b`. |
+| `bagi(a, b)` | `a` (angka), `b` (angka) | `a / b` atau pesan kesalahan | Mengembalikan hasil pembagian `a` dengan `b`. Jika pembagi bernilai nol, kembalikan pesan peringatan. |
+
+### Penanganan Kasus Pembagian Nol (*Zero Division*):
+Membagi angka dengan nol akan memicu kesalahan fatal (*ZeroDivisionError*). Pastikan fungsi `bagi(a, b)` memeriksa kondisi nilai `b` terlebih dahulu:
+* Jika `b == 0`, fungsi mengembalikan pesan string: `"Error: Pembagian dengan nol tidak diizinkan!"`
+* Jika `b != 0`, kembalikan hasil pembagian `a / b`.
+
+---
+
+## 3. Tolok Ukur Hasil (Expected Output)
+
+Gunakan variabel pengujian berikut:
+```python
+angka1 = 48
+angka2 = 12
+```
+
+Setelah seluruh fungsi kalkulator didefinisikan dan dipanggil, program harus menampilkan hasil di terminal persis seperti berikut:
+
+```text
+48 + 12 = 60
+48 - 12 = 36
+48 * 12 = 576
+48 / 12 = 4.0
+48 / 0  = Error: Pembagian dengan nol tidak diizinkan!
+```
+
+---
+
+## 4. Lembar Kerja Praktik (Tantangan Mandiri)
+
+Lengkapi bagian rumpang (`_______`) pada blok kode Python di bawah ini:
+
+```python
+# Tugas: Lengkapi bagian rumpang (_______) pada fungsi kalkulator di bawah ini:
+
+# 1. Fungsi Penjumlahan
+def tambah(a, b):
+    return _______
+
+# 2. Fungsi Pengurangan
+def kurang(a, b):
+    return _______
+
+# 3. Fungsi Perkalian
+def kali(a, b):
+    return _______
+
+# 4. Fungsi Pembagian (dengan penanganan khusus jika pembagi adalah nol)
+def bagi(a, b):
+    if b == _______:
+        return "Error: Pembagian dengan nol tidak diizinkan!"
+    return _______
+
+# Uji Coba Fungsi Kalkulator (Jalankan setelah melengkapi fungsi di atas)
+angka1 = 48
+angka2 = 12
+
+print(f"{angka1} + {angka2} = {tambah(angka1, angka2)}")
+print(f"{angka1} - {angka2} = {kurang(angka1, angka2)}")
+print(f"{angka1} * {angka2} = {kali(angka1, angka2)}")
+print(f"{angka1} / {angka2} = {bagi(angka1, angka2)}")
+print(f"{angka1} / 0  = {bagi(angka1, 0)}")
+```
+
+---
+
+<AdminSolution taskId="py-01h" />

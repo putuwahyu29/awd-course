@@ -1,0 +1,153 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  colabUrl: string;
+  ipynbFile?: string;
+  githubUrl?: string;
+}
+
+const {
+  title = 'Notebook Eksplorasi Data (Jupyter / Colab)',
+  description = 'Anda dapat menjalankan notebook ini secara gratis di Google Colab dengan GPU/CPU Cloud atau mengunduhnya.',
+  colabUrl,
+  ipynbFile,
+  githubUrl,
+} = Astro.props;
+
+const cleanRelPath = ipynbFile ? `public${ipynbFile.startsWith('/') ? '' : '/'}${ipynbFile}` : '';
+const effectiveGithubUrl = githubUrl || (cleanRelPath ? `https://github.com/putuwahyu29/awd-course/blob/main/${cleanRelPath}` : 'https://github.com/putuwahyu29/awd-course');
+const effectiveColabUrl = (colabUrl && colabUrl !== 'https://colab.research.google.com')
+  ? colabUrl
+  : (cleanRelPath ? `https://colab.research.google.com/github/putuwahyu29/awd-course/blob/main/${cleanRelPath}` : 'https://colab.research.google.com');
+---
+
+<div class="colab-notebook-card card my-6">
+  <div class="colab-header">
+    <div class="colab-brand">
+      <div class="colab-logo">
+        <svg viewBox="0 0 24 24" width="28" height="28">
+          <path fill="#F9AB00" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.12 14.86l-3.32 3.32a.75.75 0 0 1-1.06 0l-5.6-5.6a.75.75 0 0 1 0-1.06l3.32-3.32a.75.75 0 0 1 1.06 0l5.6 5.6a.75.75 0 0 1 0 1.06z"/>
+        </svg>
+      </div>
+      <div class="colab-text-details">
+        <h4 class="colab-title">{title}</h4>
+        <p class="colab-desc">{description}</p>
+      </div>
+    </div>
+
+    <div class="colab-btn-actions">
+      {ipynbFile && (
+        <a href={ipynbFile} download class="btn btn-outline btn-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Unduh .ipynb
+        </a>
+      )}
+
+      <a href={effectiveGithubUrl} target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        GitHub
+      </a>
+
+      <a href={effectiveColabUrl} target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm colab-open-btn">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        Buka di Google Colab
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .colab-notebook-card {
+    padding: 1.25rem 1.5rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    margin: 1.75rem 0;
+  }
+
+  .colab-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+  }
+
+  .colab-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+    max-width: 600px;
+  }
+
+  .colab-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background-color: rgba(245, 158, 11, 0.1);
+    flex-shrink: 0;
+  }
+
+  .colab-text-details {
+    min-width: 0;
+  }
+
+  .colab-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-main);
+  }
+
+  .colab-desc {
+    font-size: 0.825rem;
+    color: var(--text-muted);
+    margin: 0.2rem 0 0 0;
+    line-height: 1.4;
+  }
+
+  .colab-btn-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .colab-open-btn {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+    color: #ffffff;
+  }
+
+  .colab-open-btn:hover {
+    background-color: #d97706;
+    border-color: #d97706;
+  }
+
+  @media (max-width: 640px) {
+    .colab-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .colab-btn-actions {
+      width: 100%;
+    }
+    .colab-btn-actions .btn {
+      flex: 1;
+      justify-content: center;
+    }
+  }
+</style>

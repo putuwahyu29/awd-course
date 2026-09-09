@@ -1,0 +1,327 @@
+---
+title: "Tugas Praktik: Formulir Registrasi & Validasi Modern"
+courseSlug: "frontend-modern-mastery"
+chapter: "Bab 1: Struktur & HTML5 Semantik"
+order: 2
+duration: "30 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import WebRunner from '../../components/mdx/WebRunner.astro';
+
+Formulir (*web form*) adalah pintu utama interaksi antara pengguna dan aplikasi web. Pada tugas praktik ini, Anda akan mempelajari tipe input HTML5 terbaru, atribut validasi bawaan (*Constraint Validation API*), serta merancang formulir yang aman dan ramah pengguna.
+
+---
+
+## 1. Tipe Input & Atribut Validasi Bawaan HTML5
+
+HTML5 menyediakan mekanisme validasi di sisi peramban tanpa perlu menuliskan kode JavaScript yang panjang:
+
+* **Tipe Input Khusus**:
+  * `type="email"`: Memastikan format email valid (memiliki simbol `@` dan domain).
+  * `type="password"`: Menyembunyikan karakter input demi keamanan.
+  * `type="tel"` & `type="number"`: Menampilkan keyboard angka pada perangkat seluler.
+  * `type="date"`: Menampilkan kalender *date-picker* bawaan sistem operasi.
+* **Atribut Validasi Inti**:
+  * `required`: Field wajib diisi sebelum form dapat dikirim (*submit*).
+  * `minlength` & `maxlength`: Membatasi jumlah karakter minimum/maksimum.
+  * `pattern="[A-Za-z0-9_]{5,}"`: Validasi berbasis Regex (*Regular Expression*).
+  * `autocomplete="username"` / `autocomplete="current-password"`: Membantu manajer kata sandi browser mengisi data otomatis.
+
+<Callout type="tip" title="Labeling Aksesibel">
+  Jangan pernah menggantikan `<label>` dengan sekadar atribut `placeholder`. Placeholder akan hilang saat pengguna mulai mengetik, sedangkan tag `<label for="idInput">` memberikan konteks permanen bagi pengguna dan alat bantu disabilitas.
+</Callout>
+
+---
+
+## 2. Praktik Interaktif: Formulir Pendaftaran Lengkap
+
+Silakan uji coba formulir di bawah ini. Cobalah mengklik tombol **Daftar Akun Sekarang** tanpa mengisi input atau memasukkan format email yang salah untuk melihat validasi otomatis browser:
+
+<WebRunner 
+  title="Laboratorium Praktik Form & Validasi HTML5"
+  height="520px"
+  initialHtml={`<div class="form-container">
+  <div class="form-header">
+    <h2>Registrasi Anggota Baru</h2>
+    <p>Silakan lengkapi data diri Anda untuk memulai kursus.</p>
+  </div>
+
+  <form id="register-form" novalidate>
+    <!-- 1. Nama Lengkap -->
+    <div class="form-group">
+      <label for="fullname">Nama Lengkap <span class="required">*</span></label>
+      <input 
+        type="text" 
+        id="fullname" 
+        name="fullname" 
+        placeholder="Contoh: Budi Pratama" 
+        required 
+        minlength="3" 
+      />
+      <span class="error-msg" id="error-fullname"></span>
+    </div>
+
+    <!-- 2. Alamat Email -->
+    <div class="form-group">
+      <label for="email">Alamat Email <span class="required">*</span></label>
+      <input 
+        type="email" 
+        id="email" 
+        name="email" 
+        placeholder="nama@domain.com" 
+        required 
+      />
+      <span class="error-msg" id="error-email"></span>
+    </div>
+
+    <!-- 3. Pilihan Jalur Minat -->
+    <div class="form-group">
+      <label for="track">Jalur Minat Belajar</label>
+      <select id="track" name="track">
+        <option value="frontend">Pengembangan Web Frontend</option>
+        <option value="backend">Pengembangan Web Backend</option>
+        <option value="datascience">Data Science & Python</option>
+      </select>
+    </div>
+
+    <!-- 4. Kata Sandi -->
+    <div class="form-group">
+      <label for="password">Kata Sandi (Minimal 6 Karakter) <span class="required">*</span></label>
+      <input 
+        type="password" 
+        id="password" 
+        name="password" 
+        placeholder="••••••••" 
+        required 
+        minlength="6" 
+      />
+      <span class="error-msg" id="error-password"></span>
+    </div>
+
+    <!-- 5. Persetujuan Syarat -->
+    <div class="form-checkbox">
+      <input type="checkbox" id="terms" required />
+      <label for="terms">Saya menyetujui Syarat dan Ketentuan Awd Course</label>
+    </div>
+
+    <button type="submit" class="btn-submit">Daftar Akun Sekarang</button>
+  </form>
+
+  <div id="success-alert" class="success-box hidden">
+    <h3>Pendaftaran Berhasil!</h3>
+    <p id="success-desc"></p>
+  </div>
+</div>`}
+  initialCss={`* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: #0b0f17;
+  color: #e2e8f0;
+  padding: 1.5rem;
+}
+
+.form-container {
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: #161f2e;
+  border-radius: 12px;
+  border: 1px solid #283548;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.form-header {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form-header h2 {
+  color: #38bdf8;
+  font-size: 1.4rem;
+  margin-bottom: 0.25rem;
+}
+
+.form-header p {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.form-group {
+  margin-bottom: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.required {
+  color: #f43f5e;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background-color: #0b0f17;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f8fafc;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.2s;
+}
+
+input:focus,
+select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #0284c7;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-submit:hover {
+  background-color: #0369a1;
+}
+
+.error-msg {
+  color: #f43f5e;
+  font-size: 0.775rem;
+  display: none;
+}
+
+.input-invalid {
+  border-color: #f43f5e !important;
+}
+
+.success-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+  border-radius: 8px;
+  text-align: center;
+  color: #4ade80;
+}
+
+.success-box h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.success-box p {
+  color: #cbd5e1;
+  font-size: 0.85rem;
+}
+
+.hidden {
+  display: none;
+}`}
+  initialJs={`const form = document.getElementById('register-form');
+const successAlert = document.getElementById('success-alert');
+const successDesc = document.getElementById('success-desc');
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  let isValid = true;
+
+  const fullname = document.getElementById('fullname');
+  const email = document.getElementById('email');
+  const password = document.getElementById('password');
+  const terms = document.getElementById('terms');
+
+  // Validasi Nama
+  if (fullname.value.trim().length < 3) {
+    showError(fullname, 'Nama harus minimal 3 karakter');
+    isValid = false;
+  } else {
+    clearError(fullname);
+  }
+
+  // Validasi Email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email.value.trim())) {
+    showError(email, 'Format email tidak valid (contoh: user@mail.com)');
+    isValid = false;
+  } else {
+    clearError(email);
+  }
+
+  // Validasi Password
+  if (password.value.length < 6) {
+    showError(password, 'Kata sandi minimal 6 karakter');
+    isValid = false;
+  } else {
+    clearError(password);
+  }
+
+  if (!terms.checked) {
+    alert('Anda harus menyetujui Syarat & Ketentuan terlebih dahulu.');
+    isValid = false;
+  }
+
+  if (isValid) {
+    form.classList.add('hidden');
+    successDesc.textContent = \`Selamat \${fullname.value}, akun Anda pada jalur \${document.getElementById('track').value} telah aktif!\`;
+    successAlert.classList.remove('hidden');
+  }
+});
+
+function showError(input, message) {
+  input.classList.add('input-invalid');
+  const errSpan = document.getElementById(\`error-\${input.id}\`);
+  if (errSpan) {
+    errSpan.textContent = message;
+    errSpan.style.display = 'block';
+  }
+}
+
+function clearError(input) {
+  input.classList.remove('input-invalid');
+  const errSpan = document.getElementById(\`error-\${input.id}\`);
+  if (errSpan) {
+    errSpan.style.display = 'none';
+  }
+}`}
+/>
+
+---
+
+## 3. Instruksi Penyelesaian Tugas
+
+1. Tambahkan kolom input baru untuk **Nomor Telepon** (`type="tel"`) dengan atribut `placeholder="08123456789"`.
+2. Lakukan pengujian form dengan sengaja mengisi data salah untuk memastikan pesan validasi muncul secara tepat.
+3. Setelah memahami alur kerja form, tekan tombol **Tandai Selesai Pelajaran Ini** untuk melangkah ke modul styling CSS3 modern.

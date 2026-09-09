@@ -1,0 +1,198 @@
+---
+title: "Arsitektur Backend & Siklus Protokol HTTP/HTTPS"
+courseSlug: "backend-web-development"
+chapter: "Bab 1: Fondasi Arsitektur Backend & Runtime"
+order: 1
+duration: "25 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Selamat datang di kursus komprehensif **Pengembangan Web Backend: Dari Dasar hingga Mahir**! Pada materi pengantar ini, kita akan membedah fondasi utama bagaimana sistem backend bekerja di balik layar, siklus hidup *Client-Server Architecture*, hingga anatomi mendalam protokol HTTP/HTTPS.
+
+---
+
+## 1. Peran Sistem Backend dalam Web Modern
+
+Jika frontend bertanggung jawab atas antarmuka grafis (UI) dan pengalaman pengguna (UX) di peramban, maka **backend** adalah otak, pengambil keputusan bisnis, penjaga keamanan data, dan pengelola transaksi yang berjalan di server.
+
+```mermaid
+flowchart LR
+    Client["Klien Web / Mobile App"] -->|"1. HTTP Request (JSON/Form)"| Gateway["Reverse Proxy / NGINX / Gateway"]
+    Gateway -->|"2. Forward Request"| Server["Node.js / Express Application"]
+    Server -->|"3. Query SQL"| DB[("PostgreSQL Database")]
+    Server -->|"4. Cache Lookup"| Redis[("Redis In-Memory Cache")]
+    DB -->|"5. Return Data"| Server
+    Server -->|"6. HTTP Response (Status 200 OK + JSON)"| Client
+```
+
+### Tanggung Jawab Utama Backend Developer:
+1. **Business Logic**: Memvalidasi aturan transaksi (misal: memeriksa saldo, menghitung diskon kupon, status pesanan).
+2. **Data Persistence**: Mengelola penyimpanan, relasi, integritas, dan pengindeksan data pada database.
+3. **Security & Authentication**: Menjamin keamanan akses data melalui enkripsi, validasi token (JWT/Session), dan perlindungan dari serangan cyber (SQLi, XSS, CSRF, DDoS).
+4. **Integration & Scalability**: Menghubungkan layanan pihak ketiga (Payment Gateway, Email Service, Cloud Storage) serta menjaga kecepatan respon server pada beban ribuan transaksi per detik (*throughput*).
+
+---
+
+## 2. Anatomi Mendalam Protokol HTTP/HTTPS
+
+Protokol **HTTP** (*Hypertext Transfer Protocol*) adalah protokol lapisan aplikasi berbasis *Request-Response* yang bersifat *stateless* (tidak menyimpan status antar permintaan secara otomatis).
+
+### A. Anatomi HTTP Request
+
+Ketika browser atau aplikasi seluler mengirim permintaan ke server, request tersebut memiliki struktur baku:
+
+```http
+POST /api/v1/orders HTTP/1.1
+Host: api.awdcourse.id
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI...
+Content-Type: application/json
+Accept: application/json
+
+{
+  "productId": "prod_8829",
+  "quantity": 2,
+  "paymentMethod": "bank_transfer"
+}
+```
+
+1. **Request Line**: Terdiri dari HTTP Method (`POST`), Target Path (`/api/v1/orders`), dan Versi Protokol (`HTTP/1.1`).
+2. **Request Headers**: Pasangan *key-value* metadata seperti `Host`, format konten (`Content-Type`), otorisasi (`Authorization`), dan preferensi bahasa.
+3. **Request Body (Payload)**: Data yang dikirim klien (biasanya dalam format JSON atau FormData multipart untuk upload file).
+
+### B. HTTP Methods (Verba HTTP) & Semantik CRUD
+
+| HTTP Method | Tujuan Semantik | Bersifat Idempoten? | Menyertakan Body? |
+| :--- | :--- | :--- | :--- |
+| `GET` | Mengambil data dari server (hanya membaca) | **Ya** | Tidak disarankan |
+| `POST` | Membuat data baru di server | **Tidak** | **Ya** |
+| `PUT` | Mengganti/menimpa seluruh data yang ada | **Ya** | **Ya** |
+| `PATCH` | Memperbarui sebagian atribut data yang ada | **Tidak** | **Ya** |
+| `DELETE` | Menghapus data berdasarkan identitas | **Ya** | Opsional |
+
+<Callout type="note" title="Apa itu Sifat Idempoten (Idempotency)?">
+  Sebuah method HTTP disebut **Idempoten** jika pemanggilan berkali-kali dengan payload yang sama menghasilkan status data di server yang sama persis seperti pemanggilan satu kali. Contoh: `GET`, `PUT`, dan `DELETE` adalah idempoten, sedangkan `POST` bukan idempoten karena setiap pemanggilan akan membuat entitas baru.
+</Callout>
+
+### C. Anatomi HTTP Response & Kode Status Standar
+
+Ketika server memproses permintaan, server wajib mengembalikan kode status 3-digit (*HTTP Status Code*):
+
+| Kategori | Rentang Kode | Arti & Contoh Populer |
+| :--- | :--- | :--- |
+| **1xx Informational** | 100 - 199 | `101 Switching Protocols` (Digunakan saat upgrade ke WebSocket) |
+| **2xx Success** | 200 - 299 | `200 OK` (Sukses mengambil data), `201 Created` (Sukses membuat data baru), `204 No Content` (Sukses tanpa body, misal DELETE) |
+| **3xx Redirection** | 300 - 399 | `301 Moved Permanently`, `304 Not Modified` (Cache browser valid) |
+| **4xx Client Error** | 400 - 499 | `400 Bad Request` (Payload salah), `401 Unauthorized` (Belum login), `403 Forbidden` (Role tidak berhak), `404 Not Found` (Data tidak ditemukan), `422 Unprocessable Entity` (Validasi field gagal) |
+| **5xx Server Error** | 500 - 599 | `500 Internal Server Error` (Bug/uncaught exception), `502 Bad Gateway`, `503 Service Unavailable` |
+
+---
+
+## 3. Praktik Interaktif: Simulasi Parsing HTTP Request & Router
+
+Di bawah ini adalah simulasi langsung pemrosesan request HTTP, ekstraksi header, pemisahan query parameter, dan pembentukan respon JSON standar:
+
+<MultiLangRunner
+  language="javascript"
+  title="Simulasi Parser HTTP Request & Router Engine"
+  initialCode={`// Simulasi engine penerima HTTP Request di Node.js
+function handleHttpRequest(rawRequest) {
+  const { method, path, queryParams, headers, body } = rawRequest;
+  
+  console.log(\`Incoming Request: [\${method}] \${path}\`);
+  console.log("Headers:", JSON.stringify(headers));
+  
+  // Validasi Header Otorisasi
+  const authHeader = headers["authorization"];
+  if (path.startsWith("/api/admin") && (!authHeader || !authHeader.startsWith("Bearer "))) {
+    return {
+      statusCode: 401,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        success: false,
+        error: "Unauthorized: Token otentikasi tidak ditemukan"
+      })
+    };
+  }
+
+  // Routing Handler
+  if (method === "GET" && path === "/api/products") {
+    const limit = parseInt(queryParams.limit || "10", 10);
+    const mockProducts = [
+      { id: 1, name: "Keyboard Mechanical RGB", price: 650000 },
+      { id: 2, name: "Mouse Gaming Wireless", price: 350000 },
+      { id: 3, name: "Monitor 27 inch 144Hz", price: 2800000 }
+    ].slice(0, limit);
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        success: true,
+        data: mockProducts,
+        meta: { total: mockProducts.length, limit }
+      })
+    };
+  }
+
+  if (method === "POST" && path === "/api/products") {
+    if (!body || !body.name || !body.price) {
+      return {
+        statusCode: 422,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          success: false,
+          error: "Field 'name' dan 'price' wajib disertakan"
+        })
+      };
+    }
+
+    return {
+      statusCode: 201,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        success: true,
+        message: "Produk berhasil ditambahkan",
+        data: { id: Date.now(), ...body }
+      })
+    };
+  }
+
+  // Default 404 Not Found
+  return {
+    statusCode: 404,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      success: false,
+      error: \`Route \${method} \${path} tidak ditemukan\`
+    })
+  };
+}
+
+// Uji Coba Request 1: GET /api/products?limit=2
+const response1 = handleHttpRequest({
+  method: "GET",
+  path: "/api/products",
+  queryParams: { limit: "2" },
+  headers: { "user-agent": "Awd-Client/1.0" },
+  body: null
+});
+console.log("Response 1:", response1);
+
+// Uji Coba Request 2: POST /api/products (Validasi Data Baru)
+const response2 = handleHttpRequest({
+  method: "POST",
+  path: "/api/products",
+  queryParams: {},
+  headers: { "content-type": "application/json" },
+  body: { name: "Headset Noise Cancelling", price: 1200000 }
+});
+console.log("Response 2:", response2);`}
+/>
+
+<Callout type="tip" title="Tips Arsitektur">
+  Selalu format respon REST API Anda dalam struktur **Response Envelope** yang konsisten (`success`, `data`/`error`, dan `meta`). Konsistensi ini memudahkan tim frontend maupun mobile developer dalam mengonsumsi endpoint Anda tanpa perlu menebak-nebak format output.
+</Callout>

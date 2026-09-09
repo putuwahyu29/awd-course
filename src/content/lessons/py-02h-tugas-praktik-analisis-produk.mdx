@@ -1,0 +1,168 @@
+---
+title: "Tugas Praktik: Mini Proyek Analisis & Visualisasi Produk"
+courseSlug: "python-data-science"
+chapter: "Bab 2: Pengenalan Package Python"
+order: 16
+duration: "30 Menit"
+contentType: "assignment"
+isPublished: true
+updatedAt: "2026-09-08"
+---
+
+import AdminSolution from '../../components/mdx/AdminSolution.astro';
+
+Pada mini proyek tugas integrasi Bab 2 ini, Anda diminta untuk mengintegrasikan kemampuan pemanfaatan pustaka ekosistem data science Python: **Pandas**, **NumPy**, **Matplotlib**, dan **Seaborn**.
+
+---
+
+## 1. Deskripsi & Petunjuk Pengerjaan
+
+Tugas Anda adalah memproses data inventaris produk dari berkas CSV, melakukan kalkulasi total nilai inventaris, menghitung ringkasan statistik numerik, menyusun grafik diagram batang informatif, dan mengekspor hasilnya ke berkas CSV bersih baru.
+
+### Petunjuk Pengerjaan:
+1. Buka editor kode Python atau Jupyter Notebook di komputer Anda.
+2. Gunakan dataset `daftar_produk.csv` yang telah disediakan pada folder proyek.
+3. Lengkapi setiap bagian rumpang (`_______`) pada **Soal 1 hingga Soal 4** di bawah ini.
+4. Cocokkan hasil eksekusi program Anda dengan bagian **Tolok Ukur Hasil (Expected Output)**.
+
+---
+
+## 2. Struktur Data Sumber (`daftar_produk.csv`)
+
+Data inventaris awal memiliki format sebagai berikut:
+
+| Kode | Produk | Harga | Stok |
+| :--- | :--- | :--- | :--- |
+| `A01` | Laptop Pro | 14.500.000 | 12 |
+| `A02` | Mouse Wireless | 250.000 | 45 |
+| `A03` | Keyboard Mekanikal | 850.000 | 28 |
+| `A04` | Monitor 4K | 4.200.000 | 15 |
+
+---
+
+## 3. Tolok Ukur Hasil (Expected Output)
+
+Program yang Anda lengkapi harus mampu menghasilkan komputasi tabel, agregasi statistik, serta diagram batang berikut:
+
+### Target Output Konsol:
+```text
+=== TARGET OUTPUT SOAL 1 & 2 ===
+   Kode              Produk     Harga  Stok  Total_Nilai
+0  A01          Laptop Pro  14500000    12    174000000
+1  A02      Mouse Wireless    250000    45     11250000
+2  A03  Keyboard Mekanikal    850000    28     23800000
+3  A04          Monitor 4K   4200000    15     63000000
+
+=== TARGET RINGKASAN SAINTIFIK (NUMPY) ===
+Total Nilai Aset Inventaris : Rp 272,050,000
+Rata-rata Harga Produk     : Rp 4,950,000
+Rata-rata Stok Unit         : 25.0 unit
+```
+
+### Target Visualisasi Diagram Batang:
+<div class="my-4 flex justify-center">
+  <img 
+    src="/images/target-output-bab2-chart.png" 
+    alt="Tolok Ukur Visualisasi Diagram Batang Produk" 
+    class="rounded-lg shadow-sm border border-neutral-200 dark:border-neutral-800 max-w-full"
+    style="max-height: 380px;"
+  />
+</div>
+
+---
+
+## 4. Lembar Kerja Praktik (Tantangan Mandiri)
+
+Lengkapi bagian rumpang (`_______`) pada masing-masing langkah di bawah ini:
+
+### Soal 1: Membaca Dataset CSV dengan Pandas
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# TODO 1: Ganti '_______' dengan fungsi pembacaan berkas CSV di Pandas
+df = pd._______('daftar_produk.csv')
+
+print("Dataset Berhasil Dimuat:")
+print(df)
+print(f"\nDimensi Data: {df.shape[0]} baris, {df.shape[1]} kolom")
+```
+
+---
+
+### Soal 2: Menghitung Kolom Vektor & Statistik Agregasi NumPy
+```python
+# TODO 2a: Lengkapi operasi perkalian kolom vektor (Harga dikali Stok)
+df['Total_Nilai'] = df['_______'] * df['_______']
+
+# TODO 2b: Lengkapi fungsi statistik NumPy yang tepat (sum / mean)
+total_aset = np._______(df['Total_Nilai'])
+rata_harga = np._______(df['Harga'])
+rata_stok  = np._______(df['Stok'])
+
+print("Hasil Penambahan Kolom Baru (Total_Nilai):")
+print(df[['Kode', 'Produk', 'Harga', 'Stok', 'Total_Nilai']])
+print("\n=== Ringkasan Statistik Saintifik (NumPy) ===")
+print(f"Total Nilai Aset Inventaris : Rp {total_aset:,.0f}")
+print(f"Rata-rata Harga Produk     : Rp {rata_harga:,.0f}")
+print(f"Rata-rata Stok Unit         : {rata_stok:.1f} unit")
+```
+
+---
+
+### Soal 3: Visualisasi Diagram Batang (Matplotlib & Seaborn)
+```python
+# Mengatur tema grafik modern
+sns.set_theme(style='whitegrid')
+fig, ax = plt.subplots(figsize=(8, 4.5))
+
+# TODO 3a: Tentukan kolom sumbu X (kategori produk) dan sumbu Y (total nilai dalam jutaan)
+palette = sns.color_palette("viridis", len(df))
+bars = ax.bar(df['_______'], df['_______'] / 1_000_000, color=palette, edgecolor='black', linewidth=0.8)
+
+# TODO 3b: Berikan label nama sumbu yang deskriptif
+ax.set_title("Nilai Total Inventaris per Produk (Juta Rupiah)", fontsize=13, fontweight='bold', pad=12)
+ax.set_xlabel("_______", fontsize=10, fontweight='bold')
+ax.set_ylabel("_______", fontsize=10, fontweight='bold')
+ax.grid(axis='y', linestyle='--', alpha=0.7)
+
+# Menambahkan label nilai di atas batang
+for bar in bars:
+    yval = bar.get_height()
+    ax.text(bar.get_x() + bar.get_width() / 2.0, yval + 2, f"{yval:.1f} jt", ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+plt.tight_layout()
+plt.show()
+```
+
+---
+
+### Soal 4: Ekspor DataFrame ke File CSV Bersih
+```python
+# TODO 4: Lengkapi fungsi ekspor file CSV dan parameter penonaktifan indeks bawaan
+output_file = 'laporan_inventaris_selesai.csv'
+df._______(output_file, index=_______)
+
+print(f"Laporan berhasil diekspor ke: {output_file}")
+print("Selamat, Anda telah berhasil menyelesaikan seluruh tantangan mandiri Bab 2!")
+```
+
+---
+
+## 5. Petunjuk Sintaks dan Referensi
+
+* **Soal 1 (Impor Data):** Gunakan fungsi dasar Pandas untuk membaca format data tabular CSV: `pd.read_csv(...)`.
+* **Soal 2 (Kalkulasi Kolom & NumPy):** 
+  * Operasi kolom di Pandas bersifat vektor, kalikan kolom: `df['Harga'] * df['Stok']`.
+  * Untuk fungsi agregasi NumPy, gunakan `np.sum(...)` untuk total penjumlahan dan `np.mean(...)` untuk nilai rata-rata.
+* **Soal 3 (Visualisasi Matplotlib/Seaborn):**
+  * Sumbu X diisi dengan kolom nama produk: `df['Produk']`.
+  * Sumbu Y diisi dengan kolom nilai: `df['Total_Nilai'] / 1_000_000`.
+  * Label sumbu diatur dengan `ax.set_xlabel('Nama Produk')` dan `ax.set_ylabel('Total Nilai (Juta Rp)')`.
+* **Soal 4 (Ekspor Data):** Gunakan method `df.to_csv('laporan_inventaris_selesai.csv', index=False)` agar kolom indeks angka bawaan tidak ikut tersimpan ke berkas baru.
+
+---
+
+<AdminSolution taskId="py-02h" />

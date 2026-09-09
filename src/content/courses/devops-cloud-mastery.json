@@ -1,0 +1,16 @@
+{
+  "title": "DevOps & Cloud Deployment: Docker, CI/CD, Kubernetes & Serverless",
+  "description": "Kuasai otomatisasi deployment modern, kontainerisasi aplikasi dengan Docker, orkestrasi Kubernetes, pipeline CI/CD GitHub Actions, NGINX Reverse Proxy, dan observabilitas sistem.",
+  "category": "cloud",
+  "level": "Semua Tingkat",
+  "duration": "6 Jam",
+  "instructor": "I Putu Agus Wahyu Dupayana",
+  "instructorRole": "Software Engineer di AWD.dev",
+  "instructorAvatar": "/images/instructors/wahyu-dupayana.jpg",
+  "thumbnail": "/images/courses/devops.svg",
+  "isFeatured": true,
+  "isPublished": false,
+  "status": "draft",
+  "updatedAt": "2026-09-08",
+  "order": 4
+}

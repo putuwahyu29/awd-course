@@ -1,0 +1,775 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import CourseCard from '../components/CourseCard.astro';
+import { getCollection } from 'astro:content';
+
+const allCourses = await getCollection('courses');
+const allLessons = await getCollection('lessons');
+
+// Filter only published courses and published lessons
+const publishedCourses = allCourses
+  .filter((c) => c.data.isPublished && c.data.status !== 'draft')
+  .sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+
+const lessonCountByCourse: Record<string, number> = {};
+allLessons
+  .filter((l) => l.data.isPublished !== false)
+  .forEach((l) => {
+    const cSlug = l.data.courseSlug;
+    lessonCountByCourse[cSlug] = (lessonCountByCourse[cSlug] || 0) + 1;
+  });
+
+const pythonCourse = publishedCourses.find((c) => c.id === 'python-data-science') || publishedCourses[0];
+
+function formatIndonesianDate(dateStr?: string): string {
+  if (!dateStr) return '';
+  try {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+      const mIdx = parseInt(parts[1], 10) - 1;
+      return `${parseInt(parts[2], 10)} ${months[mIdx] || parts[1]} ${parts[0]}`;
+    }
+  } catch (e) {}
+  return dateStr;
+}
+
+const formattedPythonDate = formatIndonesianDate(pythonCourse?.data?.updatedAt);
+
+const pythonLessons = allLessons.filter(
+  (l) => l.data.courseSlug === (pythonCourse?.id || 'python-data-science') && l.data.isPublished !== false
+);
+const bab1Count = pythonLessons.filter((l) => l.data.chapter?.includes('Bab 1')).length;
+const bab2Count = pythonLessons.filter((l) => l.data.chapter?.includes('Bab 2')).length;
+---
+
+<BaseLayout
+  title="Platform Pembelajaran Teknis"
+  description="Platform pembelajaran terstruktur untuk pemrograman dan analisis data dengan modul bacaan teknis dan lingkungan eksekusi kode interaktif."
+>
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-inner">
+        <h1 class="hero-title">
+          Platform Pembelajaran Teknis Terstruktur
+        </h1>
+
+        <p class="hero-subtitle">
+          Kuasai fondasi rekayasa perangkat lunak, sistem komputasi, dan analisis data melalui modul sistematis dengan lingkungan eksekusi kode interaktif langsung di peramban.
+        </p>
+
+        <div class="hero-actions">
+          {pythonCourse && (
+            <a href={`/courses/${pythonCourse.id}`} class="btn btn-primary btn-lg hero-cta">
+              <span>Mulai Belajar Sekarang</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 19"></polyline>
+              </svg>
+            </a>
+          )}
+          <a href="/courses" class="btn btn-outline btn-lg">
+            Jelajahi Katalog Kursus
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Course Section -->
+  {pythonCourse && (
+    <section class="featured-spotlight-section">
+      <div class="container">
+        <div class="spotlight-card card">
+          <div class="spotlight-header">
+            <div>
+              <span class="badge badge-primary">Materi Unggulan Aktif</span>
+              <h2 class="spotlight-course-title">{pythonCourse.data.title}</h2>
+              <p class="spotlight-course-desc">{pythonCourse.data.description}</p>
+            </div>
+            
+            <div class="spotlight-meta-badges">
+              <div class="spotlight-date-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>Durasi: {pythonCourse.data.duration || '6 Jam'}</span>
+              </div>
+              <div class="spotlight-date-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span>Pembaruan: {formattedPythonDate || '8 September 2026'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Structured Chapters -->
+          <div class="spotlight-curriculum-list">
+            <div class="spotlight-curriculum-item">
+              <span class="curriculum-num">1</span>
+              <div class="curriculum-info">
+                <div class="curriculum-top">
+                  <strong class="curriculum-title">Bab 1: Dasar Pemrograman Python</strong>
+                  <span class="curriculum-count">{bab1Count || 8} Modul Materi</span>
+                </div>
+                <span class="curriculum-desc">Sintaksis dasar, tipe data, variabel, operator, percabangan kondisional, perulangan loop, pembuatan fungsi, modul PDF, dan tugas praktik kalkulator interaktif.</span>
+              </div>
+            </div>
+
+            <div class="spotlight-curriculum-item">
+              <span class="curriculum-num">2</span>
+              <div class="curriculum-info">
+                <div class="curriculum-top">
+                  <strong class="curriculum-title">Bab 2: Pengenalan Package Python</strong>
+                  <span class="curriculum-count">{bab2Count || 8} Modul Materi</span>
+                </div>
+                <span class="curriculum-desc">Manajemen paket dengan pip, komputasi array multidimensi NumPy, struktur DataFrame Pandas, visualisasi Matplotlib & Seaborn, modul PDF, dan tugas praktik mandiri.</span>
+              </div>
+            </div>
+
+            <div class="spotlight-curriculum-item" style="opacity: 0.85;">
+              <span class="curriculum-num">3</span>
+              <div class="curriculum-info">
+                <div class="curriculum-top">
+                  <strong class="curriculum-title">Bab 3: Analisis Data Eksploratif (EDA)</strong>
+                  <span class="curriculum-count" style="background-color: var(--bg-surface-elevated); border: 1px solid var(--border-medium); color: var(--text-muted);">Segera Hadir</span>
+                </div>
+                <span class="curriculum-desc">Persiapan & inspeksi struktur awal dataframe, ringkasan statistik deskriptif dan plot sebaran, serta seleksi kolom dan filtering baris dengan Boolean indexing.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="spotlight-footer">
+            <a href={`/courses/${pythonCourse.id}`} class="btn btn-primary btn-lg">
+              <span>Buka Materi Pembelajaran</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </a>
+            <div class="spotlight-instructor">
+              <span>Pemateri: <strong>{pythonCourse.data.instructor}</strong> ({pythonCourse.data.instructorRole})</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )}
+
+  <!-- Platform Highlights 3-Column Section -->
+  <section class="highlights-section">
+    <div class="container">
+      <div class="highlights-grid">
+        <div class="highlight-card card">
+          <div class="highlight-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22" class="text-primary">
+              <polyline points="4 17 10 11 4 5"></polyline>
+              <line x1="12" y1="19" x2="20" y2="19"></line>
+            </svg>
+          </div>
+          <h3 class="highlight-title">Lingkungan Latihan Kode Interaktif</h3>
+          <p class="highlight-desc">
+            Jalankan latihan praktikum kode langsung di peramban tanpa konfigurasi server yang rumit, lengkap dengan editor interaktif dan keluaran instan.
+          </p>
+        </div>
+
+        <div class="highlight-card card">
+          <div class="highlight-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22" class="text-primary">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+              <line x1="8" y1="21" x2="16" y2="21"></line>
+              <line x1="12" y1="17" x2="12" y2="21"></line>
+            </svg>
+          </div>
+          <h3 class="highlight-title">Mode Slide Presentasi Lengkap</h3>
+          <p class="highlight-desc">
+            Tekan tombol <strong>P</strong> di setiap materi untuk mengaktifkan slide tayangan proyektor kelas dengan laser virtual dan tema Dark/Light.
+          </p>
+        </div>
+
+        <div class="highlight-card card">
+          <div class="highlight-icon-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22" class="text-primary">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <h3 class="highlight-title">Dasbor & Pelacakan Progres</h3>
+          <p class="highlight-desc">
+            Masuk dengan 1-klik akun Google untuk memantau modul yang telah diselesaikan dan melanjutkan pembelajaran kapan saja.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Published Courses List -->
+  <section class="courses-catalog-section">
+    <div class="container">
+      <div class="section-heading-flex">
+        <div>
+          <h2 class="section-title">Katalog Kursus Pembelajaran</h2>
+          <p class="section-desc">Pilih kurikulum teknis yang dirancang terstruktur untuk berbagai jenjang keahlian.</p>
+        </div>
+      </div>
+
+      <div class="courses-grid">
+        {publishedCourses.map((course) => (
+          <CourseCard
+            course={course}
+            lessonCount={lessonCountByCourse[course.id] || 0}
+          />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Instructor Section -->
+  <section class="instructor-section">
+    <div class="container">
+      <div class="instructor-card card">
+        <div class="instructor-layout">
+          <div class="instructor-avatar-container">
+            <img
+              src="/images/instructors/wahyu-dupayana.jpg"
+              alt="I Putu Agus Wahyu Dupayana"
+              class="instructor-photo"
+            />
+          </div>
+
+          <div class="instructor-details">
+            <span class="badge badge-primary">Pemateri Resmi</span>
+            <h2 class="instructor-name-heading">I Putu Agus Wahyu Dupayana</h2>
+            <p class="instructor-designation">Software Engineer • AWD.dev</p>
+            <p class="instructor-summary">
+              Praktisi rekayasa perangkat lunak dan pengolahan data dengan dedikasi dalam membangun kurikulum terstruktur yang menggabungkan rekayasa perangkat lunak, komputasi awan modern, dan analisis data berstandar industri.
+            </p>
+            <div class="instructor-actions">
+              <a
+                href="https://awd.my.id"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="instructor-portfolio-link"
+              >
+                <span>Lihat Portofolio</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M7 17L17 7"></path>
+                  <path d="M7 7h10v10"></path>
+                </svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /* Hero Section */
+  .hero-section {
+    padding: 5rem 0 4rem 0;
+    background-color: var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .hero-inner {
+    max-width: 820px;
+    margin: 0 auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .hero-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.825rem;
+    font-weight: 600;
+    color: var(--primary);
+    background-color: var(--primary-light);
+    border: 1px solid var(--primary-border);
+    border-radius: 99px;
+    margin-bottom: 1.5rem;
+  }
+
+  .pill-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--primary);
+  }
+
+  .hero-title {
+    font-size: clamp(2.2rem, 5vw, 3.25rem);
+    font-weight: 900;
+    line-height: 1.15;
+    color: var(--text-main);
+    margin-bottom: 1.25rem;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 2.25rem;
+    max-width: 700px;
+  }
+
+  .hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius-md);
+  }
+
+  /* Spotlight Course */
+  .featured-spotlight-section {
+    padding: 3.5rem 0 1.5rem 0;
+  }
+
+  .spotlight-card {
+    padding: 2.25rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .spotlight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1.5rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+  }
+
+  .spotlight-course-title {
+    font-size: clamp(1.4rem, 3vw, 1.85rem);
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0.6rem 0 0.5rem 0;
+    letter-spacing: -0.01em;
+  }
+
+  .spotlight-course-desc {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 750px;
+    margin: 0;
+  }
+
+  .spotlight-meta-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+
+  .spotlight-date-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background-color: var(--bg-surface-elevated);
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+    white-space: nowrap;
+  }
+
+  .spotlight-curriculum-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-bottom: 2rem;
+  }
+
+  .spotlight-curriculum-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.15rem;
+    padding: 1.15rem 1.35rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    transition: border-color 0.15s ease;
+  }
+
+  .spotlight-curriculum-item:hover {
+    border-color: var(--primary);
+  }
+
+  .curriculum-num {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    background-color: var(--primary-light);
+    border: 1px solid var(--primary-border);
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .curriculum-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex-grow: 1;
+  }
+
+  .curriculum-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .curriculum-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .curriculum-count {
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: var(--primary);
+    background-color: var(--primary-light);
+    padding: 0.15rem 0.5rem;
+    border-radius: 99px;
+  }
+
+  .curriculum-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  .spotlight-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-subtle);
+    flex-wrap: wrap;
+  }
+
+  .spotlight-instructor {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .spotlight-instructor strong {
+    color: var(--text-main);
+  }
+
+  /* Highlights 3-Column Section */
+  .highlights-section {
+    padding: 3rem 0;
+  }
+
+  .highlights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .highlight-card {
+    padding: 1.75rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .highlight-icon-box {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background-color: var(--primary-light);
+    border: 1px solid var(--primary-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.15rem;
+  }
+
+  .highlight-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .highlight-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Courses Catalog */
+  .courses-catalog-section {
+    padding: 4.5rem 0;
+    background-color: var(--bg-surface);
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .section-heading-flex {
+    margin-bottom: 2.25rem;
+  }
+
+  .section-title {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.01em;
+  }
+
+  .section-desc {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.75rem;
+  }
+
+  /* Instructor */
+  .instructor-section {
+    padding: 4.5rem 0;
+  }
+
+  .instructor-card {
+    padding: 2.5rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl);
+  }
+
+  .instructor-layout {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  .instructor-photo {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-medium);
+  }
+
+  .instructor-name-heading {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0.5rem 0 0.25rem 0;
+  }
+
+  .instructor-designation {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 1rem;
+  }
+
+  .instructor-summary {
+    font-size: 0.925rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin: 0;
+  }
+
+  .instructor-actions {
+    margin-top: 1.15rem;
+    display: flex;
+    align-items: center;
+  }
+
+  .instructor-portfolio-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .instructor-portfolio-link:hover {
+    color: var(--primary-hover);
+    gap: 0.5rem;
+  }
+
+  .instructor-portfolio-link svg {
+    transition: transform 0.15s ease;
+  }
+
+  .instructor-portfolio-link:hover svg {
+    transform: translate(2px, -2px);
+  }
+
+  @media (max-width: 1024px) {
+    .instructor-layout {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+    .instructor-avatar-container {
+      display: flex;
+      justify-content: center;
+    }
+    .instructor-actions {
+      justify-content: center;
+    }
+    .spotlight-meta-badges {
+      align-items: flex-start;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .hero-section {
+      padding: 3rem 0 2.25rem 0;
+    }
+    .hero-title {
+      font-size: 2rem;
+      letter-spacing: -0.02em;
+    }
+    .hero-subtitle {
+      font-size: 0.95rem;
+      margin-bottom: 1.75rem;
+    }
+    .hero-actions {
+      flex-direction: column;
+      width: 100%;
+      max-width: 360px;
+      margin-left: auto;
+      margin-right: auto;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .hero-actions .btn {
+      width: 100%;
+      justify-content: center;
+    }
+    .hero-metrics-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 360px;
+      border-radius: var(--radius-lg);
+      padding: 0.85rem 1.15rem;
+    }
+    .metric-sep {
+      display: none;
+    }
+    .spotlight-card {
+      padding: 1.35rem 1.15rem;
+    }
+    .spotlight-header {
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .spotlight-meta-badges {
+      width: 100%;
+      align-items: flex-start;
+    }
+    .spotlight-curriculum-item {
+      padding: 0.85rem 1rem;
+      gap: 0.75rem;
+    }
+    .curriculum-top {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.35rem;
+    }
+    .spotlight-footer {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+      text-align: center;
+    }
+    .spotlight-footer .btn {
+      width: 100%;
+      justify-content: center;
+    }
+    .highlights-section {
+      padding: 2.25rem 0;
+    }
+    .highlights-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .courses-catalog-section {
+      padding: 3rem 0;
+    }
+    .courses-grid {
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    .instructor-section {
+      padding: 3rem 0;
+    }
+    .instructor-card {
+      padding: 1.75rem 1.25rem;
+    }
+    .instructor-photo {
+      width: 120px;
+      height: 120px;
+    }
+    .instructor-name-heading {
+      font-size: 1.4rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .hero-title {
+      font-size: 1.75rem;
+    }
+    .spotlight-card {
+      padding: 1.15rem 0.9rem;
+    }
+  }
+</style>

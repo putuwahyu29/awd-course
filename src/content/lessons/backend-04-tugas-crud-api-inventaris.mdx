@@ -1,0 +1,173 @@
+---
+title: "Tugas Praktik: REST API CRUD Inventaris & Pagination"
+courseSlug: "backend-web-development"
+chapter: "Bab 2: RESTful API & Framework Express.js"
+order: 4
+duration: "35 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Pada tugas praktik mandiri ini, Anda akan merancang dan mengimplementasikan endpoint **CRUD (*Create, Read, Update, Delete*)** lengkap untuk sistem inventaris produk, lengkap dengan fitur **Pencarian (Search), Filter Kategori, Pengurutan (Sorting), serta Pagination berbasis Limit & Offset**.
+
+---
+
+## 1. Spesifikasi Teknis Endpoint
+
+Endpoint yang harus diimplementasikan:
+
+| Method | Endpoint | Fungsi | Status Sukses |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/products` | Mengambil daftar produk (dukung `page`, `limit`, `category`, `search`, `sortBy`) | `200 OK` |
+| `POST` | `/api/v1/products` | Membuat produk baru (validasi `name`, `price`, `stock`, `category`) | `201 Created` |
+| `GET` | `/api/v1/products/:id` | Mengambil detail 1 produk berdasarkan ID | `200 OK` (atau `404 Not Found`) |
+| `PUT` | `/api/v1/products/:id` | Memperbarui seluruh field produk | `200 OK` |
+| `DELETE` | `/api/v1/products/:id` | Menghapus produk | `200 OK` atau `204 No Content` |
+
+### Format Standar JSON Response Envelope:
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Daftar produk berhasil dimuat",
+  "data": [ ... ],
+  "meta": {
+    "page": 1,
+    "limit": 10,
+    "totalItems": 45,
+    "totalPages": 5,
+    "hasNextPage": true,
+    "hasPrevPage": false
+  }
+}
+```
+
+---
+
+## 2. Editor Interaktif: Implementasi & Pengujian CRUD Engine
+
+Berikut adalah implementasi lengkap *In-Memory Service & Controller Engine* yang dapat Anda jalankan, modifikasi, dan uji langsung di sandbox:
+
+<MultiLangRunner
+  language="javascript"
+  title="Tugas Praktik: In-Memory CRUD & Pagination Engine"
+  initialCode={`// Data State In-Memory
+let productsDB = [
+  { id: 1, name: "Monitor UltraWide 34 inch", price: 6200000, category: "electronics", stock: 12, createdAt: "2026-01-10" },
+  { id: 2, name: "Keyboard Mechanical 75%", price: 850000, category: "electronics", stock: 25, createdAt: "2026-01-12" },
+  { id: 3, name: "Kursi Ergonomis Mesh", price: 2100000, category: "furniture", stock: 8, createdAt: "2026-01-15" },
+  { id: 4, name: "Mouse Ergonomis Vertical", price: 420000, category: "electronics", stock: 30, createdAt: "2026-01-18" },
+  { id: 5, name: "Meja Kerja Motorized Standing", price: 3900000, category: "furniture", stock: 5, createdAt: "2026-01-20" },
+  { id: 6, name: "Lampu Meja LED ScreenBar", price: 310000, category: "electronics", stock: 18, createdAt: "2026-01-22" }
+];
+
+// 1. READ ALL (dengan Filter, Search, Sort, dan Pagination)
+function getProducts({ page = 1, limit = 2, category, search, sortBy = "id", order = "asc" }) {
+  let filtered = [...productsDB];
+
+  // Filter Kategori
+  if (category) {
+    filtered = filtered.filter(p => p.category.toLowerCase() === category.toLowerCase());
+  }
+
+  // Filter Pencarian Nama
+  if (search) {
+    filtered = filtered.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  }
+
+  // Sorting
+  filtered.sort((a, b) => {
+    if (order === "desc") {
+      return a[sortBy] < b[sortBy] ? 1 : -1;
+    }
+    return a[sortBy] > b[sortBy] ? 1 : -1;
+  });
+
+  // Pagination Calculation
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / limit) || 1;
+  const validPage = Math.max(1, Math.min(page, totalPages));
+  const offset = (validPage - 1) * limit;
+  const paginatedData = filtered.slice(offset, offset + limit);
+
+  return {
+    success: true,
+    statusCode: 200,
+    data: paginatedData,
+    meta: {
+      page: validPage,
+      limit,
+      totalItems,
+      totalPages,
+      hasNextPage: validPage < totalPages,
+      hasPrevPage: validPage > 1
+    }
+  };
+}
+
+// 2. CREATE PRODUCT
+function createProduct(payload) {
+  if (!payload.name || typeof payload.price !== "number" || !payload.category) {
+    return {
+      success: false,
+      statusCode: 422,
+      error: "Validasi Gagal: 'name', 'price' (number), dan 'category' wajib diisi"
+    };
+  }
+
+  const newId = productsDB.length > 0 ? Math.max(...productsDB.map(p => p.id)) + 1 : 1;
+  const newProduct = {
+    id: newId,
+    name: payload.name,
+    price: payload.price,
+    category: payload.category,
+    stock: payload.stock || 0,
+    createdAt: new Date().toISOString().split("T")[0]
+  };
+
+  productsDB.push(newProduct);
+
+  return {
+    success: true,
+    statusCode: 201,
+    message: "Produk berhasil ditambahkan",
+    data: newProduct
+  };
+}
+
+// 3. DELETE PRODUCT
+function deleteProduct(id) {
+  const index = productsDB.findIndex(p => p.id === id);
+  if (index === -1) {
+    return { success: false, statusCode: 404, error: \`Produk dengan ID \${id} tidak ditemukan\` };
+  }
+
+  const deleted = productsDB.splice(index, 1)[0];
+  return { success: true, statusCode: 200, message: \`Produk '\${deleted.name}' berhasil dihapus\` };
+}
+
+// --- UJI COBA OPERASI API ---
+console.log("1. Pengujian Pagination (Page 1, Limit 2):");
+console.log(JSON.stringify(getProducts({ page: 1, limit: 2 }), null, 2));
+
+console.log("\\n2. Pengujian Filter Kategori 'furniture':");
+console.log(JSON.stringify(getProducts({ category: "furniture", limit: 10 }), null, 2));
+
+console.log("\\n3. Pengujian Tambah Produk Baru:");
+const newProd = createProduct({ name: "Webcam 4K HDR", price: 1450000, category: "electronics", stock: 14 });
+console.log(newProd);
+
+console.log("\\n4. Pengujian Hapus Produk ID 3:");
+console.log(deleteProduct(3));`}
+/>
+
+---
+
+## 3. Checklist Penyelesaian Tugas Mandiri
+
+Sebelum menandai materi ini selesai, pastikan Anda memahami:
+- [ ] Formula kalkulasi *Offset*: `offset = (page - 1) * limit`.
+- [ ] Penggunaan *Sanitization* query parameter (mengonversi string `"2"` menjadi integer numerik).
+- [ ] Perbedaan antara *Offset-based Pagination* (cocok untuk dashboard tabel) vs *Cursor-based Pagination* (cocok untuk Infinite Scroll seperti feed Twitter/Instagram).

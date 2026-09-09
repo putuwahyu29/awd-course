@@ -1,0 +1,133 @@
+---
+title: "Observabilitas Sistem: Centralized Logging, Metrik Prometheus & Grafana"
+courseSlug: "devops-cloud-mastery"
+chapter: "Bab 5: Monitoring, Observabilitas & Evaluasi"
+order: 8
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Bila sistem Anda mengalami *down* pada jam 2 dini hari, bagaimana Anda mengetahui apa yang rusak sebelum pelanggan mengeluh di media sosial? **Observabilitas (*Observability*)** adalah kemampuan untuk menyimpulkan kondisi internal suatu sistem hanya dengan mengamati output eksternalnya.
+
+---
+
+## 1. Tiga Pilar Observabilitas Modern
+
+```mermaid
+mindmap
+  root((Tiga Pilar Observabilitas))
+    Metrik (Metrics)
+      Pengukuran numerik agregat berbasis waktu
+      Penggunaan CPU, RAM, Latensi HTTP p99, Throughput Req/Detik
+      Tools: Prometheus, Datadog, CloudWatch
+    Log (Logs)
+      Catatan peristiwa individual berformat JSON terstruktur
+      Waktu, Level (INFO/WARN/ERROR), User ID, Stack Trace
+      Tools: Grafana Loki, Elasticsearch (ELK Stack)
+    Jejak (Traces)
+      Melacak perjalanan 1 request melintasi multi-layanan/microservices
+      Mendeteksi bottleneck fungsi yang memakan waktu lama
+      Tools: OpenTelemetry, Jaeger
+```
+
+---
+
+## 2. Structured JSON Logging
+
+Hindari mencetak log mentah menggunakan `console.log("error disini")`. Gunakan structured logging (Pino / Winston) agar log dapat diindeks dan difilter dengan mudah di dashboard:
+
+```json
+{
+  "timestamp": "2026-02-20T11:15:32.412Z",
+  "level": "error",
+  "service": "checkout-api",
+  "traceId": "c4b8e921-9981-420a",
+  "userId": "usr_8821",
+  "method": "POST",
+  "path": "/api/v1/orders",
+  "statusCode": 500,
+  "durationMs": 342,
+  "errorMessage": "Database connection timeout after 300ms",
+  "stack": "Error: Database connection timeout..."
+}
+```
+
+---
+
+## 3. Menghitung SLA, SLO, dan Error Budget
+
+- **SLA (*Service Level Agreement*)**: Janji kontraktual resmi kepada klien (misal: "Uptime 99.9% per bulan"). Pelanggaran SLA berakibat pinalti finansial.
+- **SLO (*Service Level Objective*)**: Target internal tim engineering yang lebih ketat dari SLA (misal: "99.95% request memiliki latensi di bawah 200ms").
+- **Error Budget**: Toleransi sisa kegagalan yang diizinkan untuk inovasi dan rilis fitur baru (`100% - SLO = Error Budget`).
+
+---
+
+## 4. Praktik Interaktif: Simulasi Alerting & SLO Health Monitoring
+
+Jalankan sandbox di bawah ini untuk melihat bagaimana engine monitoring mendeteksi lonjakan error rate dan memicu peringatan otomatis:
+
+<MultiLangRunner
+  language="javascript"
+  title="Engine Simulasi Metrics Aggregator & Alerting System"
+  initialCode={`// Simulasi Timeseries Metrics Monitor
+class ServerMetricsAggregator {
+  constructor(sloErrorRatePercent = 1.0, maxLatencyMs = 300) {
+    this.sloErrorRate = sloErrorRatePercent;
+    this.maxLatencyMs = maxLatencyMs;
+    this.requests = [];
+  }
+
+  recordRequest(latencyMs, isError = false) {
+    this.requests.push({ latencyMs, isError, timestamp: Date.now() });
+    // Jaga hanya 100 sample terakhir
+    if (this.requests.length > 100) this.requests.shift();
+  }
+
+  evaluateHealth() {
+    const total = this.requests.length;
+    if (total === 0) return { status: "IDLE" };
+
+    const errorCount = this.requests.filter(r => r.isError).length;
+    const errorRate = (errorCount / total) * 100;
+
+    const latencies = this.requests.map(r => r.latencyMs).sort((a, b) => a - b);
+    const p95Latency = latencies[Math.floor(total * 0.95)] || 0;
+    const avgLatency = latencies.reduce((a, b) => a + b, 0) / total;
+
+    const isSloBreached = errorRate > this.sloErrorRate || p95Latency > this.maxLatencyMs;
+
+    return {
+      totalRequests: total,
+      errorRate: \`\${errorRate.toFixed(2)}%\`,
+      avgLatency: \`\${avgLatency.toFixed(1)}ms\`,
+      p95Latency: \`\${p95Latency}ms\`,
+      status: isSloBreached ? "🚨 CRITICAL_ALERT" : "✅ HEALTHY",
+      alertMessage: isSloBreached ? \`SLO Breached! Error Rate: \${errorRate.toFixed(2)}%, p95 Latency: \${p95Latency}ms\` : "All services operational"
+    };
+  }
+}
+
+// Demo Uji Pemantauan
+const monitor = new ServerMetricsAggregator(2.0, 250); // Maks 2% error, p95 < 250ms
+
+console.log("=== 1. KONDISI SERVER NORMAL (Trafik Sehat) ===");
+for (let i = 0; i < 50; i++) {
+  // Latensi normal 40-120ms, jarang error
+  monitor.recordRequest(Math.floor(Math.random() * 80) + 40, Math.random() < 0.01);
+}
+console.log(monitor.evaluateHealth());
+
+console.log("\\n=== 2. KONDISI DATABASE DOWN / LONJAKAN ERROR ===");
+for (let i = 0; i < 30; i++) {
+  // Latensi melonjak ke 400ms dan error rate 20%
+  monitor.recordRequest(Math.floor(Math.random() * 200) + 300, Math.random() < 0.25);
+}
+console.log(monitor.evaluateHealth());`}
+/>
+
+<Callout type="tip" title="Grafana Dashboard">
+  Dalam praktek industri, gabungkan **Prometheus** (pengumpul metrik) dengan **Grafana** untuk membuat dashboard visual real-time yang memantau performa klaster server Anda selama 24/7.
+</Callout>

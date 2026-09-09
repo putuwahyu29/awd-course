@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="awd-book-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="60%" stop-color="#2563eb" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded Squircle Badge Base -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#awd-book-grad)" />
+  <rect x="8" y="8" width="112" height="112" rx="28" stroke="rgba(255,255,255,0.25)" stroke-width="2.5" />
+
+  <!-- Course Book Icon -->
+  <g transform="translate(24, 24) scale(3.3333)" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Book Spine & Pages -->
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    <!-- Page Content Lines -->
+    <line x1="9" y1="6.5" x2="16" y2="6.5" stroke="#93c5fd" stroke-width="1.8" />
+    <line x1="9" y1="10.5" x2="16" y2="10.5" stroke="#93c5fd" stroke-width="1.8" />
+  </g>
+</svg>

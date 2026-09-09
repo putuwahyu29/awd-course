@@ -1,0 +1,104 @@
+---
+title: "Kontainerisasi Docker, Nginx & Pipeline CI/CD"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 5: Testing, Deployment & Proyek Enterprise"
+order: 13
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Mengirimkan aplikasi Laravel ke server produksi memerlukan standardisasi lingkungan menggunakan **Docker Container** dan alur otomatisasi **Continuous Integration / Continuous Deployment (CI/CD)** via GitHub Actions.
+
+---
+
+## 1. Multi-Stage Dockerfile Produksi untuk Laravel
+
+```dockerfile
+# 1. Tahap Build Aset Frontend
+FROM node:20-alpine AS node_builder
+WORKDIR /app
+COPY package*.json vite.config.js ./
+RUN npm ci
+COPY resources ./resources
+RUN npm run build
+
+# 2. Tahap Aplikasi PHP-FPM
+FROM php:8.3-fpm-alpine AS app
+WORKDIR /var/www/html
+
+# Pasang dependensi sistem & ekstensi PHP
+RUN apk add --no-cache libpng-dev libzip-dev oniguruma-dev postgresql-dev \
+    && docker-php-ext-install pdo pdo_pgsql mbstring zip bcmath gd opcache
+
+# Salin Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Salin kode sumber
+COPY . .
+COPY --from=node_builder /app/public/build ./public/build
+
+# Pasang dependensi produksi
+RUN composer install --no-dev --optimize-autoloader --no-interaction
+
+# Izin folder storage
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+EXPOSE 9000
+CMD ["php-fpm"]
+```
+
+---
+
+## 2. Pipeline CI/CD dengan GitHub Actions (`.github/workflows/deploy.yml`)
+
+```yaml
+name: Laravel CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: awd_test
+          POSTGRES_PASSWORD: secretpassword
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout Kode
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo, pdo_pgsql, mbstring, zip
+          coverage: none
+
+      - name: Install Composer Dependencies
+        run: composer install -q --no-ansi --no-interaction --prefer-dist
+
+      - name: Run Automated Tests (Pest)
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_DATABASE: awd_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: secretpassword
+        run: php artisan test
+```
+
+<Callout type="tip" title="Optimasi Caching Produksi">
+  Sebelum merilis aplikasi di server produksi, selalu jalankan triade optimasi bawaan Laravel:
+  `php artisan config:cache`, `php artisan route:cache`, dan `php artisan view:cache`.
+</Callout>

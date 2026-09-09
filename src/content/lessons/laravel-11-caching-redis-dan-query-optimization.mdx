@@ -1,0 +1,66 @@
+---
+title: "Strategi Caching Redis, Cache Tags & Optimasi Kueri"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 4: Arsitektur Lanjutan & Background Jobs"
+order: 11
+duration: "25 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Aplikasi web dengan jutaan kunjungan membutuhkan strategi caching multi-level untuk mencegah lonjakan beban database relasional. Di materi ini, kita akan mendalami fasad `Cache` Laravel, teknik **Cache Remembering**, dan pengelompokan **Cache Tags**.
+
+---
+
+## 1. Pola `Cache::remember`
+
+Alih-alih menulis kode pengecekan manual, gunakan `Cache::remember()` yang secara otomatis mengambil dari cache jika ada, atau menjalankan closure SQL dan menyimpan hasilnya jika belum ada (*Cache-Aside*):
+
+```php
+use App\Models\Course;
+use Illuminate\Support\Facades\Cache;
+
+// Cache daftar kursus terpopuler selama 1 jam (3600 detik)
+$popularCourses = Cache::remember('courses:popular', 3600, function () {
+    return Course::with('category')
+        ->withCount('students')
+        ->orderBy('students_count', 'desc')
+        ->take(6)
+        ->get();
+});
+```
+
+---
+
+## 2. Pengelompokan dengan Cache Tags (Redis Driver)
+
+Jika Anda menggunakan Redis atau Memcached, fitur **Cache Tags** memungkinkan Anda memberi label pada entri cache dan menghapus (*invalidate*) seluruh grup label dalam satu perintah:
+
+```php
+// Menyimpan cache dengan tag 'courses' dan 'categories'
+Cache::tags(['courses', 'category_web'])->put("course:{$course->id}", $course, 86400);
+
+// Saat pemateri memperbarui kursus, bersihkan hanya cache yang bertag 'courses'
+Cache::tags(['courses'])->flush();
+```
+
+---
+
+## 3. Optimasi Database Indexing & Explain Query
+
+Gunakan metode `explain()` di Laravel Eloquent untuk melihat rencana eksekusi database:
+
+```php
+// Memeriksa efisiensi kueri SQL
+$explainPlan = Course::where('is_published', true)
+    ->where('price', '<=', 100000)
+    ->explain();
+
+// Tambahkan Composite Index pada Migration untuk kueri multi-kolom yang sering dicari:
+// $table->index(['is_published', 'price']);
+```
+
+<Callout type="tip" title="Optimasi Memory Cache">
+  Hindari menyimpan objek Eloquent Model berukuran besar secara utuh jika Anda hanya membutuhkan data teks sederhana. Gunakan `select('id', 'title', 'slug')` untuk menghemat konsumsi RAM di server Redis.
+</Callout>

@@ -1,0 +1,16 @@
+{
+  "title": "Database Engineering & SQL Performance Tuning: PostgreSQL, Redis & Optimasi Query",
+  "description": "Kuasai arsitektur internal database PostgreSQL, optimasi query berkecepatan tinggi dengan EXPLAIN ANALYZE, indexing mendalam (B-Tree, GIN, GiST), locking & isolation levels, partisi tabel, hingga caching tingkat lanjut dengan Redis.",
+  "category": "programming",
+  "level": "Semua Tingkat",
+  "duration": "6 Jam",
+  "instructor": "I Putu Agus Wahyu Dupayana",
+  "instructorRole": "Software Engineer di AWD.dev",
+  "instructorAvatar": "/images/instructors/wahyu-dupayana.jpg",
+  "thumbnail": "/images/courses/database.svg",
+  "isFeatured": true,
+  "isPublished": false,
+  "status": "draft",
+  "updatedAt": "2026-09-08",
+  "order": 9
+}

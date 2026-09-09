@@ -1,0 +1,334 @@
+---
+interface Props {
+  title?: string;
+  initialHtml?: string;
+  initialCss?: string;
+  initialJs?: string;
+  height?: string;
+}
+
+const {
+  title = 'Interactive Web Playground (HTML / CSS / JS)',
+  initialHtml = `<div class="card-demo">\n  <h2>Halo Dunia!</h2>\n  <p>Klik tombol di bawah untuk melihat interaksi JavaScript.</p>\n  <button id="demo-btn">Klik Saya</button>\n  <div id="output-msg"></div>\n</div>`,
+  initialCss = `.card-demo {\n  font-family: system-ui, sans-serif;\n  padding: 1.5rem;\n  border-radius: 8px;\n  background: #f8fafc;\n  border: 1px solid #e2e8f0;\n}\nh2 { color: #2563eb; margin-top: 0; }\nbutton {\n  background: #2563eb;\n  color: white;\n  border: none;\n  padding: 0.5rem 1rem;\n  border-radius: 6px;\n  cursor: pointer;\n  font-weight: 600;\n}\nbutton:hover { background: #1d4ed8; }\n#output-msg { margin-top: 1rem; font-weight: bold; color: #059669; }`,
+  initialJs = `const btn = document.getElementById('demo-btn');\nconst msg = document.getElementById('output-msg');\n\nbtn.addEventListener('click', () => {\n  msg.textContent = 'Tombol berhasil diklik pada ' + new Date().toLocaleTimeString();\n  console.log('Event click terpicu!');\n});`,
+  height = '360px',
+} = Astro.props;
+
+const playgroundId = `web-play-${Math.random().toString(36).substring(2, 9)}`;
+---
+
+<div class="web-playground-card card my-6" id={playgroundId}>
+  <!-- Topbar -->
+  <div class="playground-topbar">
+    <div class="topbar-left">
+      <div class="lang-pill">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <polyline points="16 18 22 12 16 6"></polyline>
+          <polyline points="8 6 2 12 8 18"></polyline>
+        </svg>
+        <span>Web Sandbox</span>
+      </div>
+      <span class="playground-title">{title}</span>
+    </div>
+
+    <div class="topbar-right">
+      <!-- Tab Buttons -->
+      <div class="tab-buttons">
+        <button type="button" class="tab-btn active" data-tab="html">HTML</button>
+        <button type="button" class="tab-btn" data-tab="css">CSS</button>
+        <button type="button" class="tab-btn" data-tab="js">JS</button>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-sm run-web-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Jalankan Preview</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Editor & Preview Split -->
+  <div class="playground-body" style={`min-height: ${height};`}>
+    <!-- Code Editor Pane -->
+    <div class="editor-pane">
+      <div class="editor-tab-content tab-html">
+        <textarea class="code-box html-code" spellcheck="false">{initialHtml}</textarea>
+      </div>
+      <div class="editor-tab-content tab-css hidden">
+        <textarea class="code-box css-code" spellcheck="false">{initialCss}</textarea>
+      </div>
+      <div class="editor-tab-content tab-js hidden">
+        <textarea class="code-box js-code" spellcheck="false">{initialJs}</textarea>
+      </div>
+    </div>
+
+    <!-- Live Preview Iframe Pane -->
+    <div class="preview-pane">
+      <div class="preview-header">
+        <span class="preview-title">Live Result:</span>
+      </div>
+      <iframe class="preview-frame" sandbox="allow-scripts allow-modals" title="Live Preview"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setupWebPlaygrounds() {
+    document.querySelectorAll('.web-playground-card').forEach((card) => {
+      const tabBtns = card.querySelectorAll<HTMLButtonElement>('.tab-btn');
+      const runBtn = card.querySelector('.run-web-btn');
+      const htmlText = card.querySelector<HTMLTextAreaElement>('.html-code');
+      const cssText = card.querySelector<HTMLTextAreaElement>('.css-code');
+      const jsText = card.querySelector<HTMLTextAreaElement>('.js-code');
+      const iframe = card.querySelector<HTMLIFrameElement>('.preview-frame');
+
+      // Tab Switching
+      tabBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const targetTab = btn.getAttribute('data-tab');
+          tabBtns.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          card.querySelector('.tab-html')?.classList.toggle('hidden', targetTab !== 'html');
+          card.querySelector('.tab-css')?.classList.toggle('hidden', targetTab !== 'css');
+          card.querySelector('.tab-js')?.classList.toggle('hidden', targetTab !== 'js');
+        });
+      });
+
+      // Render Preview
+      function updatePreview() {
+        if (!iframe || !htmlText || !cssText || !jsText) return;
+
+        const html = htmlText.value;
+        const css = cssText.value;
+        const js = jsText.value;
+
+        const combinedDoc = `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <meta charset="utf-8">
+              <style>
+                body { margin: 0; padding: 1rem; color: #1e293b; background: #ffffff; }
+                ${css}
+              </style>
+            </head>
+            <body>
+              ${html}
+              <script>
+                try {
+                  ${js}
+                } catch(e) {
+                  console.error(e);
+                }
+              <\/script>
+            </body>
+          </html>
+        `;
+
+        iframe.srcdoc = combinedDoc;
+      }
+
+      runBtn?.addEventListener('click', updatePreview);
+      
+      // Auto run once on load
+      updatePreview();
+    });
+  }
+
+  setupWebPlaygrounds();
+  document.addEventListener('astro:page-load', setupWebPlaygrounds);
+</script>
+
+<style>
+  .web-playground-card {
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    margin: 1.75rem 0;
+  }
+
+  .playground-topbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    background-color: var(--bg-surface-elevated);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .lang-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    background-color: rgba(6, 182, 212, 0.1);
+    color: var(--accent-cyan);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .playground-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .tab-buttons {
+    display: flex;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    padding: 2px;
+  }
+
+  .tab-btn {
+    padding: 0.25rem 0.65rem;
+    border: none;
+    background: transparent;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+  }
+
+  .tab-btn.active {
+    background-color: var(--primary);
+    color: #ffffff;
+  }
+
+  /* Body Split */
+  .playground-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background-color: #0d1117;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .editor-pane {
+    height: 100%;
+    border-right: 1px solid #30363d;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .editor-tab-content {
+    height: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .code-box {
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    padding: 1rem;
+    background-color: transparent;
+    color: #e6edf3;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+    tab-size: 2;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .preview-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #ffffff;
+    max-width: 100%;
+  }
+
+  .preview-header {
+    padding: 0.35rem 0.75rem;
+    background-color: #f1f5f9;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .preview-title {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+  }
+
+  .preview-frame {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 260px;
+    border: none;
+    background-color: #ffffff;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 768px) {
+    .playground-topbar {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0.75rem 0.85rem;
+      gap: 0.65rem;
+    }
+    .topbar-right {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.4rem;
+    }
+    .run-web-btn {
+      flex: 1;
+      justify-content: center;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.75rem;
+    }
+    .playground-body {
+      grid-template-columns: 1fr;
+    }
+    .editor-pane {
+      border-right: none;
+      border-bottom: 1px solid #30363d;
+    }
+    .code-box {
+      min-height: 180px;
+      padding: 0.75rem 0.85rem;
+      font-size: 0.8rem;
+    }
+    .preview-frame {
+      min-height: 220px;
+    }
+  }
+</style>

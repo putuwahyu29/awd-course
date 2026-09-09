@@ -1,0 +1,267 @@
+---
+title: "CSS3 Box Model, Variabel Desain & Mode Tema"
+courseSlug: "frontend-modern-mastery"
+chapter: "Bab 2: Styling Modern, Flexbox & Grid"
+order: 3
+duration: "25 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import WebRunner from '../../components/mdx/WebRunner.astro';
+
+Memahami bagaimana peramban menghitung dimensi elemen dan mengelola variabel warna adalah kunci utama membangun antarmuka web yang konsisten dan mudah dirawat (*maintainable*).
+
+---
+
+## 1. Anatomi CSS Box Model
+
+Setiap elemen HTML yang dirender di layar diperlakukan sebagai sebuah kotak persegi panjang yang terdiri dari 4 lapisan:
+
+```
++-------------------------------------------------+
+|                    MARGIN                       |
+|   +-----------------------------------------+   |
+|   |                 BORDER                  |   |
+|   |   +---------------------------------+   |   |
+|   |   |             PADDING             |   |   |
+|   |   |   +-------------------------+   |   |   |
+|   |   |   |         CONTENT         |   |   |   |
+|   |   |   |   (width x height)      |   |   |   |
+|   |   |   +-------------------------+   |   |   |
+|   |   +---------------------------------+   |   |
+|   +-----------------------------------------+   |
++-------------------------------------------------+
+```
+
+1. **Content**: Area teks, gambar, atau elemen anak sebenarnya.
+2. **Padding**: Ruang kosong transparan di antara konten dan garis batas (border).
+3. **Border**: Garis tepi pembatas yang membungkus padding dan konten.
+4. **Margin**: Jarak pemisah antara elemen ini dengan elemen luar lainnya.
+
+<Callout type="tip" title="Aturan Emas: box-sizing: border-box">
+  Secara bawaan (*content-box*), menambahkan `padding: 20px` pada elemen selebar `width: 200px` akan membuat total lebarnya menjadi `240px`. Dengan menerapkan `box-sizing: border-box`, padding dan border akan dihitung di dalam dimensi yang Anda tetapkan sehingga tata letak tidak mudah pecah.
+</Callout>
+
+```css
+/* Pasang reset ini di baris pertama CSS global Anda */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+```
+
+---
+
+## 2. CSS Custom Properties (Variabel CSS) & Desain Sistem
+
+Variabel CSS memungkinkan Anda menyimpan nilai warna, ukuran font, dan jarak (*spacing*) di satu tempat terpusat (`:root`), sehingga perubahan tema atau palet warna dapat dilakukan dalam hitungan detik.
+
+```css
+:root {
+  /* Skala Warna Inti */
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --bg-surface: #0f172a;
+  --bg-card: #1e293b;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  
+  /* Token Spacing & Radius */
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --space-unit: 1rem;
+}
+
+/* Penerapan pada Komponen */
+.card {
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  border-radius: var(--radius-md);
+  padding: var(--space-unit);
+}
+```
+
+---
+
+## 3. Praktik Interaktif: Pengubah Tema (Dark & Light Mode Switcher)
+
+Coba klik tombol **Ganti Tema** di bawah ini untuk melihat bagaimana variabel CSS mengubah tampilan seluruh komponen secara dinamis:
+
+<WebRunner 
+  title="Eksplorasi Variabel CSS & Penggantian Tema Real-time"
+  height="480px"
+  initialHtml={`<div class="theme-wrapper light-theme" id="app-card">
+  <div class="header-row">
+    <h3>Pratinjau Komponen UI</h3>
+    <button id="toggle-theme-btn" class="theme-btn">
+      <span id="theme-icon">🌙</span> <span id="theme-text">Mode Gelap</span>
+    </button>
+  </div>
+
+  <div class="product-card">
+    <div class="badge-pill">Best Seller</div>
+    <h4>Frontend Mastery Course</h4>
+    <p class="description">
+      Pelajari teknik penataan CSS modern dan integrasi desain sistem dari nol hingga mahir.
+    </p>
+    <div class="price-row">
+      <span class="price">Gratis</span>
+      <button class="btn-enroll">Daftar Kursus</button>
+    </div>
+  </div>
+</div>`}
+  initialCss={`/* Deklarasi Variabel CSS */
+.light-theme {
+  --bg-page: #f1f5f9;
+  --bg-card: #ffffff;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --brand-color: #0284c7;
+  --brand-hover: #0369a1;
+  --border-color: #cbd5e1;
+  --card-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+.dark-theme {
+  --bg-page: #0f172a;
+  --bg-card: #1e293b;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --brand-color: #38bdf8;
+  --brand-hover: #0ea5e9;
+  --border-color: #334155;
+  --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Penggunaan Variabel pada Elemen */
+.theme-wrapper {
+  background-color: var(--bg-page);
+  padding: 2rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  font-family: system-ui, sans-serif;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header-row h3 {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.theme-btn {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s;
+}
+
+.product-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+  transition: all 0.3s ease;
+}
+
+.badge-pill {
+  display: inline-block;
+  background-color: rgba(2, 132, 199, 0.15);
+  color: var(--brand-color);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: 99px;
+  margin-bottom: 0.75rem;
+}
+
+.product-card h4 {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #10b981;
+}
+
+.btn-enroll {
+  background-color: var(--brand-color);
+  color: #ffffff;
+  border: none;
+  padding: 0.55rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-enroll:hover {
+  background-color: var(--brand-hover);
+}`}
+  initialJs={`const toggleBtn = document.getElementById('toggle-theme-btn');
+const appCard = document.getElementById('app-card');
+const themeIcon = document.getElementById('theme-icon');
+const themeText = document.getElementById('theme-text');
+
+let isDark = false;
+
+toggleBtn.addEventListener('click', () => {
+  isDark = !isDark;
+  
+  if (isDark) {
+    appCard.classList.remove('light-theme');
+    appCard.classList.add('dark-theme');
+    themeIcon.textContent = '☀️';
+    themeText.textContent = 'Mode Terang';
+  } else {
+    appCard.classList.remove('dark-theme');
+    appCard.classList.add('light-theme');
+    themeIcon.textContent = '🌙';
+    themeText.textContent = 'Mode Gelap';
+  }
+});`}
+/>
+
+---
+
+## 4. Selektor CSS Modern
+
+CSS modern kini memiliki selektor canggih yang mempermudah perancangan tata letak tanpa ketergantungan JavaScript:
+
+* `:is(h1, h2, h3)`: Mengelompokkan selektor majemuk secara ringkas.
+* `:has(.button-active)`: Selektor "induk" (*parent selector*) yang dapat menata elemen pembungkus jika elemen anak tertentu aktif.
+* `:not(:last-child)`: Menerapkan margin ke semua item kecuali item terakhir.
+
+Di pelajaran selanjutnya, kita akan menggabungkan variabel ini untuk membangun tata letak responsif penuh dengan **Flexbox dan CSS Grid**.

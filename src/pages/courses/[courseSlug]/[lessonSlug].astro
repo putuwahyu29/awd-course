@@ -1,0 +1,97 @@
+---
+import CourseLayout from '../../../layouts/CourseLayout.astro';
+import { getCollection, render } from 'astro:content';
+import fs from 'node:fs';
+import path from 'node:path';
+
+export async function getStaticPaths() {
+  const allCourses = await getCollection('courses');
+  const allLessons = await getCollection('lessons');
+
+  const publishedCourses = allCourses.filter((c) => c.data.isPublished && c.data.status !== 'draft');
+  const publishedLessons = allLessons.filter((l) => l.data.isPublished !== false);
+
+  const paths: any[] = [];
+
+  publishedCourses.forEach((course) => {
+    const courseLessons = publishedLessons
+      .filter((l) => l.data.courseSlug === course.id)
+      .sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+
+    courseLessons.forEach((lesson) => {
+      paths.push({
+        params: {
+          courseSlug: course.id,
+          lessonSlug: lesson.id,
+        },
+        props: {
+          course,
+          lessons: courseLessons,
+          lesson,
+        },
+      });
+    });
+  });
+
+  return paths;
+}
+
+const { course, lessons, lesson } = Astro.props;
+const { Content, headings } = await render(lesson);
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+}
+
+let activeHeadings = [...headings];
+
+// If lesson contains a notebook file, parse its headings for the sidebar Table of Contents
+if (lesson.data.ipynbFile) {
+  try {
+    const notebookRel = 'public' + lesson.data.ipynbFile;
+    const fullPath = path.resolve(process.cwd(), notebookRel);
+    if (fs.existsSync(fullPath)) {
+      const raw = fs.readFileSync(fullPath, 'utf-8');
+      const nb = JSON.parse(raw);
+      const nbHeadings: { depth: number; slug: string; text: string }[] = [];
+
+      (nb.cells || []).forEach((c: any) => {
+        if (c.cell_type === 'markdown') {
+          const text = Array.isArray(c.source) ? c.source.join('') : c.source || '';
+          text.split('\n').forEach((line: string) => {
+            const match = line.match(/^(#{1,4})\s+(.+)$/);
+            if (match) {
+              const depth = match[1].length;
+              const title = match[2].trim();
+              nbHeadings.push({
+                depth,
+                slug: slugify(title),
+                text: title,
+              });
+            }
+          });
+        }
+      });
+
+      if (nbHeadings.length > 0) {
+        activeHeadings = nbHeadings;
+      }
+    }
+  } catch (err) {
+    console.error('Failed to parse notebook headings for sidebar:', err);
+  }
+}
+---
+
+<CourseLayout
+  course={course}
+  lessons={lessons}
+  currentLesson={lesson}
+  headings={activeHeadings}
+>
+  <Content />
+</CourseLayout>

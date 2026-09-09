@@ -1,0 +1,85 @@
+---
+title: "Kuis Evaluasi: Database Engineering & SQL Performance Tuning"
+courseSlug: "database-engineering-sql-tuning"
+chapter: "Bab 4: In-Memory Database Redis, Cache & Evaluasi"
+order: 9
+duration: "15 Menit"
+contentType: "quiz"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import Quiz from '../../components/mdx/Quiz.astro';
+
+Mari uji penguasaan analitik dan pemahaman Anda terhadap konsep arsitektur PostgreSQL, Write-Ahead Logging (WAL), struktur indeks B-Tree/GIN, analisis EXPLAIN ANALYZE, isolation levels, dan caching Redis.
+
+---
+
+## Soal Evaluasi Pemahaman
+
+Pilih satu opsi jawaban yang paling tepat pada masing-masing pertanyaan berikut, lalu klik tombol **Periksa Jawaban**.
+
+<Quiz
+  question="1. Mengapa operasi UPDATE di PostgreSQL tidak langsung menimpa data lama di tempat (In-Place), melainkan membuat baris Tuple baru dan menandai baris lama sebagai Dead Tuple?"
+  options={[
+    "Karena hard drive komputer tidak mendukung penulisan ulang file.",
+    "Karena arsitektur Multi-Version Concurrency Control (MVCC) memungkinkan transaksi lain tetap membaca data lama yang konsisten tanpa saling mengunci (Lock-Free Reads).",
+    "Karena PostgreSQL mengompres seluruh database menjadi file zip.",
+    "Karena tabel di PostgreSQL hanya bersifat read-only."
+  ]}
+  correctIndex={1}
+  explanation="Tepat sekali! Arsitektur MVCC PostgreSQL menjamin bahwa operasi pembacaan (SELECT) tidak pernah memblokir operasi penulisan (UPDATE/DELETE), dan operasi penulisan tidak pernah memblokir pembacaan."
+/>
+
+<Quiz
+  question="2. Jenis indeks PostgreSQL manakah yang paling ideal untuk pencarian kata di dalam dokumen teks panjang (Full-Text Search) dan pencarian atribut di dalam kolom JSONB?"
+  options={[
+    "B-Tree Index",
+    "GIN (Generalized Inverted Index)",
+    "Hash Index",
+    "Clustered Index"
+  ]}
+  correctIndex={1}
+  explanation="Benar! GIN (Generalized Inverted Index) memetakan setiap elemen/kata kunci di dalam dokumen ke daftar lokasi baris yang memuat kata tersebut, sangat ideal untuk JSONB dan Full-Text Search."
+/>
+
+<Quiz
+  question="3. Pada output perintah EXPLAIN (ANALYZE, BUFFERS), jenis pemindaian (Scan) manakah yang paling optimal karena mengambil seluruh data langsung dari RAM Index tanpa menyentuh tabel fisik sama sekali?"
+  options={[
+    "Sequential Scan (Seq Scan)",
+    "Index Only Scan",
+    "Bitmap Heap Scan",
+    "Table Scan"
+  ]}
+  correctIndex={1}
+  explanation="Luar biasa! Index Only Scan terjadi ketika seluruh kolom yang diminta dalam klausa SELECT dan WHERE sudah tersedia di dalam daun Index B-Tree (Covering Index), mengeliminasi I/O disk ke tabel Heap."
+/>
+
+<Quiz
+  question="4. Mengapa penggunaan tool Connection Pooler seperti PgBouncer dengan mode 'Transaction Pooling' sangat penting pada arsitektur aplikasi berbasis serverless?"
+  options={[
+    "Karena PgBouncer otomatis mengenkripsi seluruh file hard disk server.",
+    "Karena PgBouncer membatasi dan mendaur ulang koneksi database fisik (misal hanya 40 koneksi aktif) untuk melayani ribuan koneksi stateless dari aplikasi serverless, mencegah crash Connection Exhaustion.",
+    "Karena PgBouncer menghapus kebutuhan backup database.",
+    "Karena PostgreSQL tidak bisa berjalan di server cloud tanpa PgBouncer."
+  ]}
+  correctIndex={1}
+  explanation="Sempurna! Mode Transaction Pooling pada PgBouncer hanya meminjamkan koneksi fisik ke serverless function selama satu transaksi SQL aktif berlangsung, menghemat memori RAM database secara dramatis."
+/>
+
+<Quiz
+  question="5. Struktur data Redis manakah yang paling efisien untuk membangun sistem papan peringkat (Leaderboard) skor penjualan atau game real-time dengan jutaan anggota?"
+  options={[
+    "Redis Strings (GET/SET)",
+    "Redis Sorted Sets (ZSET)",
+    "Redis Lists (LPUSH/RPOP)",
+    "Redis Bitmaps"
+  ]}
+  correctIndex={1}
+  explanation="Tepat! Redis Sorted Sets (ZSET) menyimpan anggota unik yang secara otomatis diurutkan berdasarkan skor numerik menggunakan kombinasi SkipList dan Hash Map, memungkinkan pencarian peringkat dalam waktu O(log N)."
+/>
+
+---
+
+<Callout type="tip" title="Langkah Pamungkas">
+  Setelah menuntaskan kuis evaluasi ini, lanjutkan ke materi pamungkas untuk membaca panduan perancangan **Proyek Akhir Arsitektur Basis Data Skala Enterprise**!
+</Callout>

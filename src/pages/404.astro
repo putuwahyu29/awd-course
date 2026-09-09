@@ -1,0 +1,133 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="404 - Halaman Tidak Ditemukan | Awd Course"
+  description="Maaf, halaman yang Anda cari tidak ditemukan atau telah dipindahkan di Awd Course."
+>
+  <div class="error-page-container">
+    <div class="container">
+      <div class="error-card card">
+        <!-- Error Status Badge -->
+        <div class="error-code-badge">
+          <span class="code-number">404</span>
+          <span class="code-divider">|</span>
+          <span class="code-label">Halaman Tidak Ditemukan</span>
+        </div>
+
+        <h1 class="error-title">Ups! Halaman yang Anda Cari Tidak Tersedia</h1>
+        <p class="error-description">
+          Tautan yang Anda tuju mungkin salah ketik, materi telah diperbarui strukturnya, atau halaman tersebut belum dipublikasikan.
+        </p>
+
+        <!-- Quick Navigation Actions -->
+        <div class="error-actions-group">
+          <a href="/" class="btn btn-primary btn-lg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Kembali ke Beranda</span>
+          </a>
+
+          <a href="/courses" class="btn btn-outline btn-lg">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18" aria-hidden="true">
+              <rect x="3" y="3" width="7" height="7"></rect>
+              <rect x="14" y="3" width="7" height="7"></rect>
+              <rect x="14" y="14" width="7" height="7"></rect>
+              <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Jelajahi Katalog Kursus</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .error-page-container {
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3.5rem 1.5rem;
+  }
+
+  .error-card {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 3.5rem 2.5rem;
+    text-align: center;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .error-code-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.45rem 1rem;
+    border-radius: 99px;
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-size: 0.875rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+  }
+
+  .code-number {
+    font-family: var(--font-mono);
+    font-weight: 800;
+  }
+
+  .code-divider {
+    opacity: 0.5;
+  }
+
+  .error-title {
+    font-size: 1.95rem;
+    font-weight: 800;
+    line-height: 1.3;
+    color: var(--text-main);
+    margin-bottom: 1rem;
+    letter-spacing: -0.015em;
+  }
+
+  .error-description {
+    font-size: 1.025rem;
+    color: var(--text-muted);
+    line-height: 1.65;
+    margin: 0 auto 2rem auto;
+    max-width: 540px;
+  }
+
+  .error-actions-group {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 640px) {
+    .error-card {
+      padding: 2.25rem 1.5rem;
+    }
+    .error-title {
+      font-size: 1.5rem;
+    }
+    .error-actions-group {
+      flex-direction: column;
+      width: 100%;
+    }
+    .error-actions-group .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>

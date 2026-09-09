@@ -1,0 +1,300 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import CourseCard from '../../components/CourseCard.astro';
+import { getCollection } from 'astro:content';
+
+const allCourses = await getCollection('courses');
+const allLessons = await getCollection('lessons');
+
+// Filter only published courses and published lessons
+const publishedCourses = allCourses
+  .filter((c) => c.data.isPublished && c.data.status !== 'draft')
+  .sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+
+const lessonCountByCourse: Record<string, number> = {};
+allLessons
+  .filter((l) => l.data.isPublished !== false)
+  .forEach((l) => {
+    const cSlug = l.data.courseSlug;
+    lessonCountByCourse[cSlug] = (lessonCountByCourse[cSlug] || 0) + 1;
+  });
+---
+
+<BaseLayout
+  title="Katalog Kursus"
+  description="Daftar lengkap kursus pemrograman dan analisis data terstruktur dengan materi teks panduan, video tutorial, dan latihan praktik mandiri."
+>
+  <div class="catalog-page">
+    <div class="container">
+      <!-- Header -->
+      <div class="catalog-header text-center">
+        <h1 class="catalog-title">Katalog Kursus</h1>
+        <p class="catalog-desc">Pilih kurikulum aktif untuk memulai pembelajaran terstruktur sesuai kebutuhan Anda.</p>
+
+        <!-- Search & Filter Controls -->
+        <div class="filter-container">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              id="course-search-input"
+              class="search-input"
+              placeholder="Cari judul kursus atau materi..."
+            />
+          </div>
+
+          <div class="category-pills">
+            <button class="filter-pill active" data-category="all">Semua Kategori</button>
+            <button class="filter-pill" data-category="data-ai">Sains Data & AI</button>
+            <button class="filter-pill" data-category="web-dev">Pengembangan Web</button>
+            <button class="filter-pill" data-category="programming">Pemrograman</button>
+            <button class="filter-pill" data-category="cloud">DevOps & Cloud</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid -->
+      <div class="courses-grid" id="courses-grid">
+        {publishedCourses.map((course) => (
+          <div
+            class="course-item-wrapper"
+            data-title={course.data.title.toLowerCase()}
+            data-desc={course.data.description.toLowerCase()}
+            data-category={course.data.category}
+            data-instructor={course.data.instructor.toLowerCase()}
+          >
+            <CourseCard
+              course={course}
+              lessonCount={lessonCountByCourse[course.id] || 0}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div class="empty-state card hidden" id="no-results-msg">
+        <p class="empty-title">Tidak ada kursus yang sesuai</p>
+        <p class="empty-desc">Coba gunakan kata kunci pencarian yang lain atau reset filter kategori.</p>
+        <button type="button" class="btn btn-outline btn-sm reset-filter-btn" id="reset-filter-btn">
+          Tampilkan Semua Kursus
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function setupCatalogFilter() {
+      const searchInput = document.getElementById('course-search-input') as HTMLInputElement | null;
+      const filterBtns = document.querySelectorAll<HTMLButtonElement>('.filter-pill');
+      const courseItems = document.querySelectorAll<HTMLElement>('.course-item-wrapper');
+      const noResultsMsg = document.getElementById('no-results-msg');
+      const resetBtn = document.getElementById('reset-filter-btn');
+
+      if (!searchInput && filterBtns.length === 0) return;
+
+      let currentCategory = 'all';
+      let searchQuery = '';
+
+      function filterItems() {
+        let visibleCount = 0;
+
+        courseItems.forEach((item) => {
+          const title = item.getAttribute('data-title') || '';
+          const desc = item.getAttribute('data-desc') || '';
+          const category = item.getAttribute('data-category') || '';
+          const instructor = item.getAttribute('data-instructor') || '';
+
+          const matchesCategory = currentCategory === 'all' || category === currentCategory;
+          const matchesSearch =
+            searchQuery === '' ||
+            title.includes(searchQuery) ||
+            desc.includes(searchQuery) ||
+            instructor.includes(searchQuery);
+
+          if (matchesCategory && matchesSearch) {
+            item.style.display = 'block';
+            visibleCount++;
+          } else {
+            item.style.display = 'none';
+          }
+        });
+
+        if (noResultsMsg) {
+          if (visibleCount === 0) {
+            noResultsMsg.classList.remove('hidden');
+          } else {
+            noResultsMsg.classList.add('hidden');
+          }
+        }
+      }
+
+      searchInput?.addEventListener('input', (e) => {
+        searchQuery = (e.target as HTMLInputElement).value.toLowerCase().trim();
+        filterItems();
+      });
+
+      filterBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          filterBtns.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentCategory = btn.getAttribute('data-category') || 'all';
+          filterItems();
+        });
+      });
+
+      resetBtn?.addEventListener('click', () => {
+        if (searchInput) searchInput.value = '';
+        searchQuery = '';
+        currentCategory = 'all';
+        filterBtns.forEach((b) => {
+          if (b.getAttribute('data-category') === 'all') {
+            b.classList.add('active');
+          } else {
+            b.classList.remove('active');
+          }
+        });
+        filterItems();
+      });
+    }
+
+    document.addEventListener('astro:page-load', setupCatalogFilter);
+  </script>
+</BaseLayout>
+
+<style>
+  .catalog-page {
+    padding: 3.5rem 0 5rem 0;
+  }
+
+  .catalog-header {
+    max-width: 700px;
+    margin: 0 auto 3rem auto;
+  }
+
+  .catalog-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+  }
+
+  .catalog-desc {
+    font-size: 1rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .filter-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .search-box {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--text-subtle);
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    font-size: 0.925rem;
+    border-radius: var(--radius-md);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    color: var(--text-main);
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+
+  .search-input:focus {
+    border-color: var(--primary);
+  }
+
+  .category-pills {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .filter-pill {
+    padding: 0.35rem 0.85rem;
+    font-size: 0.825rem;
+    font-weight: 500;
+    border-radius: 9999px;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .filter-pill:hover {
+    color: var(--text-main);
+    border-color: var(--text-muted);
+  }
+
+  .filter-pill.active {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+  }
+
+  .courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.75rem;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .empty-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+  }
+
+  .empty-desc {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .reset-filter-btn {
+    margin-top: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 640px) {
+    .catalog-title {
+      font-size: 1.85rem;
+    }
+    .courses-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

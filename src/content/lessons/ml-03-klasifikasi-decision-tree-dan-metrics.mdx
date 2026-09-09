@@ -1,0 +1,87 @@
+---
+title: "Klasifikasi Data dengan Decision Tree & Confusion Matrix"
+courseSlug: "machine-learning-ai"
+chapter: "Bab 2: Algoritma Klasifikasi & Klasterisasi"
+order: 3
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Berbeda dengan regresi yang memprediksi angka kontinu, **Klasifikasi** bertugas mengelompokkan data ke dalam kategori diskrit (misal: *Nasabah Layak Kredit vs Macet*, *Pasien Sehat vs Berisiko*, atau *Email Normal vs Spam*).
+
+---
+
+## 1. Konsep Algoritma Decision Tree (Pohon Keputusan)
+
+**Decision Tree** memecah data menjadi cabang-cabang keputusan berbasis aturan *if-else* dengan memilih fitur yang memaksimalkan penurunan ketidakmurnian (*Gini Impurity* atau *Entropy*):
+
+```
+                        [ Pendapatan > 5 Juta? ]
+                               /        \
+                             Ya          Tidak
+                            /              \
+               [ Riwayat Kredit Baik? ]   [ Ditolak (Macet) ]
+                      /        \
+                    Ya          Tidak
+                   /              \
+          [ Disetujui ]       [ Ditolak ]
+```
+
+---
+
+## 2. Implementasi Klasifikasi dengan Scikit-Learn
+
+```python
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+
+# Dataset Simulasi Kelayakan Kredit
+data = {
+    'Usia': [22, 25, 47, 52, 46, 56, 21, 35, 40, 60],
+    'Gaji_Juta': [3.5, 4.0, 15.0, 18.0, 12.0, 20.0, 3.2, 8.5, 9.0, 25.0],
+    'Status_Kredit': [0, 0, 1, 1, 1, 1, 0, 1, 1, 1]  # 0: Ditolak, 1: Disetujui
+}
+
+df = pd.DataFrame(data)
+X = df[['Usia', 'Gaji_Juta']]
+y = df['Status_Kredit']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+
+# Latih Pohon Keputusan
+clf = DecisionTreeClassifier(max_depth=3, random_state=42)
+clf.fit(X_train, y_train)
+
+# Prediksi Data Uji
+y_pred = clf.predict(X_test)
+```
+
+---
+
+## 3. Evaluasi Klasifikasi: Confusion Matrix, Precision, & Recall
+
+Akurasi saja sering kali menyesatkan pada dataset yang tidak seimbang (*imbalanced data*). Kita menggunakan matriks kebingungan (*Confusion Matrix*):
+
+```
+                      PREDIKSI POSITIF      PREDIKSI NEGATIF
+AKTUAL POSITIF       True Positive (TP)    False Negative (FN)
+AKTUAL NEGATIF       False Positive (FP)   True Negative (TN)
+```
+
+* **Precision**: Dari semua yang diprediksi positif, berapa banyak yang benar-benar positif? `TP / (TP + FP)`
+* **Recall**: Dari semua data yang aslinya positif, berapa banyak yang berhasil ditangkap model? `TP / (TP + FN)`
+* **F1-Score**: Rata-rata harmonis antara Precision dan Recall.
+
+```python
+print("Laporan Klasifikasi Lengkap:\n")
+print(classification_report(y_test, y_pred))
+```
+
+<Callout type="tip" title="Pencegahan Overfitting">
+  Batasi kedalaman pohon keputusan menggunakan parameter `max_depth` agar model tidak menghafal data latih dan tetap mampu memprediksi data baru secara akurat.
+</Callout>

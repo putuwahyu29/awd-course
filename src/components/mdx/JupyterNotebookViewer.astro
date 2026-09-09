@@ -1,0 +1,1257 @@
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import { Code } from 'astro:components';
+
+interface Props {
+  notebookPath?: string;
+  title?: string;
+  colabUrl?: string;
+  chapterNotebookPath?: string;
+  chapterColabUrl?: string;
+  chapterTitle?: string;
+  maxCells?: number;
+}
+
+const {
+  notebookPath = 'public/notebooks/dasar-pemrograman-python.ipynb',
+  title = 'Dasar-Dasar Pemrograman Python',
+  colabUrl = 'https://colab.research.google.com',
+  chapterNotebookPath: propChapterNbPath,
+  chapterColabUrl: propChapterColabUrl,
+  chapterTitle: propChapterTitle,
+  maxCells,
+} = Astro.props;
+
+// Read and parse the .ipynb file
+let notebookData: { cells: any[] } = { cells: [] };
+let downloadUrl = '/notebooks/dasar-pemrograman-python.ipynb';
+
+try {
+  const fullPath = path.resolve(process.cwd(), notebookPath);
+  if (fs.existsSync(fullPath)) {
+    const raw = fs.readFileSync(fullPath, 'utf-8');
+    notebookData = JSON.parse(raw);
+    downloadUrl = '/' + notebookPath.replace(/^public\//, '');
+  }
+} catch (err) {
+  console.error('Failed to load notebook:', err);
+}
+
+let cells = notebookData.cells || [];
+if (maxCells && maxCells > 0) {
+  cells = cells.slice(0, maxCells);
+}
+
+// Compute direct GitHub and Google Colab URLs
+const cleanRelPath = notebookPath.replace(/^[./\\]+/, '').replace(/^public[/\\]/, 'public/');
+const githubBlobUrl = `https://github.com/putuwahyu29/awd-course/blob/main/${cleanRelPath}`;
+const directColabUrl = `https://colab.research.google.com/github/putuwahyu29/awd-course/blob/main/${cleanRelPath}`;
+const resolvedColabUrl = (colabUrl && colabUrl !== 'https://colab.research.google.com') 
+  ? colabUrl 
+  : directColabUrl;
+
+// Auto-detect corresponding full chapter notebook if inside a subfolder
+const CHAPTER_NOTEBOOK_MAPPINGS: Record<string, { notebookPath: string; title: string }> = {
+  'bab-1-dasar-python': {
+    notebookPath: 'public/notebooks/python-data-science/bab-1-dasar-pemrograman-python-lengkap.ipynb',
+    title: 'Bab 1 Lengkap',
+  },
+  'bab-2-package-python': {
+    notebookPath: 'public/notebooks/python-data-science/bab-2-package-data-science-lengkap.ipynb',
+    title: 'Bab 2 Lengkap',
+  },
+  'bab-3-analisis-data-eksploratif': {
+    notebookPath: 'public/notebooks/python-data-science/bab-3-analisis-data-eksploratif-lengkap.ipynb',
+    title: 'Bab 3 Lengkap',
+  },
+};
+
+let detectedChapterNbPath = propChapterNbPath || '';
+let detectedChapterTitle = propChapterTitle || '';
+
+if (!detectedChapterNbPath) {
+  for (const [key, val] of Object.entries(CHAPTER_NOTEBOOK_MAPPINGS)) {
+    if (notebookPath.includes(key)) {
+      detectedChapterNbPath = val.notebookPath;
+      if (!detectedChapterTitle) detectedChapterTitle = val.title;
+      break;
+    }
+  }
+}
+
+let hasChapterNotebook = false;
+let resolvedChapterColabUrl = propChapterColabUrl || '';
+
+if (detectedChapterNbPath && !notebookPath.endsWith('-lengkap.ipynb')) {
+  try {
+    const fullChapterPath = path.resolve(process.cwd(), detectedChapterNbPath);
+    if (fs.existsSync(fullChapterPath)) {
+      hasChapterNotebook = true;
+      if (!resolvedChapterColabUrl) {
+        const cleanChapterRelPath = detectedChapterNbPath.replace(/^[./\\]+/, '').replace(/^public[/\\]/, 'public/');
+        resolvedChapterColabUrl = `https://colab.research.google.com/github/putuwahyu29/awd-course/blob/main/${cleanChapterRelPath}`;
+      }
+    }
+  } catch (err) {
+    // ignore
+  }
+}
+
+const viewerId = `nb-viewer-${Math.random().toString(36).substring(2, 9)}`;
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-');
+}
+
+// Convert markdown text to clean HTML
+function parseMarkdownContent(source: string[] | string): string {
+  const text = Array.isArray(source) ? source.join('') : source || '';
+  const lines = text.split('\n');
+  const htmlParts: string[] = [];
+  let inList = false;
+  let inTable = false;
+  let tableRows: string[] = [];
+
+  function flushList() {
+    if (inList) {
+      htmlParts.push('</ul>');
+      inList = false;
+    }
+  }
+
+  function flushTable() {
+    if (inTable && tableRows.length > 0) {
+      let tableHtml = '<div class="table-container"><table class="nb-table">';
+      tableRows.forEach((row, rIdx) => {
+        const cols = row.split('|').filter((_, idx, arr) => idx > 0 && idx < arr.length - 1);
+        if (cols.length === 0) return;
+        
+        // Skip separator row |---|---|
+        if (cols.every(c => c.trim().match(/^:?-+:?$/))) return;
+
+        if (rIdx === 0) {
+          tableHtml += '<thead><tr>' + cols.map(c => `<th>${formatInline(c.trim())}</th>`).join('') + '</tr></thead><tbody>';
+        } else {
+          tableHtml += '<tr>' + cols.map(c => `<td>${formatInline(c.trim())}</td>`).join('') + '</tr>';
+        }
+      });
+      tableHtml += '</tbody></table></div>';
+      htmlParts.push(tableHtml);
+      tableRows = [];
+      inTable = false;
+    }
+  }
+
+  function formatInline(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code class="nb-code-inline">$1</code>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="nb-link">$1</a>');
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const line = rawLine.trim();
+
+    // Table line
+    if (line.startsWith('|') && line.endsWith('|')) {
+      flushList();
+      inTable = true;
+      tableRows.push(line);
+      continue;
+    } else {
+      flushTable();
+    }
+
+    // Headings
+    const h1Match = line.match(/^#\s+(.+)$/);
+    if (h1Match) {
+      flushList();
+      const slug = slugify(h1Match[1]);
+      htmlParts.push(`<h2 id="${slug}" class="nb-heading-1"><a href="#${slug}" class="heading-anchor">${formatInline(h1Match[1])}</a></h2>`);
+      continue;
+    }
+
+    const h2Match = line.match(/^##\s+(.+)$/);
+    if (h2Match) {
+      flushList();
+      const slug = slugify(h2Match[1]);
+      htmlParts.push(`<h2 id="${slug}" class="nb-heading-2"><a href="#${slug}" class="heading-anchor">${formatInline(h2Match[1])}</a></h2>`);
+      continue;
+    }
+
+    const h3Match = line.match(/^###\s+(.+)$/);
+    if (h3Match) {
+      flushList();
+      const slug = slugify(h3Match[1]);
+      htmlParts.push(`<h3 id="${slug}" class="nb-heading-3"><a href="#${slug}" class="heading-anchor">${formatInline(h3Match[1])}</a></h3>`);
+      continue;
+    }
+
+    const h4Match = line.match(/^####\s+(.+)$/);
+    if (h4Match) {
+      flushList();
+      const slug = slugify(h4Match[1]);
+      htmlParts.push(`<h4 id="${slug}" class="nb-heading-4"><a href="#${slug}" class="heading-anchor">${formatInline(h4Match[1])}</a></h4>`);
+      continue;
+    }
+
+    // Bullet List
+    const listMatch = line.match(/^[\*\-]\s+(.+)$/);
+    if (listMatch) {
+      if (!inList) {
+        htmlParts.push('<ul class="nb-list">');
+        inList = true;
+      }
+      htmlParts.push(`<li>${formatInline(listMatch[1])}</li>`);
+      continue;
+    } else {
+      flushList();
+    }
+
+    // Empty line
+    if (line === '') {
+      continue;
+    }
+
+    // Standard Paragraph
+    htmlParts.push(`<p class="nb-paragraph">${formatInline(rawLine)}</p>`);
+  }
+
+  flushList();
+  flushTable();
+
+  return htmlParts.join('\n');
+}
+
+function getCodeSource(source: string[] | string): string {
+  return Array.isArray(source) ? source.join('') : source;
+}
+
+interface ParsedOutputItem {
+  type: 'text' | 'html' | 'image' | 'error';
+  content: string;
+}
+
+function parseCellOutputs(outputs: any[]): { items: ParsedOutputItem[]; textCombined: string } {
+  if (!outputs || !Array.isArray(outputs)) return { items: [], textCombined: '' };
+  const items: ParsedOutputItem[] = [];
+  let textCombined = '';
+
+  for (const o of outputs) {
+    if (o.output_type === 'stream' && o.text) {
+      const text = Array.isArray(o.text) ? o.text.join('') : String(o.text);
+      if (text.trim()) {
+        items.push({ type: 'text', content: text });
+        textCombined += text;
+      }
+    } else if (o.output_type === 'execute_result' || o.output_type === 'display_data') {
+      const data = o.data || {};
+      if (data['image/png']) {
+        const rawImg = Array.isArray(data['image/png']) ? data['image/png'].join('') : String(data['image/png']);
+        items.push({ type: 'image', content: `data:image/png;base64,${rawImg.trim()}` });
+      } else if (data['image/jpeg']) {
+        const rawImg = Array.isArray(data['image/jpeg']) ? data['image/jpeg'].join('') : String(data['image/jpeg']);
+        items.push({ type: 'image', content: `data:image/jpeg;base64,${rawImg.trim()}` });
+      } else if (data['text/html']) {
+        const html = Array.isArray(data['text/html']) ? data['text/html'].join('') : String(data['text/html']);
+        items.push({ type: 'html', content: html });
+      } else if (data['text/plain']) {
+        const plain = Array.isArray(data['text/plain']) ? data['text/plain'].join('') : String(data['text/plain']);
+        // Don't add plain text if it's just <Figure size...> when we already have an image
+        if (plain.trim() && !plain.includes('<Figure size') && !plain.includes('<Axes:')) {
+          items.push({ type: 'text', content: plain });
+          textCombined += (textCombined ? '\n' : '') + plain;
+        }
+      }
+    } else if (o.output_type === 'error') {
+      const evalue = o.evalue || 'Terjadi kesalahan pada baris sel.';
+      items.push({ type: 'error', content: `Error: ${evalue}` });
+      textCombined += (textCombined ? '\n' : '') + `Error: ${evalue}`;
+    }
+  }
+
+  return { items, textCombined: textCombined.trim() };
+}
+
+const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
+---
+
+
+<div class="notebook-container" id={viewerId} data-runner-enabled={isRunnerEnabled ? 'true' : 'false'}>
+  <!-- Quick Actions Bar -->
+  <div class="notebook-header-card card">
+    <div class="header-left">
+      <div class="colab-logo-box">
+        <svg viewBox="0 0 24 24" width="22" height="22">
+          <path fill="#F9AB00" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.12 14.86l-3.32 3.32a.75.75 0 0 1-1.06 0l-5.6-5.6a.75.75 0 0 1 0-1.06l3.32-3.32a.75.75 0 0 1 1.06 0l5.6 5.6a.75.75 0 0 1 0 1.06z"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="header-title">{title}</h3>
+        <span class="header-status">
+          {cells.length} Sel • {isRunnerEnabled ? 'Python 3 (WebAssembly Kernel)' : 'Python 3 • Pratinjau Notebook'}
+        </span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      {isRunnerEnabled && (
+        <button type="button" class="btn btn-secondary btn-sm run-all-cells-btn" title="Jalankan Semua Sel Kode">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+          </svg>
+          <span>Jalankan Semua</span>
+        </button>
+      )}
+
+      <a href={downloadUrl} download class="btn btn-outline btn-sm" title="Unduh File Notebook .ipynb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>Unduh .ipynb</span>
+      </a>
+
+      <a href={githubBlobUrl} target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" title="Buka File Notebook di GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        <span>GitHub</span>
+      </a>
+
+      <a href={resolvedColabUrl} target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm colab-open-btn" title="Buka materi ini di tab baru Google Colab">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Buka di Colab</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Document Flow Stream (Clean Textbook Layout) -->
+  <div class="notebook-content-flow">
+    {cells.map((cell, idx) => {
+      if (cell.cell_type === 'markdown') {
+        return (
+          <div class="markdown-block" set:html={parseMarkdownContent(cell.source || '')} />
+        );
+      } else if (cell.cell_type === 'code') {
+        const codeText = getCodeSource(cell.source || '');
+        if (!codeText.trim()) return null;
+
+        const { items: parsedOutputs, textCombined: initialOut } = parseCellOutputs(cell.outputs || []);
+        const hasRichOutput = parsedOutputs.some((item) => item.type === 'image' || item.type === 'html');
+        const hasAnyOutput = parsedOutputs.length > 0;
+        const lines = codeText.split('\n');
+        const rowCount = Math.min(Math.max(lines.length, 1), 25);
+
+        return (
+          <div class="code-cell-container card" data-cell-index={idx} data-code={codeText}>
+            <!-- Code Bar Top -->
+            <div class="code-cell-topbar">
+              <div class="topbar-left">
+                <span class="cell-index-badge">In [{idx + 1}]:</span>
+                <span class="lang-tag">python</span>
+              </div>
+
+              <div class="topbar-right">
+                <button type="button" class="btn-ai-explain" title="Tanyakan penjelasan kode ke AI">
+                  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+                    <circle cx="12" cy="12" r="4"></circle>
+                  </svg>
+                  <span>Tanya AI</span>
+                </button>
+
+                <button type="button" class="btn-copy-code" title="Salin Kode">
+                  <svg class="copy-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span>Salin</span>
+                </button>
+
+                {isRunnerEnabled && (
+                  <button type="button" class="btn-run-code" title="Jalankan Sel Kode Ini">
+                    <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                      <polygon points="6 4 20 12 6 20 6 4"></polygon>
+                    </svg>
+                    <div class="spin-loader hidden"></div>
+                    <span class="run-label">Jalankan</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <!-- Code Editor Area -->
+            <div class="code-editor-wrapper">
+              <div class="line-numbers" aria-hidden="true">
+                {lines.map((_, lIdx) => (
+                  <span>{lIdx + 1}</span>
+                ))}
+              </div>
+              {isRunnerEnabled ? (
+                <textarea
+                  class="code-input"
+                  spellcheck="false"
+                  rows={rowCount}
+                >{codeText}</textarea>
+              ) : (
+                <div class="code-shiki-container">
+                  <Code code={codeText} lang="python" themes={{ light: 'github-light', dark: 'github-dark' }} wrap={false} />
+                </div>
+              )}
+            </div>
+
+            <!-- Execution Output Box -->
+            <div class={`code-output-wrapper ${hasAnyOutput ? '' : 'hidden'}`}>
+              <div class="output-topbar">
+                <span class="output-badge">Out [{idx + 1}]:</span>
+                <button type="button" class="btn-clear-out" title="Bersihkan Output">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  </svg>
+                </button>
+              </div>
+
+              {hasRichOutput && (
+                <div class="output-rich-content">
+                  {parsedOutputs.map((item) => {
+                    if (item.type === 'image') {
+                      return (
+                        <div class="output-image-card">
+                          <img src={item.content} alt={`Grafik Visualisasi Out [${idx + 1}]`} class="nb-output-img" loading="lazy" />
+                        </div>
+                      );
+                    } else if (item.type === 'html') {
+                      return (
+                        <div class="output-html-card table-container" set:html={item.content} />
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+              )}
+
+              <pre class={`output-console ${initialOut ? '' : (hasRichOutput ? 'hidden' : '')}`}><code>{initialOut}</code></pre>
+            </div>
+          </div>
+        );
+      }
+    })}
+  </div>
+</div>
+
+<script>
+  let pyodidePromiseInstance: Promise<any> | null = null;
+
+  function getSharedPyodide() {
+    if (!pyodidePromiseInstance) {
+      pyodidePromiseInstance = new Promise(async (resolve, reject) => {
+        try {
+          // @ts-ignore
+          if (!window.loadPyodide) {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js';
+            document.head.appendChild(s);
+            await new Promise((res) => (s.onload = res));
+          }
+          // @ts-ignore
+          const py = await window.loadPyodide({
+            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/',
+          });
+
+          resolve(py);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+    return pyodidePromiseInstance;
+  }
+
+  function setupNotebookRunner() {
+    document.querySelectorAll('.notebook-container').forEach((nb) => {
+      const isRunnerEnabled = nb.getAttribute('data-runner-enabled') === 'true';
+
+      // Attach copy & clear handlers to code cells
+      nb.querySelectorAll('.code-cell-container').forEach((cell) => {
+        const copyBtn = cell.querySelector('.btn-copy-code');
+        const clearBtn = cell.querySelector('.btn-clear-out');
+        const textarea = cell.querySelector('.code-input') as HTMLTextAreaElement;
+        const outWrapper = cell.querySelector('.code-output-wrapper');
+        const outCode = cell.querySelector('.output-console code');
+
+        copyBtn?.addEventListener('click', () => {
+          const rawCode = cell.getAttribute('data-code') || textarea?.value || '';
+          if (!rawCode) return;
+          navigator.clipboard.writeText(rawCode);
+          const originalText = copyBtn.querySelector('span')?.textContent;
+          if (copyBtn.querySelector('span')) {
+            copyBtn.querySelector('span')!.textContent = 'Tersalin!';
+            setTimeout(() => {
+              copyBtn.querySelector('span')!.textContent = originalText || 'Salin';
+            }, 1500);
+          }
+        });
+
+        clearBtn?.addEventListener('click', () => {
+          if (outCode) outCode.textContent = '';
+          const rich = cell.querySelector('.output-rich-content');
+          if (rich) rich.classList.add('hidden');
+          outWrapper?.classList.add('hidden');
+        });
+      });
+
+      if (!isRunnerEnabled) return;
+
+      const runAllBtn = nb.querySelector('.run-all-cells-btn');
+
+      async function runCell(cell: Element) {
+        const runBtn = cell.querySelector('.btn-run-code') as HTMLButtonElement;
+        const playIcon = cell.querySelector('.icon-play');
+        const spinner = cell.querySelector('.spin-loader');
+        const runLabel = cell.querySelector('.run-label');
+        const textarea = cell.querySelector('.code-input') as HTMLTextAreaElement;
+        const outWrapper = cell.querySelector('.code-output-wrapper');
+        const outConsole = cell.querySelector('.output-console');
+        const outCode = cell.querySelector('.output-console code');
+
+        if (!textarea || !outCode) return;
+
+        playIcon?.classList.add('hidden');
+        spinner?.classList.remove('hidden');
+        if (runLabel) runLabel.textContent = 'Memproses...';
+        if (runBtn) runBtn.disabled = true;
+
+        outWrapper?.classList.remove('hidden');
+        const rich = cell.querySelector('.output-rich-content');
+        if (rich) rich.classList.add('hidden');
+        outConsole?.classList.remove('hidden');
+        outCode.textContent = 'Menyiapkan lingkungan eksekusi...';
+
+        try {
+          const py = await getSharedPyodide();
+          outCode.textContent = '';
+
+          let logs = '';
+          py.setStdout({ batched: (m: string) => { logs += m + '\n'; } });
+          py.setStderr({ batched: (m: string) => { logs += 'Error: ' + m + '\n'; } });
+
+          const rawCode = textarea.value;
+          const lines = rawCode.split('\n');
+          const filteredLines: string[] = [];
+          const packagesToInstall: string[] = [];
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            // Detect !pip install, ! pip install, %pip install, pip install
+            const pipMatch = trimmed.match(/^(!\s*pip|%\s*pip|pip)\s+install\s+(.+)$/i);
+            if (pipMatch) {
+              const pkgArgs = pipMatch[2].split(/\s+/).filter((p) => p && !p.startsWith('-'));
+              packagesToInstall.push(...pkgArgs);
+            } else {
+              filteredLines.push(line);
+            }
+          }
+
+          // Auto-detect common libraries if imported directly
+          const importMatches = Array.from(rawCode.matchAll(/(?:from|import)\s+([a-zA-Z0-9_]+)/g));
+          for (const match of importMatches) {
+            const mod = match[1];
+            if (['numpy', 'pandas', 'matplotlib', 'seaborn', 'scipy', 'sklearn', 'requests'].includes(mod)) {
+              if (!packagesToInstall.includes(mod)) {
+                packagesToInstall.push(mod);
+              }
+            }
+          }
+
+          // Load requested packages in Pyodide
+          if (packagesToInstall.length > 0) {
+            for (const pkg of packagesToInstall) {
+              outCode.textContent = `Memuat paket '${pkg}' ke WebAssembly kernel...`;
+              try {
+                await py.loadPackage(pkg);
+              } catch {
+                try {
+                  await py.loadPackage('micropip');
+                  const micropip = py.pyimport('micropip');
+                  await micropip.install(pkg);
+                } catch (micropipErr: any) {
+                  logs += `[Informasi Paket ${pkg}]: ${micropipErr.message || micropipErr}\n`;
+                }
+              }
+            }
+            outCode.textContent = '';
+          }
+
+          const cleanCode = filteredLines.join('\n').trim();
+          let result: any = undefined;
+
+          if (cleanCode) {
+            result = await py.runPythonAsync(cleanCode);
+          } else if (packagesToInstall.length > 0) {
+            logs = `Paket berhasil dimuat: ${packagesToInstall.join(', ')}`;
+          }
+
+          if (logs) {
+            outCode.textContent = logs.trim();
+          } else if (result !== undefined) {
+            outCode.textContent = String(result);
+          } else {
+            outCode.textContent = '[Kode berhasil dieksekusi tanpa keluaran]';
+          }
+        } catch (err: any) {
+          console.error('Notebook cell execution error:', err);
+          const errStr = String(err?.message || err || '').toLowerCase();
+          if (
+            errStr.includes('fetch') ||
+            errStr.includes('network') ||
+            errStr.includes('cdn') ||
+            errStr.includes('script') ||
+            errStr.includes('failed to load')
+          ) {
+            outCode.textContent =
+              'Gagal memuat pustaka Python dari server CDN. Pastikan koneksi internet Anda stabil, atau gunakan tombol "Buka di Colab" di atas untuk menjalankan notebook langsung di Google Colab.';
+          } else {
+            outCode.textContent = `Pesan Kesalahan Kode:\n${err.message || err}`;
+          }
+        } finally {
+          playIcon?.classList.remove('hidden');
+          spinner?.classList.add('hidden');
+          if (runLabel) runLabel.textContent = 'Jalankan';
+          if (runBtn) runBtn.disabled = false;
+        }
+      }
+
+      // Attach handlers to code cells (Run, Copy, Tanya AI)
+      nb.querySelectorAll('.code-cell-container').forEach((cell) => {
+        const runBtn = cell.querySelector('.btn-run-code');
+        runBtn?.addEventListener('click', () => runCell(cell));
+
+        const copyBtn = cell.querySelector('.btn-copy-code');
+        const aiBtn = cell.querySelector('.btn-ai-explain');
+        const codeText = cell.getAttribute('data-code') || '';
+
+        copyBtn?.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(codeText.trim());
+            const origHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = `<span>✓ Tersalin!</span>`;
+            (copyBtn as HTMLElement).style.color = '#10b981';
+            setTimeout(() => {
+              copyBtn.innerHTML = origHTML;
+              (copyBtn as HTMLElement).style.color = '';
+            }, 2000);
+          } catch (e) {
+            console.error('Copy failed:', e);
+          }
+        });
+
+        aiBtn?.addEventListener('click', () => {
+          const prompt = `Tolong jelaskan potongan kode Python dari notebook pembelajaran berikut secara rinci, terstruktur, baris per baris beserta fungsinya:\n\n\`\`\`python\n${codeText.trim()}\n\`\`\``;
+          if (typeof (window as any).openAwdChatWithPrompt === 'function') {
+            (window as any).openAwdChatWithPrompt(prompt, true);
+            return;
+          }
+          // Fallback event dispatch
+          window.dispatchEvent(new CustomEvent('awd:open-chat', { detail: { prompt, autoSubmit: true } }));
+
+          // Fallback direct DOM
+          const modal = document.getElementById('awd-chat-modal');
+          const backdrop = document.getElementById('awd-chat-backdrop');
+          const input = document.getElementById('chat-input') as HTMLTextAreaElement | null;
+          const sendBtn = document.getElementById('chat-send-btn') as HTMLButtonElement | null;
+          const form = document.getElementById('chat-form') as HTMLFormElement | null;
+
+          if (modal) {
+            modal.classList.remove('hidden');
+            if (backdrop) backdrop.classList.remove('hidden');
+            document.body.classList.add('awd-chat-open');
+          }
+          if (input) {
+            input.value = prompt;
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+          }
+          setTimeout(() => {
+            if (sendBtn && !sendBtn.disabled) {
+              sendBtn.click();
+            } else if (form) {
+              try {
+                form.requestSubmit();
+              } catch (err) {
+                form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+              }
+            }
+          }, 150);
+        });
+      });
+
+      // Run All button
+      runAllBtn?.addEventListener('click', async () => {
+        const codeCells = Array.from(nb.querySelectorAll('.code-cell-container'));
+        for (const c of codeCells) {
+          await runCell(c);
+        }
+      });
+    });
+  }
+
+  setupNotebookRunner();
+  document.addEventListener('astro:page-load', setupNotebookRunner);
+</script>
+
+<style>
+  .notebook-container {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .notebook-header-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 2rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .colab-logo-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-md);
+    background-color: rgba(245, 158, 11, 0.12);
+    flex-shrink: 0;
+  }
+
+  .header-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin: 0 0 0.15rem 0;
+    color: var(--text-main);
+  }
+
+  .header-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-emerald);
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  /* Content Flow (Natural Article Flow) */
+  .notebook-content-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .markdown-block {
+    color: var(--text-main);
+    line-height: 1.75;
+  }
+
+  :global(.heading-anchor) {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  :global(.heading-anchor:hover) {
+    color: var(--primary);
+  }
+
+  :global(.nb-heading-1), :global(.nb-heading-2) {
+    scroll-margin-top: 120px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin-top: 2.25rem;
+    margin-bottom: 0.65rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  :global(.nb-heading-3) {
+    scroll-margin-top: 120px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  :global(.nb-heading-4) {
+    scroll-margin-top: 120px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-top: 1.15rem;
+    margin-bottom: 0.35rem;
+  }
+
+  :global(.nb-paragraph) {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    line-height: 1.65;
+  }
+
+  :global(.nb-list) {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.925rem;
+    line-height: 1.65;
+    list-style-type: disc;
+  }
+
+  :global(.nb-list li) {
+    margin-bottom: 0.25rem;
+  }
+
+  :global(.nb-code-inline) {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    padding: 0.15em 0.4em;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    color: var(--primary);
+  }
+
+  :global(.nb-link) {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  :global(.table-container) {
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  :global(.nb-table) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  :global(.nb-table th), :global(.nb-table td) {
+    padding: 0.55rem 0.85rem;
+    border: 1px solid var(--border-subtle);
+    text-align: left;
+  }
+
+  :global(.nb-table th) {
+    background-color: var(--bg-surface-elevated);
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  /* Code Cell Container */
+  .code-cell-container {
+    padding: 0;
+    overflow: hidden;
+    background-color: var(--code-bg);
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius-md);
+    margin: 0.35rem 0 1rem 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .code-cell-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 0.85rem;
+    background-color: var(--code-topbar-bg);
+    border-bottom: 1px solid var(--code-border);
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .cell-index-badge {
+    font-family: var(--font-mono);
+    font-size: 0.725rem;
+    font-weight: 700;
+    color: var(--code-badge-in);
+  }
+
+  .lang-tag {
+    font-family: var(--font-mono);
+    font-size: 0.675rem;
+    color: var(--text-muted);
+    text-transform: lowercase;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .btn-ai-explain {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    border-radius: var(--radius-sm);
+    color: var(--primary);
+    font-size: 0.725rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-ai-explain:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+
+  .btn-copy-code {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.5rem;
+    background: transparent;
+    border: 1px solid var(--code-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.725rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-copy-code:hover {
+    background-color: var(--code-copy-hover);
+    color: var(--text-main);
+    border-color: var(--border-medium);
+  }
+
+  .btn-run-code {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.65rem;
+    background-color: #238636;
+    border: 1px solid #2ea043;
+    border-radius: var(--radius-sm);
+    color: #ffffff;
+    font-size: 0.725rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-run-code:hover {
+    background-color: #2ea043;
+  }
+
+  .btn-run-code:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .spin-loader {
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* Code Editor */
+  .code-editor-wrapper {
+    display: flex;
+    position: relative;
+    background-color: var(--code-bg);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    max-width: 100%;
+    transition: background-color 0.2s ease;
+  }
+
+  .line-numbers {
+    display: flex;
+    flex-direction: column;
+    padding: 0.65rem 0.5rem 0.65rem 0.65rem;
+    text-align: right;
+    user-select: none;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--code-line-num);
+    background-color: var(--code-bg);
+    border-right: 1px solid var(--code-line-border);
+    min-width: 36px;
+    flex-shrink: 0;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .line-numbers span {
+    display: block;
+    height: 1.5em;
+    line-height: 1.5em;
+  }
+
+  .code-input {
+    flex-grow: 1;
+    width: 100%;
+    min-width: 320px;
+    padding: 0.65rem 0.85rem;
+    background-color: transparent;
+    color: var(--code-text);
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow-y: hidden;
+    overflow-x: auto;
+    white-space: pre;
+    word-wrap: normal;
+    tab-size: 4;
+    transition: color 0.2s ease;
+  }
+
+  .code-shiki-container {
+    flex-grow: 1;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .code-shiki-container :global(pre.astro-code) {
+    margin: 0 !important;
+    padding: 0.65rem 0.85rem !important;
+    background-color: transparent !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.85rem !important;
+    line-height: 1.5 !important;
+    white-space: pre !important;
+    word-break: normal !important;
+    word-wrap: normal !important;
+    tab-size: 4 !important;
+    border: none !important;
+  }
+
+  .code-shiki-container :global(pre.astro-code code) {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    background: transparent !important;
+  }
+
+  /* Output */
+  .code-output-wrapper {
+    border-top: 1px solid var(--code-border);
+    background-color: var(--code-out-bg);
+    padding: 0.55rem 0.85rem 0.75rem 0.85rem;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .output-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+  }
+
+  .output-badge {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #f78166;
+  }
+
+  .btn-clear-out {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .btn-clear-out:hover {
+    color: var(--text-main);
+    background-color: var(--code-copy-hover);
+  }
+
+  .output-console {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.825rem;
+    line-height: 1.45;
+    color: var(--code-out-text);
+    white-space: pre;
+    word-break: normal;
+    word-wrap: normal;
+    max-height: 320px;
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    transition: color 0.2s ease;
+  }
+
+  /* Rich Output (Images, Plots, Tables) */
+  .output-rich-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-top: 0.35rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .output-image-card {
+    display: flex;
+    justify-content: center;
+    background-color: #ffffff;
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    border: 1px solid var(--border-subtle);
+    max-width: 100%;
+    overflow-x: auto;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .nb-output-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-sm);
+    object-fit: contain;
+    display: block;
+  }
+
+  .output-html-card {
+    max-width: 100%;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .output-html-card :global(table.dataframe) {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.25rem 0;
+    font-family: var(--font-mono);
+    font-size: 0.775rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+  }
+
+  .output-html-card :global(table.dataframe th),
+  .output-html-card :global(table.dataframe td) {
+    padding: 0.4rem 0.65rem;
+    border: 1px solid var(--border-subtle);
+    text-align: left;
+  }
+
+  .output-html-card :global(table.dataframe thead th) {
+    background-color: var(--code-topbar-bg);
+    color: var(--text-main);
+    font-weight: 700;
+  }
+
+  .output-html-card :global(table.dataframe tbody tr:nth-child(even)) {
+    background-color: rgba(125, 125, 125, 0.05);
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  @media (max-width: 640px) {
+    .notebook-header-card {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 0.85rem 1rem;
+      gap: 0.75rem;
+    }
+    .header-actions {
+      width: 100%;
+    }
+    .header-actions .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 0.4rem 0.65rem;
+      font-size: 0.75rem;
+    }
+    .code-cell-container {
+      margin: 0.35rem 0 0.85rem 0;
+    }
+    .code-cell-topbar {
+      padding: 0.35rem 0.65rem;
+    }
+    .line-numbers {
+      padding: 0.5rem 0.3rem 0.5rem 0.5rem;
+      min-width: 28px;
+      font-size: 0.775rem;
+    }
+    .code-input {
+      padding: 0.5rem 0.65rem;
+      font-size: 0.8rem;
+    }
+    .output-console {
+      font-size: 0.775rem;
+    }
+  }
+</style>

@@ -1,0 +1,277 @@
+---
+title: "JavaScript Modern: Manipulasi DOM & Event Handling"
+courseSlug: "frontend-modern-mastery"
+chapter: "Bab 3: Interaktivitas JavaScript Modern"
+order: 5
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import WebRunner from '../../components/mdx/WebRunner.astro';
+
+HTML memberikan struktur dan CSS memberikan estetika, namun **JavaScript** adalah nyawa yang membuat aplikasi web menjadi hidup, responsif terhadap tindakan pengguna, dan interaktif.
+
+---
+
+## 1. Konsep Dasar DOM (*Document Object Model*)
+
+Ketika peramban memuat dokumen HTML, peramban menyusun representasi pohon (*tree structure*) dari seluruh elemen di memori. Pohon objek ini disebut **DOM**.
+
+Melalui JavaScript, kita dapat:
+1. **Memilih Elemen**: `document.querySelector('.class')` atau `document.querySelectorAll('button')`.
+2. **Memodifikasi Teks & Struktur**: `element.textContent`, `element.innerHTML`, `element.appendChild()`.
+3. **Mengubah Kelas CSS**: `element.classList.add()`, `element.classList.remove()`, `element.classList.toggle()`.
+4. **Merespons Tindakan Pengguna (*Event Listener*)**: `element.addEventListener('click', handlerFunction)`.
+
+---
+
+## 2. Sintaks JavaScript ES6+ Penting
+
+* **Deklarasi Variabel Modern**: Gunakan `const` untuk nilai yang tidak akan di-reassign, dan `let` untuk variabel yang nilainya dapat berubah. Hindari penggunaan `var`.
+* **Arrow Functions**: `const hitung = (a, b) => a + b;`
+* **Template Literals**: Menggabungkan string dan variabel secara elegan:
+  ```javascript
+  const nama = "Wahyu";
+  console.log(`Halo, nama saya ${nama}!`);
+  ```
+* **Destructuring**: `const { title, duration } = course;`
+
+---
+
+## 3. Praktik Interaktif: Membangun Aplikasi Catatan Interaktif (To-Do List)
+
+Mari kita satukan konsep pemilihan DOM, penambahan elemen secara dinamis, dan event listener untuk membangun aplikasi daftar tugas mini:
+
+<WebRunner 
+  title="Aplikasi Interaktif: To-Do Task Manager"
+  height="540px"
+  initialHtml={`<div class="todo-app">
+  <div class="todo-header">
+    <h2>Daftar Target Belajar</h2>
+    <p>Kelola modul frontend yang ingin Anda selesaikan.</p>
+  </div>
+
+  <div class="input-row">
+    <input type="text" id="task-input" placeholder="Tulis target baru..." />
+    <button id="add-btn" class="btn-add">Tambah</button>
+  </div>
+
+  <ul id="task-list" class="task-list">
+    <!-- Item akan dimasukkan secara dinamis oleh JavaScript -->
+  </ul>
+
+  <div class="todo-footer">
+    <span id="task-counter">0 target tersisa</span>
+    <button id="clear-done-btn" class="btn-clear">Hapus yang Selesai</button>
+  </div>
+</div>`}
+  initialCss={`* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background-color: #0b0f17;
+  color: #f8fafc;
+  padding: 1.5rem;
+}
+
+.todo-app {
+  max-width: 480px;
+  margin: 0 auto;
+  background-color: #161f2e;
+  border-radius: 12px;
+  border: 1px solid #283548;
+  padding: 1.75rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.todo-header {
+  margin-bottom: 1.25rem;
+}
+
+.todo-header h2 {
+  color: #38bdf8;
+  font-size: 1.3rem;
+  margin-bottom: 0.25rem;
+}
+
+.todo-header p {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.input-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+#task-input {
+  flex-grow: 1;
+  padding: 0.65rem 0.85rem;
+  background-color: #0b0f17;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #ffffff;
+  outline: none;
+  font-size: 0.9rem;
+}
+
+#task-input:focus {
+  border-color: #38bdf8;
+}
+
+.btn-add {
+  background-color: #0284c7;
+  color: white;
+  border: none;
+  padding: 0.65rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-add:hover {
+  background-color: #0369a1;
+}
+
+.task-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: 1.25rem;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #0b0f17;
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #283548;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.task-item:hover {
+  border-color: #38bdf8;
+}
+
+.task-item.completed span {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.btn-delete-item {
+  background: none;
+  border: none;
+  color: #f43f5e;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 0.25rem;
+}
+
+.todo-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #283548;
+  padding-top: 1rem;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.btn-clear {
+  background: none;
+  border: none;
+  color: #38bdf8;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.btn-clear:hover {
+  text-decoration: underline;
+}`}
+  initialJs={`const taskInput = document.getElementById('task-input');
+const addBtn = document.getElementById('add-btn');
+const taskList = document.getElementById('task-list');
+const taskCounter = document.getElementById('task-counter');
+const clearDoneBtn = document.getElementById('clear-done-btn');
+
+let tasks = [
+  { text: 'Pelajari tag HTML5 Semantik', done: true },
+  { text: 'Eksplorasi Flexbox dan Grid Layout', done: false },
+  { text: 'Latihan Event Handling DOM', done: false }
+];
+
+function renderTasks() {
+  taskList.innerHTML = '';
+  
+  tasks.forEach((task, index) => {
+    const li = document.createElement('li');
+    li.className = \`task-item \${task.done ? 'completed' : ''}\`;
+    
+    li.innerHTML = \`
+      <span>\${task.done ? '✅' : '⏳'} \${task.text}</span>
+      <button class="btn-delete-item" data-index="\${index}">✕</button>
+    \`;
+
+    // Klik untuk toggle selesai
+    li.querySelector('span').addEventListener('click', () => {
+      tasks[index].done = !tasks[index].done;
+      renderTasks();
+    });
+
+    // Klik tombol hapus
+    li.querySelector('.btn-delete-item').addEventListener('click', (e) => {
+      e.stopPropagation();
+      tasks.splice(index, 1);
+      renderTasks();
+    });
+
+    taskList.appendChild(li);
+  });
+
+  const activeCount = tasks.filter(t => !t.done).length;
+  taskCounter.textContent = \`\${activeCount} target tersisa\`;
+}
+
+function addTask() {
+  const text = taskInput.value.trim();
+  if (text) {
+    tasks.push({ text: text, done: false });
+    taskInput.value = '';
+    renderTasks();
+  }
+}
+
+addBtn.addEventListener('click', addTask);
+taskInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') addTask();
+});
+
+clearDoneBtn.addEventListener('click', () => {
+  tasks = tasks.filter(t => !t.done);
+  renderTasks();
+});
+
+renderTasks();`}
+/>
+
+---
+
+## 4. Event Delegation untuk Kinerja Tinggi
+
+Ketika Anda memiliki banyak elemen dinamis (seperti daftar ribuan data), jangan pasang event listener ke setiap item individual. Pasanglah **satu** event listener pada elemen induknya (`taskList`), lalu gunakan `e.target` untuk mendeteksi elemen mana yang diklik. Teknik ini menghemat memori browser secara signifikan.
+
+Di modul selanjutnya, kita akan mempelajari cara menghubungkan antarmuka ini ke server menggunakan **Asynchronous JavaScript dan Fetch API**.

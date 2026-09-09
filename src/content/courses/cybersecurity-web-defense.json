@@ -1,0 +1,16 @@
+{
+  "title": "Cybersecurity & Keamanan Web: Ethical Hacking, OWASP Top 10 & Pengamanan API",
+  "description": "Kuasai teknik pertahanan aplikasi web modern, mitigasi kerentanan OWASP Top 10 (SQLi, XSS, CSRF, IDOR), kriptografi terapan AES/RSA, pengamanan REST API & JWT, hingga DevSecOps dan incident response.",
+  "category": "cloud",
+  "level": "Semua Tingkat",
+  "duration": "6 Jam",
+  "instructor": "I Putu Agus Wahyu Dupayana",
+  "instructorRole": "Software Engineer di AWD.dev",
+  "instructorAvatar": "/images/instructors/wahyu-dupayana.jpg",
+  "thumbnail": "/images/courses/cybersecurity.svg",
+  "isFeatured": true,
+  "isPublished": false,
+  "status": "draft",
+  "updatedAt": "2026-09-08",
+  "order": 8
+}

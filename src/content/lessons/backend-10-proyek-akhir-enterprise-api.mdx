@@ -1,0 +1,99 @@
+---
+title: "Proyek Akhir: Membangun Enterprise REST API Siap Produksi"
+courseSlug: "backend-web-development"
+chapter: "Bab 5: Arsitektur Mahir, Caching & Evaluasi"
+order: 10
+duration: "45 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Selamat! Anda telah mempelajari seluruh pilar rekayasa backend mulai dari protokol jaringan, runtime Node.js, framework Express, basis data PostgreSQL & ORM Prisma, autentikasi JWT & RBAC, hingga optimasi Redis.
+
+Pada tugas proyek akhir ini, Anda akan membangun sebuah **Enterprise REST API Backend** yang memenuhi standar industri, siap diuji (*testable*), dan siap dideploy ke server produksi.
+
+---
+
+## 1. Pilihan Studi Kasus Proyek
+
+Pilih salah satu dari 2 skenario aplikasi di bawah ini:
+1. **Sistem E-Commerce & Marketplace API**: Fitur autentikasi (Pembeli/Penjual/Admin), katalog produk dengan filter & kategori bersarang, manajemen keranjang belanja, checkout transaksi atomik (ACID), dan riwayat pesanan.
+2. **Platform Learning Management System (LMS) API**: Fitur registrasi siswa & pemateri, manajemen silabus kursus bertingkat (Course -> Chapter -> Lesson), sistem enroll kursus, tracking progress belajar, dan penerbitan sertifikat digital.
+
+---
+
+## 2. Standar Kualitas & Arsitektur yang Wajib Dipenuhi
+
+### A. Struktur Proyek Berlapis (Clean Architecture)
+```text
+src/
+├── config/             # Konfigurasi database, env variables, & redis client
+├── controllers/        # HTTP Request & Response handlers
+├── middlewares/        # Auth, Role Guard, Zod Validator, Centralized Error Handler
+├── routes/             # Pemetaan endpoint & method HTTP
+├── services/           # Logika bisnis inti murni (Business Logic)
+├── repositories/       # Interaksi database (Prisma / SQL)
+├── schemas/            # Definisi validasi input (Zod Schemas)
+└── app.js              # Express app initialization
+```
+
+### B. Daftar Fitur Wajib (Must-Have Checklist)
+- [ ] **Autentikasi & Otorisasi**:
+  - Registrasi & Login dengan Password Hashing (Argon2 / Bcrypt).
+  - Akses token JWT (15 menit) + Refresh Token di HttpOnly Cookie.
+  - Role-Based Access Control (RBAC) pada endpoint sensitif.
+- [ ] **Database & Relasi**:
+  - Skema PostgreSQL terdefinisi di `schema.prisma` dengan relasi 1:N dan N:M.
+  - Migrasi database terdokumentasi dengan `prisma migrate`.
+  - Transaksi ACID terisolasi pada operasi multi-tabel (`prisma.$transaction`).
+- [ ] **Validasi & Error Handling**:
+  - Validasi payload request dengan Zod / Joi.
+  - Centralized Error Handling Middleware dengan standar JSON Response Envelope.
+- [ ] **Performa & Skalabilitas**:
+  - Indeks B-Tree pada kolom foreign key dan kolom pencarian.
+  - Caching Redis pada endpoint yang sering dibaca (misal: katalog produk populer).
+  - Rate Limiting (misal: `express-rate-limit` atau Redis Token Bucket).
+- [ ] **Testing & Dokumentasi**:
+  - Pengujian otomatis (Unit Test / Integration Test dengan **Vitest** atau **Jest & Supertest**).
+  - Dokumentasi API interaktif dengan **Swagger / OpenAPI** atau Postman Collection.
+
+---
+
+## 3. Contoh Dockerfile Produksi Multi-Stage
+
+Untuk menjamin aplikasi Anda dapat dijalankan di lingkungan server manapun (AWS, DigitalOcean, VPS Linux, Railway, atau Render), sertakan `Dockerfile` multi-stage:
+
+```dockerfile
+# Stage 1: Build & Dependencies
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+COPY prisma ./prisma/
+RUN npm ci
+COPY . .
+RUN npx prisma generate
+RUN npm run build --if-present
+
+# Stage 2: Production Runner
+FROM node:22-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/src ./src
+
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+---
+
+## 4. Evaluasi & Kelulusan Kursus
+
+<Callout type="tip" title="Selamat Atas Pencapaian Anda!">
+  Setelah menyelesaikan proyek akhir ini dan mengunggah kodenya ke GitHub, Anda telah menguasai seluruh spektrum keahlian yang dibutuhkan untuk menjadi seorang **Professional Backend Engineer**.
+  
+  Tekan tombol **Tandai Selesai Pelajaran Ini** untuk menyelesaikan kursus dan memperoleh status kelulusan penuh!
+</Callout>

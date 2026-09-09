@@ -1,0 +1,62 @@
+---
+title: "Proyek Akhir: Membangun Sistem Mesin Pencari & Optimasi Rute Kota"
+courseSlug: "dsa-software-engineering"
+chapter: "Bab 4: Evaluasi & Proyek Akhir"
+order: 10
+duration: "45 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Selamat! Anda telah menguasai seluruh spektrum struktur data fundamental dan lanjutan, teknik analisis kompleksitas Big-O, algoritma pencarian/pengurutan efisien, hingga teori graf.
+
+Pada proyek akhir ini, Anda akan membangun sebuah **Sistem Mesin Pencari Terintegrasi & Optimasi Rute Ekspedisi Logistik** yang menggabungkan dua struktur data tingkat lanjut: **Trie** dan **Weighted Graph (Dijkstra)**.
+
+---
+
+## 1. Spesifikasi Proyek Akhir
+
+Sistem yang dibangun harus memiliki dua modul utama:
+
+### Modul 1: Live Search Suggestions Engine (Trie)
+- Pengguna dapat mengetikkan awalan nama kota / komoditas barang di search bar.
+- Sistem mengembalikan daftar rekomendasi kata kunci secara instan dalam waktu `O(L)` menggunakan struktur data Trie.
+- Menyediakan fitur *Popularity Weighting* (rekomendasi dengan frekuensi pencarian tertinggi diletakkan di urutan teratas).
+
+### Modul 2: Route Optimization & Cost Calculation Engine (Graph & Dijkstra)
+- Sistem memuat peta jaringan jalan antar kota/hub logistik di Indonesia.
+- Pengguna memasukkan kota asal (*Origin*) dan kota tujuan (*Destination*).
+- Sistem menghitung:
+  1. Rute rute kota yang harus dilewati (`Origin -> Hub A -> Hub B -> Destination`).
+  2. Total jarak tempuh (km).
+  3. Estimasi biaya bahan bakar dan durasi pengiriman berdasarkan tarif logistik.
+
+---
+
+## 2. Checklist Kriteria Penilaian
+
+- [ ] **Desain Struktur Data**:
+  - Implementasi struktur data kelas murni (*Object-Oriented*) untuk `TrieNode`, `Trie`, dan `WeightedGraph`.
+  - Tidak menggunakan fungsi pencarian bawaan yang boros komputasi seperti linear loop `array.filter(item => item.includes(...))` pada dataset besar.
+- [ ] **Efisiensi Big-O**:
+  - Operasi insert dan search autocomplete Trie beroperasi dalam `O(L)`.
+  - Algoritma Dijkstra beroperasi dalam efisiensi `O((V + E) log V)` menggunakan Queue/Set.
+- [ ] **Clean Code & Unit Testing**:
+  - Kode terstruktur rapi dengan modularitas fungsi yang jelas (*Single Responsibility Principle*).
+  - Terdapat pengujian unit (*Unit Test*) untuk menguji kasus ekstrem (*Edge Cases*): input kosong, kota tidak terhubung (*Disconnected Graph*), dan kata tidak ditemukan di kamus.
+
+---
+
+## 3. Format Pengumpulan Portofolio
+
+1. Berkas kode sumber (JavaScript / TypeScript / Python) lengkap dengan dokumentasi analisis kompleksitas waktu dan ruang (*Time & Space Complexity Analysis*).
+2. Cuplikan tangkapan layar output pengujian fungsionalitas pencarian Trie dan kalkulasi rute Dijkstra.
+
+---
+
+<Callout type="tip" title="Selamat Atas Kelulusan Anda!">
+  Dengan menyelesaikan materi ini, Anda telah memiliki pemahaman mendalam mengenai fondasi komputasi yang membedakan seorang pembuat kode (*coder*) biasa dengan seorang **Software Engineer & Problem Solver Profesional**.
+  
+  Klik tombol **Tandai Selesai Pelajaran Ini** di bawah untuk melengkapi status kelulusan kursus Anda!
+</Callout>

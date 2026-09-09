@@ -1,0 +1,16 @@
+{
+  "title": "Pengembangan Aplikasi Web Modern dengan Laravel & Filament",
+  "description": "Kuasai framework PHP paling populer, arsitektur MVC, Eloquent ORM, autentikasi Breeze/Sanctum, hingga dashboard admin reaktif dengan Filament PHP.",
+  "category": "web-dev",
+  "level": "Pemula hingga Menengah",
+  "duration": "10 Jam",
+  "instructor": "I Putu Agus Wahyu Dupayana",
+  "instructorRole": "Software Engineer di AWD.dev",
+  "instructorAvatar": "/images/instructors/wahyu-dupayana.jpg",
+  "thumbnail": "/images/courses/laravel.svg",
+  "isFeatured": true,
+  "isPublished": false,
+  "status": "draft",
+  "updatedAt": "2026-09-08",
+  "order": 6
+}

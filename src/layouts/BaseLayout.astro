@@ -1,0 +1,135 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import ScrollToTop from '../components/ScrollToTop.astro';
+import ChatWidget from '../components/ChatWidget.astro';
+import SearchModal from '../components/SearchModal.astro';
+import { ClientRouter } from 'astro:transitions';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  currentPath?: string;
+}
+
+const {
+  title,
+  description = 'Awd Course - Platform pembelajaran mandiri untuk pemrograman, rekayasa perangkat lunak, dan sains data dengan eksekusi kode interaktif.',
+  image = '/images/og-banner.jpg',
+  currentPath = Astro.url.pathname,
+} = Astro.props;
+
+const siteUrl = Astro.site ? Astro.site.href.replace(/\/$/, '') : 'https://course.awd.my.id';
+const canonicalURL = new URL(Astro.url.pathname, siteUrl);
+const ogImageURL = new URL(image, siteUrl);
+
+const jsonLdWebsite = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Awd Course',
+  url: siteUrl,
+  description: description,
+  publisher: {
+    '@type': 'Person',
+    name: 'I Putu Agus Wahyu Dupayana',
+    jobTitle: 'Software Engineer',
+  },
+  inLanguage: 'id-ID',
+};
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content="Awd Course" />
+
+    <!-- Performance & Font Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+
+    <!-- SEO Primary Meta Tags -->
+    <title>{title} | Awd Course</title>
+    <meta name="title" content={`${title} | Awd Course`} />
+    <meta name="description" content={description} />
+    <meta name="keywords" content="Awd Course, Kursus Pemrograman, Belajar Python, Analisis Data, Sains Data, Web Development, Backend, Frontend, Interaktif" />
+    <meta name="author" content="I Putu Agus Wahyu Dupayana" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- Theme Color Tags -->
+    <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:site_name" content="Awd Course" />
+    <meta property="og:title" content={`${title} | Awd Course`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Awd Course - Platform Pembelajaran Teknis" />
+    <meta property="og:locale" content="id_ID" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalURL} />
+    <meta name="twitter:title" content={`${title} | Awd Course`} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
+    <meta name="twitter:image:alt" content="Awd Course - Platform Pembelajaran Teknis" />
+
+    <!-- JSON-LD Structured Data for Google Search -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLdWebsite)} />
+
+    <!-- Client-Side SPA Router / View Transitions -->
+    <ClientRouter />
+
+    <!-- Dark/Light Mode Inline Initialization -->
+    <script is:inline>
+      function applyTheme() {
+        const theme = (() => {
+          if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+            return localStorage.getItem('theme');
+          }
+          if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            return 'dark';
+          }
+          return 'light';
+        })();
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+      applyTheme();
+      document.addEventListener('astro:after-swap', applyTheme);
+    </script>
+  </head>
+  <body>
+    <Header currentPath={currentPath} />
+    <main class="flex-grow">
+      <slot />
+    </main>
+    <Footer />
+
+    <!-- Global Scroll To Top Button -->
+    <ScrollToTop />
+
+    <!-- Global AI Assistant Chatbot (Mistral AI) -->
+    <ChatWidget />
+
+    <!-- Global Search Modal (Ctrl + K) -->
+    <SearchModal />
+  </body>
+</html>
+
+<style>
+  .flex-grow {
+    flex-grow: 1;
+  }
+</style>

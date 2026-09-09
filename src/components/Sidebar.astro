@@ -1,0 +1,675 @@
+---
+interface LessonItem {
+  id: string;
+  data: {
+    title: string;
+    courseSlug: string;
+    chapter: string;
+    order: number;
+    duration: string;
+    contentType: 'text' | 'video' | 'pdf' | 'quiz' | 'assignment';
+    ipynbFile?: string | null;
+    pdfUrl?: string | null;
+  };
+}
+
+interface Props {
+  course: {
+    id: string;
+    data: {
+      title: string;
+    };
+  };
+  lessons: LessonItem[];
+  currentLessonSlug?: string;
+  currentLessonId?: string;
+}
+
+const { course, lessons, currentLessonSlug, currentLessonId } = Astro.props;
+const activeLessonSlug = currentLessonSlug || currentLessonId || '';
+
+// Group lessons by Chapter
+const chaptersMap = new Map<string, LessonItem[]>();
+lessons
+  .sort((a, b) => (a.data.order || 0) - (b.data.order || 0))
+  .forEach((l) => {
+    const chapterName = l.data.chapter || 'Bab 1: Materi';
+    if (!chaptersMap.has(chapterName)) {
+      chaptersMap.set(chapterName, []);
+    }
+    chaptersMap.get(chapterName)!.push(l);
+  });
+
+const chapters = Array.from(chaptersMap.entries());
+
+const chapterNotebookMap: Record<string, Record<number, string>> = {
+  'python-data-science': {
+    0: '/notebooks/python-data-science/bab-1-dasar-pemrograman-python-lengkap.ipynb',
+    1: '/notebooks/python-data-science/bab-2-package-data-science-lengkap.ipynb',
+    2: '/notebooks/python-data-science/bab-3-analisis-data-eksploratif-lengkap.ipynb',
+  }
+};
+
+function getChapterNotebook(chIdx: number, chLessons: LessonItem[]): string | null {
+  if (chapterNotebookMap[course.id]?.[chIdx]) {
+    return chapterNotebookMap[course.id][chIdx];
+  }
+  const lessonWithNotebook = chLessons.find((l) => l.data.ipynbFile);
+  if (lessonWithNotebook?.data.ipynbFile) {
+    return lessonWithNotebook.data.ipynbFile;
+  }
+  return null;
+}
+---
+
+<!-- Backdrop overlay for mobile drawer -->
+<div id="sidebar-backdrop" class="sidebar-backdrop hidden"></div>
+
+<aside class="course-sidebar" id="course-sidebar" data-course-slug={course.id}>
+  <div class="sidebar-header">
+    <div class="sidebar-header-top">
+      <a href={`/courses/${course.id}`} class="back-to-course-link" title="Kembali ke Silabus">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+        <span>Silabus Kursus</span>
+      </a>
+
+      <!-- Close button on mobile -->
+      <button id="sidebar-close-btn" class="sidebar-close-btn" aria-label="Tutup Daftar Materi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <h3 class="sidebar-course-title">{course.data.title}</h3>
+
+    <!-- Progress bar indicator -->
+    <div class="course-progress-container">
+      <div class="progress-info">
+        <span class="progress-label">Progres Anda</span>
+        <span class="progress-percent" id="progress-percent-text">0%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="sidebar-progress-bar" style="width: 0%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav-content">
+    {chapters.map(([chapterTitle, chapterLessons], chIdx) => (
+      <div class="chapter-group">
+        <div class="chapter-title">
+          <div class="chapter-title-left">
+            <span class="chapter-num">{chIdx + 1}</span>
+            <span class="chapter-text">{chapterTitle}</span>
+          </div>
+          {(() => {
+            const nbUrl = getChapterNotebook(chIdx, chapterLessons);
+            if (!nbUrl) return null;
+            const colabUrl = `https://colab.research.google.com/github/putuwahyu29/awd-course/blob/main/public${nbUrl}`;
+            return (
+              <div class="chapter-actions-right">
+                <a
+                  href={colabUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="chapter-action-badge chapter-colab-icon-btn"
+                  title={`Buka Seluruh Materi Bab ${chIdx + 1} di Google Colab`}
+                >
+                  <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                  <span>Colab</span>
+                </a>
+                <a
+                  href={nbUrl}
+                  download
+                  class="chapter-action-badge chapter-download-icon-btn"
+                  title={`Unduh Seluruh Kode Bab ${chIdx + 1} (.ipynb)`}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="10" height="10" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>.ipynb</span>
+                </a>
+              </div>
+            );
+          })()}
+        </div>
+
+        <ul class="lesson-list">
+          {chapterLessons.map((lesson) => {
+            const isCurrent = lesson.id === activeLessonSlug;
+            return (
+              <li class={`lesson-item ${isCurrent ? 'active' : ''}`} data-lesson-id={lesson.id}>
+                <a href={`/courses/${course.id}/${lesson.id}`} class="lesson-link">
+                  <div class="lesson-left">
+                    <span class="lesson-type-icon">
+                      {lesson.data.contentType === 'video' && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" class="text-amber">
+                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                      )}
+                      {lesson.data.contentType === 'pdf' && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" class="text-rose">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                      )}
+                      {lesson.data.contentType === 'quiz' && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" class="text-cyan">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                      )}
+                      {lesson.data.contentType === 'assignment' && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" class="text-amber">
+                          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                          <path d="M9 14l2 2 4-4"></path>
+                        </svg>
+                      )}
+                      {(!lesson.data.contentType || lesson.data.contentType === 'text') && (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+                          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        </svg>
+                      )}
+                    </span>
+                    <span class="lesson-title-text">{lesson.data.title}</span>
+                  </div>
+                  <div class="lesson-right">
+                    <span class="completion-check" data-lesson-id={lesson.id} title="Tandai Selesai">
+                      <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="10" height="10">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    </span>
+                  </div>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))}
+  </div>
+</aside>
+
+<script>
+  import { supabase, isSupabaseConfigured } from '../lib/supabase';
+
+  async function setupSidebar() {
+    const sidebar = document.getElementById('course-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const closeBtn = document.getElementById('sidebar-close-btn');
+    if (!sidebar) return;
+
+    const courseSlug = sidebar.getAttribute('data-course-slug') || 'default';
+    const storageKey = `progress_${courseSlug}`;
+    
+    // Load local cache first for instant feedback
+    let completedList: string[] = [];
+    try {
+      completedList = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    } catch {
+      completedList = [];
+    }
+
+    const allLessonItems = sidebar.querySelectorAll<HTMLElement>('.lesson-item');
+    const totalLessons = allLessonItems.length;
+
+    function updateUI() {
+      let completedCount = 0;
+
+      allLessonItems.forEach((item) => {
+        const id = item.getAttribute('data-lesson-id');
+        const checkEl = item.querySelector('.completion-check');
+        if (id && completedList.includes(id)) {
+          item.classList.add('is-completed');
+          checkEl?.classList.add('checked');
+          completedCount++;
+        } else {
+          item.classList.remove('is-completed');
+          checkEl?.classList.remove('checked');
+        }
+      });
+
+      const percent = totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0;
+      
+      const percentEl = document.getElementById('progress-percent-text');
+      const mobilePercentEl = document.getElementById('mobile-progress-percent-text');
+      const barFill = document.getElementById('sidebar-progress-bar');
+      const topBarFill = document.getElementById('top-global-progress-bar');
+
+      if (percentEl) percentEl.textContent = `${percent}% (${completedCount}/${totalLessons})`;
+      if (mobilePercentEl) mobilePercentEl.textContent = `${percent}% Selesai`;
+      if (barFill) barFill.style.width = `${percent}%`;
+      if (topBarFill) topBarFill.style.width = `${percent}%`;
+    }
+
+    updateUI();
+
+    // Pull from Supabase cloud database if user is authenticated
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data, error } = await supabase
+            .from('course_progress')
+            .select('lesson_id')
+            .eq('user_id', user.id)
+            .eq('course_id', courseSlug);
+
+          if (!error && data) {
+            const dbList = data.map((d: any) => d.lesson_id);
+            completedList = Array.from(new Set([...completedList, ...dbList]));
+            localStorage.setItem(storageKey, JSON.stringify(completedList));
+            updateUI();
+          }
+        }
+      } catch {
+        // Fallback silently to localStorage
+      }
+    }
+
+    // Toggle completion on check click
+    sidebar.querySelectorAll<HTMLElement>('.completion-check').forEach((checkBtn) => {
+      checkBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const lessonId = checkBtn.getAttribute('data-lesson-id');
+        if (!lessonId) return;
+
+        const isNowCompleted = !completedList.includes(lessonId);
+
+        if (isNowCompleted) {
+          completedList.push(lessonId);
+        } else {
+          completedList = completedList.filter((id) => id !== lessonId);
+        }
+
+        localStorage.setItem(storageKey, JSON.stringify(completedList));
+        updateUI();
+
+        // Update mark done button in reader if present
+        const markDoneBtn = document.getElementById('lesson-mark-done-btn');
+        if (markDoneBtn && markDoneBtn.getAttribute('data-lesson-id') === lessonId) {
+          const btnText = markDoneBtn.querySelector('.done-btn-text');
+          if (isNowCompleted) {
+            markDoneBtn.classList.add('is-done');
+            if (btnText) btnText.textContent = 'Pelajaran Sudah Selesai';
+          } else {
+            markDoneBtn.classList.remove('is-done');
+            if (btnText) btnText.textContent = 'Tandai Selesai Pelajaran Ini';
+          }
+        }
+
+        // Sync with Supabase Database in background
+        if (isSupabaseConfigured && supabase) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              if (isNowCompleted) {
+                await supabase.from('course_progress').upsert({
+                  user_id: user.id,
+                  course_id: courseSlug,
+                  lesson_id: lessonId,
+                });
+              } else {
+                await supabase.from('course_progress').delete().match({
+                  user_id: user.id,
+                  course_id: courseSlug,
+                  lesson_id: lessonId,
+                });
+              }
+            }
+          } catch {
+            // Silently handled
+          }
+        }
+      });
+    });
+
+    // Mobile drawer close handlers
+    function closeMobileSidebar() {
+      sidebar?.classList.remove('open-mobile');
+      backdrop?.classList.add('hidden');
+    }
+
+    closeBtn?.addEventListener('click', closeMobileSidebar);
+    backdrop?.addEventListener('click', closeMobileSidebar);
+  }
+
+  setupSidebar();
+  document.addEventListener('astro:page-load', setupSidebar);
+</script>
+
+<style>
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  .course-sidebar {
+    width: 290px;
+    height: calc(100vh - 64px);
+    position: sticky;
+    top: 64px;
+    background-color: var(--sidebar-bg);
+    border-right: 1px solid var(--sidebar-border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 1.15rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface);
+  }
+
+  .sidebar-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .back-to-course-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .back-to-course-link:hover {
+    color: var(--primary);
+  }
+
+  .sidebar-close-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.2rem;
+  }
+
+  .sidebar-course-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.35;
+    margin-bottom: 0.85rem;
+    color: var(--text-main);
+  }
+
+  .course-progress-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .progress-percent {
+    color: var(--primary);
+  }
+
+  .progress-bar-track {
+    height: 5px;
+    background-color: var(--bg-surface-elevated);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 9999px;
+    transition: width 0.25s ease;
+  }
+
+  .sidebar-nav-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0.85rem 0;
+  }
+
+  .chapter-group {
+    margin-bottom: 1rem;
+  }
+
+  .chapter-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.4rem 1rem 0.4rem 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-subtle);
+    gap: 0.5rem;
+  }
+
+  .chapter-title-left {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow: hidden;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .chapter-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .chapter-actions-right {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  .chapter-action-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.42rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-transform: none;
+    letter-spacing: normal;
+    transition: all 0.15s ease;
+  }
+
+  .chapter-colab-icon-btn {
+    background-color: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #f59e0b;
+  }
+
+  .chapter-colab-icon-btn:hover {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+  }
+
+  .chapter-download-icon-btn {
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+  }
+
+  .chapter-download-icon-btn:hover {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+
+  .chapter-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    background-color: var(--bg-surface-elevated);
+    font-size: 0.68rem;
+    flex-shrink: 0;
+  }
+
+  .lesson-list {
+    list-style: none;
+    padding: 0;
+    margin: 0.25rem 0 0 0;
+  }
+
+  .lesson-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.12s ease;
+  }
+
+  .lesson-link:hover {
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-main);
+  }
+
+  .lesson-item.active .lesson-link {
+    background-color: var(--sidebar-active);
+    color: var(--primary);
+    font-weight: 600;
+    border-left-color: var(--primary);
+  }
+
+  .lesson-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+  }
+
+  .lesson-type-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    color: var(--text-subtle);
+  }
+
+  .lesson-item.active .lesson-type-icon {
+    color: var(--primary);
+  }
+
+  .lesson-title-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lesson-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .completion-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-medium);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: transparent;
+    transition: all 0.15s ease;
+  }
+
+  .completion-check:hover {
+    border-color: var(--accent-emerald);
+  }
+
+  .completion-check.checked {
+    background-color: var(--accent-emerald);
+    border-color: var(--accent-emerald);
+    color: #ffffff;
+  }
+
+  .completion-check .check-icon {
+    display: none;
+  }
+
+  .completion-check.checked .check-icon {
+    display: block;
+  }
+
+  .lesson-item.is-completed:not(.active) .lesson-title-text {
+    color: var(--text-subtle);
+  }
+
+  .text-amber { color: var(--accent-amber); }
+  .text-rose { color: var(--accent-rose); }
+  .text-cyan { color: var(--accent-cyan); }
+
+  @media (max-width: 960px) {
+    .sidebar-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 90;
+      backdrop-filter: blur(2px);
+    }
+
+    .course-sidebar {
+      position: fixed;
+      top: 0;
+      left: -100%;
+      z-index: 100;
+      width: 85%;
+      max-width: 320px;
+      height: 100vh;
+      box-shadow: var(--shadow-xl);
+      transition: left 0.25s ease;
+    }
+
+    .course-sidebar.open-mobile {
+      left: 0;
+    }
+
+    .sidebar-close-btn {
+      display: flex;
+    }
+  }
+</style>

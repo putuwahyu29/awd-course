@@ -1,0 +1,75 @@
+---
+title: "Kuis Evaluasi Komprehensif: Machine Learning & AI"
+courseSlug: "machine-learning-ai"
+chapter: "Bab 2: Algoritma Klasifikasi & Klasterisasi"
+order: 5
+duration: "15 Menit"
+contentType: "quiz"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import Quiz from '../../components/mdx/Quiz.astro';
+
+Selamat telah menyelesaikan seluruh rangkaian materi kursus **Dasar Machine Learning & Artificial Intelligence**!
+
+Ujilah pemahaman Anda mengenai alur kerja ML, regresi linier, pohon keputusan, dan metrik evaluasi di bawah ini.
+
+---
+
+## Evaluasi Akhir Pemahaman
+
+Pilihlah satu jawaban yang paling tepat:
+
+<Quiz
+  question="1. Algoritma Machine Learning manakah yang paling tepat digunakan jika kita ingin memprediksi harga tiket pesawat (nilai angka kontinu) berdasarkan jarak dan waktu pemesanan?"
+  options={[
+    "Regresi Linier (Linear Regression)",
+    "K-Means Clustering",
+    "Klasifikasi Biner (Binary Classification)",
+    "Principal Component Analysis (PCA)"
+  ]}
+  correctIndex={0}
+  explanation="Tepat sekali! Masalah prediksi nilai numerik kontinu adalah tugas dari algoritma Regresi."
+/>
+
+<Quiz
+  question="2. Mengapa kita wajib membagi dataset menjadi data latih (train set) dan data uji (test set)?"
+  options={[
+    "Untuk mengevaluasi performa model pada data baru yang belum pernah dilihat agar terhindar dari overfitting",
+    "Agar ukuran file dataset menjadi lebih ringan",
+    "Karena Python tidak bisa menjalankan data lebih dari 100 baris",
+    "Hanya untuk memenuhi syarat formalitas kode"
+  ]}
+  correctIndex={0}
+  explanation="Benar! Train-Test Split menjamin bahwa model diuji secara adil terhadap data baru dan mampu menggeneralisasi pola secara nyata."
+/>
+
+<Quiz
+  question="3. Dalam kasus deteksi penyakit berbahaya atau transaksi penipuan (fraud), metrik manakah yang paling penting dioptimalkan agar tidak ada kasus positif yang terlewat (meminimalkan False Negative)?"
+  options={[
+    "Recall",
+    "Precision",
+    "Akurasi Saja",
+    "Jumlah Baris Data"
+  ]}
+  correctIndex={0}
+  explanation="Tepat! Recall mengukur kemampuan model mendeteksi seluruh kasus positif nyata. Pada deteksi penyakit, memiliki False Negative (pasien sakit dianggap sehat) sangatlah berisiko."
+/>
+
+<Quiz
+  question="4. Algoritma pembelajaran yang bertugas mengelompokkan data ke dalam beberapa klaster tanpa adanya label target sebelumnya disebut?"
+  options={[
+    "Unsupervised Learning (Contoh: K-Means Clustering)",
+    "Supervised Learning",
+    "Linear Regression",
+    "Rule-based Programming"
+  ]}
+  correctIndex={0}
+  explanation="Sempurna! Unsupervised learning bekerja tanpa label data target (ground truth) untuk menemukan pola kemiripan tersembunyi."
+/>
+
+---
+
+<Callout type="tip" title="Selamat Atas Kelulusan Anda!">
+  Anda telah menyelesaikan seluruh kurikulum **Dasar Machine Learning & Artificial Intelligence**. Tekan tombol **Tandai Selesai Pelajaran Ini** untuk melengkapi status kelulusan 100%!
+</Callout>

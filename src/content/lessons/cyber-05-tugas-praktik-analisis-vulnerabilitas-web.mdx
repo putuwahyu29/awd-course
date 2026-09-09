@@ -1,0 +1,117 @@
+---
+title: "Tugas Praktik: Audit Keamanan Kode & Patching Kerentanan Web"
+courseSlug: "cybersecurity-web-defense"
+chapter: "Bab 2: Eksploitasi & Pertahanan OWASP Top 10"
+order: 5
+duration: "35 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+import MultiLangRunner from '../../components/mdx/MultiLangRunner.astro';
+
+Pada tugas praktik mandiri ini, Anda bertindak sebagai **Application Security Engineer (AppSec)** yang ditugaskan untuk mengaudit potongan kode backend dan frontend yang rentan, mengidentifikasi 3 jenis celah keamanan fatal (IDOR, SQL Injection, dan XSS), lalu menulis kode *patch* perbaikan.
+
+---
+
+## 1. Spesifikasi Kode Rentan yang Harus Dibenahi
+
+Perhatikan potongan kode backend Node.js berikut:
+
+```javascript
+// POTONGAN KODE RENTAN YANG HARUS DI-AUDIT:
+app.get('/api/users/:id/profile', async (req, res) => {
+  // Masalah 1: IDOR (Tidak memeriksa apakah req.params.id sama dengan req.user.id)
+  const userId = req.params.id;
+  
+  // Masalah 2: SQL Injection (Penggabungan string mentah ke query)
+  const query = "SELECT * FROM users WHERE id = '" + userId + "'";
+  const [user] = await db.query(query);
+  
+  // Masalah 3: XSS / Information Disclosure (Mengembalikan password hash ke client)
+  res.send(`<h1>Profil Pengguna: ${user.name}</h1><p>Bio: ${user.bio}</p>`);
+});
+```
+
+---
+
+## 2. Editor Interaktif: Implementasi & Pengujian Patch Keamanan
+
+Jalankan sandbox di bawah ini untuk melihat bagaimana kode patch yang aman menolak serangan IDOR, SQLi, dan menetralisir tag XSS berbahaya:
+
+<MultiLangRunner
+  language="javascript"
+  title="Tugas Praktik: Security Patching & Sanitization Engine"
+  initialCode={`// Helper Sanitasi HTML untuk Mencegah XSS
+function escapeHtml(unsafeText) {
+  if (typeof unsafeText !== "string") return "";
+  return unsafeText
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Mock Database Aman dengan Prepared Statement
+const mockDatabase = [
+  { id: "usr_10", name: "Budi Santoso", bio: "<script>alert('HACKED')</script> Pengembang Web", passwordHash: "$argon2id$..." },
+  { id: "usr_20", name: "Siti Aminah", bio: "UI/UX Designer", passwordHash: "$argon2id$..." }
+];
+
+// Controller yang Telah Di-Patch (Aman)
+function secureGetProfileHandler(req) {
+  const requestedUserId = req.params.id;
+  const currentLoggedInUser = req.user; // Dari JWT Guard terverifikasi
+
+  // 1. PATCH IDOR: Pastikan user hanya dapat mengakses datanya sendiri (atau jika role ADMIN)
+  if (currentLoggedInUser.role !== "ADMIN" && currentLoggedInUser.id !== requestedUserId) {
+    return {
+      statusCode: 403,
+      body: { success: false, error: "Forbidden: Anda tidak berhak melihat profil pengguna lain" }
+    };
+  }
+
+  // 2. PATCH SQL INJECTION: Parameterized Lookup (bukan string concatenation)
+  const user = mockDatabase.find(u => u.id === requestedUserId);
+  if (!user) {
+    return { statusCode: 404, body: { success: false, error: "User tidak ditemukan" } };
+  }
+
+  // 3. PATCH XSS & SENSITIVE DATA EXPOSURE:
+  // - Hilangkan passwordHash
+  // - Sanitasi string bio sebelum dirender
+  const safeProfile = {
+    id: user.id,
+    name: escapeHtml(user.name),
+    bio: escapeHtml(user.bio) // Tag <script> dinetralkan menjadi &lt;script&gt;
+  };
+
+  return {
+    statusCode: 200,
+    body: { success: true, data: safeProfile }
+  };
+}
+
+// --- PENGUJIAN KEAMANAN ---
+console.log("=== 1. UJI COBA SERANGAN IDOR (User 20 mencoba membuka profil User 10) ===");
+const testIdor = secureGetProfileHandler({
+  params: { id: "usr_10" },
+  user: { id: "usr_20", role: "USER" }
+});
+console.log("Respon Server:", testIdor);
+
+console.log("\\n=== 2. UJI COBA AKSES SAH OLEH PEMILIK AKUN (User 10 membuka profilnya sendiri) ===");
+const testValid = secureGetProfileHandler({
+  params: { id: "usr_10" },
+  user: { id: "usr_10", role: "USER" }
+});
+console.log("Respon Server:", testValid);
+console.log("Sanitasi XSS pada Bio:", testValid.body.data.bio);`}
+/>
+
+---
+
+## 3. Checklist Mandiri
+- [ ] Mampu mendeteksi potensi celah IDOR di endpoint REST API.
+- [ ] Memahami perbedaan antara *Data Sanitization* (membersihkan input) dan *Output Encoding* (menetralkan output di peramban).

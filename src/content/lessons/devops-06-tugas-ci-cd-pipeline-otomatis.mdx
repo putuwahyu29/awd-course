@@ -1,0 +1,99 @@
+---
+title: "Tugas Praktik: Merancang Pipeline CI/CD Otomatis & Security Scanning"
+courseSlug: "devops-cloud-mastery"
+chapter: "Bab 3: Continuous Integration & Continuous Deployment (CI/CD)"
+order: 6
+duration: "35 Menit"
+contentType: "assignment"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Pada tugas praktik mandiri ini, Anda akan merancang pipeline CI/CD GitHub Actions tingkat lanjut yang tidak hanya melakukan build dan test, melainkan juga mengintegrasikan **Security Vulnerability Scanning (Trivy)** dan **Notifikasi Otomatis Webhook**.
+
+---
+
+## 1. Spesifikasi Tugas yang Harus Diimplementasikan
+
+Buatlah alur workflow `.github/workflows/ci-cd-enterprise.yml` yang memenuhi spesifikasi berikut:
+
+1. **Multi-Node Version Matrix**:
+   - Jalankan unit test pada dua versi Node.js secara paralel (`node-version: [20, 22]`).
+2. **Security Vulnerability Scanner (Trivy)**:
+   - Scan image Docker yang baru saja dibangun untuk mendeteksi celah keamanan berlevel `CRITICAL` atau `HIGH`.
+3. **Automated Discord / Telegram Alert**:
+   - Kirim notifikasi webhook saat proses deployment berhasil maupun jika terjadi kegagalan build di tengah jalan.
+
+---
+
+## 2. Blueprint Lengkap Workflow Solusi
+
+```yaml
+name: Enterprise CI/CD Pipeline with Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # 1. MATRIX TESTING (Node 20 & 22)
+  matrix_testing:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npm test --if-present
+
+  # 2. DOCKER BUILD & VULNERABILITY SCAN
+  security_scan:
+    needs: matrix_testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Local Test Image
+        run: docker build -t local-app:test .
+
+      - name: Scan Docker Image with Aqua Security Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'local-app:test'
+          format: 'table'
+          exit-code: '0' # Ganti '1' jika ingin memblokir rilis bila ada celah kritis
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  # 3. NOTIFIKASI HASIL STATUS DEPLOYMENT
+  notify_status:
+    needs: [matrix_testing, security_scan]
+    if: always() # Selalu jalankan baik sukses maupun gagal
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Webhook Notification
+        run: |
+          STATUS="${{ job.status }}"
+          echo "Status Pipeline: $STATUS"
+          # Contoh cURL ke Telegram / Discord Webhook
+          # curl -X POST -H "Content-Type: application/json" -d '{"content":"🚀 Pipeline GitHub Actions Selesai dengan status: '"$STATUS"'"}' ${{ secrets.DISCORD_WEBHOOK }}
+```
+
+---
+
+## 3. Evaluasi Praktik Mandiri
+
+Sebelum menyelesaikan modul ini, pastikan Anda memahami:
+- [ ] Konsep `strategy.matrix` untuk menguji kompabilitas kode pada versi environment yang berbeda.
+- [ ] Cara membaca laporan *Common Vulnerabilities and Exposures (CVE)* dari tool Trivy.
+- [ ] Penggunaan ekspresi logika `if: always()` pada GitHub Actions untuk mengirim status kegagalan pipeline.

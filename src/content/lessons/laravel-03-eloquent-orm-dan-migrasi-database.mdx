@@ -1,0 +1,120 @@
+---
+title: "Database Migrations, Eloquent ORM & Relasi Data"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 2: Database & Pemodelan Data Eloquent"
+order: 3
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+**Eloquent ORM** adalah implementasi pola *Active Record* yang elegan di Laravel. Setiap tabel di database berkorespondensi dengan satu kelas Model PHP yang memudahkan eksekusi kueri, validasi relasi, dan manipulasi data.
+
+---
+
+## 1. Migrasi Database Deklaratif
+
+```php
+// database/migrations/2026_01_01_000001_create_courses_table.php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('courses', function (Blueprint $table) {
+            $table->uuid('id')->primary();
+            $table->foreignId('category_id')->constrained()->onDelete('cascade');
+            $table->string('title');
+            $table->string('slug')->unique();
+            $table->text('description');
+            $table->string('instructor');
+            $table->integer('price')->default(0);
+            $table->boolean('is_published')->default(true);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('courses');
+    }
+};
+```
+
+---
+
+## 2. Definisi Relasi Antar Model Eloquent
+
+### A. Relasi One-to-Many (`hasMany` & `belongsTo`)
+
+Satu Kategori memiliki Banyak Kursus, dan setiap Kursus dimiliki oleh satu Kategori:
+
+```php
+// app/Models/Category.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Category extends Model
+{
+    protected $fillable = ['name', 'slug'];
+
+    public function courses(): HasMany
+    {
+        return $this->hasMany(Course::class);
+    }
+}
+```
+
+```php
+// app/Models/Course.php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+
+class Course extends Model
+{
+    protected $fillable = ['category_id', 'title', 'slug', 'description', 'instructor', 'price', 'is_published'];
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    // Relasi Many-to-Many dengan User melalui tabel pivot enrollments
+    public function students(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'enrollments')
+            ->withPivot('progress_percent')
+            ->withTimestamps();
+    }
+}
+```
+
+---
+
+## 3. Pencegahan Masalah Performa N+1 dengan Eager Loading
+
+Jangan memanggil relasi di dalam perulangan tanpa `with()`. Hal tersebut akan mengeksekusi puluhan kueri SQL berulang:
+
+```php
+// ❌ BURUK (N+1 Query Problem): Mengeksekusi 1 query untuk Course + 50 query untuk Kategori
+$courses = Course::all();
+foreach ($courses as $c) {
+    echo $c->category->name;
+}
+
+// ✅ BAIK (Eager Loading): Hanya 2 query SQL teroptimasi
+$courses = Course::with('category')->latest()->get();
+```
+
+<Callout type="tip" title="Mass Assignment Protection">
+  Selalu tentukan atribut yang boleh diisi pengguna secara massal pada properti `protected $fillable = [...]` di dalam Model Anda untuk mencegah perubahan field sensitif seperti `is_admin`.
+</Callout>

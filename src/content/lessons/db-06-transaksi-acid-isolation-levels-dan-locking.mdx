@@ -1,0 +1,64 @@
+---
+title: "Transaksi ACID Lanjut: Tingkat Isolasi (Isolation Levels) & Locking"
+courseSlug: "database-engineering-sql-tuning"
+chapter: "Bab 3: Transaksi Lanjutan, Locking & Concurrency"
+order: 6
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Ketika ribuan pengguna secara bersamaan memesan tiket konser atau mentransfer saldo rekening bank pada detik yang sama (*High Concurrency*), bagaimana database memastikan bahwa tidak terjadi penjualan ganda (*Double Booking*) atau saldo minus?
+
+---
+
+## 1. Empat Anomali Concurrency Database
+
+1. **Dirty Read**: Transaksi A membaca data yang sedang diubah oleh Transaksi B, namun Transaksi B kemudian melakukan `ROLLBACK`. Transaksi A membaca data palsu yang tidak pernah ada!
+2. **Non-Repeatable Read**: Transaksi A membaca baris data, lalu Transaksi B mengubah data tersebut dan melakukan `COMMIT`. Saat Transaksi A membaca ulang baris yang sama, nilainya sudah berubah.
+3. **Phantom Read**: Transaksi A menjalankan `SELECT WHERE price > 100` dan menemukan 5 baris. Transaksi B memasukkan baris ke-6. Saat Transaksi A menjalankan query yang sama lagi, muncul baris hantu baru.
+4. **Serialization Anomaly (Write Skew)**: Dua transaksi berjalan bersamaan dan membaca data valid, namun kombinasi dari kedua perubahan menghasilkan kondisi bisnis yang tidak sah.
+
+---
+
+## 2. Empat Tingkat Isolasi Transaksi (ANSI SQL Isolation Levels)
+
+| Tingkat Isolasi (Isolation Level) | Dirty Read Dicegah? | Non-Repeatable Read Dicegah? | Phantom Read Dicegah? | Serialization Anomaly Dicegah? | Performa Relatif |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Read Uncommitted** | Tidak | Tidak | Tidak | Tidak | Sangat Cepat (Jarang dipakai) |
+| **Read Committed** *(Default Postgres)* | **Ya** | Tidak | Tidak | Tidak | **Cepat & Optimal** |
+| **Repeatable Read** | **Ya** | **Ya** | **Ya** (di Postgres MVCC)| Tidak | Menengah |
+| **Serializable** | **Ya** | **Ya** | **Ya** | **Ya** | Paling Lambat (Strict) |
+
+---
+
+## 3. Strategi Penguncian Baris: Pessimistic vs Optimistic Locking
+
+### A. Pessimistic Locking (`SELECT ... FOR UPDATE`)
+Mengunci baris data di database sehingga transaksi lain yang mencoba membaca/mengubah baris yang sama akan dipaksa menunggu (*Block*) hingga transaksi selesai:
+
+```sql
+BEGIN;
+-- Kunci baris tiket konser ini agar tidak dibeli orang lain selama proses pembayaran 60 detik
+SELECT * FROM concert_tickets WHERE id = 8821 FOR UPDATE;
+
+UPDATE concert_tickets SET status = 'SOLD', buyer_id = 'usr_01' WHERE id = 8821;
+COMMIT;
+```
+
+### B. Non-Blocking Job Queues dengan `SKIP LOCKED`
+Fitur paling revolusioner di PostgreSQL untuk antrean pemrosesan tugas latar belakang (*Background Worker*):
+```sql
+-- Ambil 1 pekerjaan tertua yang belum dikerjakan, lewati pekerjaan yang sedang dikunci worker lain!
+SELECT * FROM background_jobs 
+WHERE status = 'PENDING' 
+ORDER BY created_at ASC 
+LIMIT 1 
+FOR UPDATE SKIP LOCKED;
+```
+Dengan `SKIP LOCKED`, 50 worker server dapat mengambil antrean secara bersamaan **tanpa pernah mengalami konflik kunci atau deadlock**!
+
+<Callout type="tip" title="Deadlock Prevention">
+  Untuk mencegah **Deadlock** (di mana Transaksi A menunggu Transaksi B dan Transaksi B menunggu Transaksi A), selalu pastikan aplikasi Anda mengunci baris data dengan **urutan yang konsisten** (misal selalu urutkan ID tabel secara ascending `ORDER BY id ASC FOR UPDATE`).
+</Callout>

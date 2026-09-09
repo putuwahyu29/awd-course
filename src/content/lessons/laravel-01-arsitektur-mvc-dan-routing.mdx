@@ -1,0 +1,107 @@
+---
+title: "Arsitektur MVC, Siklus Request & Routing Laravel"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 1: Fondasi Laravel & Arsitektur MVC"
+order: 1
+duration: "25 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Selamat datang di kursus komprehensif **Pengembangan Web Modern dengan Laravel & Filament PHP**! Laravel adalah framework PHP nomor satu di dunia yang terkenal dengan sintaksnya yang ekspresif, ekosistem yang matang, dan arsitektur *Model-View-Controller* (MVC) berstandar enterprise.
+
+---
+
+## 1. Arsitektur Model-View-Controller (MVC) di Laravel
+
+Pola desain MVC memisahkan tanggung jawab aplikasi ke dalam 3 lapisan terstruktur:
+
+```
+                  +---------------------------------------------------+
+                  |                 HTTP REQUEST                      |
+                  +---------------------------------------------------+
+                                            |
+                                            v
+                                  [ routes/web.php ]
+                                            |
+                                            v
+                                   [ Controller ]
+                                   /            \
+                    1. Minta Data /              \ 2. Kirim Data ke View
+                                 v                v
+                           [ Model / DB ]       [ Blade View (HTML) ]
+                                                      |
+                                                      v
+                                            +-------------------+
+                                            |   HTTP RESPONSE   |
+                                            +-------------------+
+```
+
+1. **Model (`app/Models`)**: Menangani interaksi data, relasi database, dan aturan bisnis menggunakan Eloquent ORM.
+2. **View (`resources/views`)**: Antarmuka pengguna (*HTML/CSS/JS*) yang dirender menggunakan mesin templating Blade.
+3. **Controller (`app/Http/Controllers`)**: Menjembatani permintaan pengguna, memanggil Model, dan mengembalikan respon ke View atau JSON API.
+
+---
+
+## 2. Sistem Routing Deklaratif Laravel
+
+Di Laravel, seluruh rute web didaftarkan di dalam file `routes/web.php` dan rute API di `routes/api.php`:
+
+```php
+use App\Http\Controllers\CourseController;
+use Illuminate\Support\Facades\Route;
+
+// 1. Rute Dasar Halaman Utama
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// 2. Rute dengan Parameter Dinamis & Regular Expression Constraint
+Route::get('/courses/{slug}', [CourseController::class, 'show'])
+    ->name('courses.show')
+    ->where('slug', '[a-z0-9-]+');
+
+// 3. Pengelompokan Rute Terproteksi (Route Groups & Middleware)
+Route::middleware(['auth', 'verified'])->prefix('admin')->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+    Route::resource('/courses', CourseController::class);
+});
+```
+
+<Callout type="tip" title="Keuntungan Named Routes">
+  Selalu berikan nama pada rute menggunakan `->name('nama.rute')`. Dengan begitu, jika URL berubah di kemudian hari, Anda cukup mengubahnya di satu file route tanpa merusak tautan `route('nama.rute')` di puluhan template Blade.
+</Callout>
+
+---
+
+## 3. Controller & Dependency Injection
+
+```php
+namespace App\Http\Controllers;
+
+use App\Models\Course;
+use Illuminate\Http\Request;
+
+class CourseController extends Controller
+{
+    // Menampilkan daftar kursus
+    public function index(Request $request)
+    {
+        $courses = Course::where('is_published', true)
+            ->latest()
+            ->paginate(10);
+
+        return view('courses.index', compact('courses'));
+    }
+
+    // Menampilkan detail kursus
+    public function show(string $slug)
+    {
+        $course = Course::where('slug', $slug)->firstOrFail();
+        return view('courses.show', ['course' => $course]);
+    }
+}
+```
+
+Di pelajaran berikutnya, kita akan mempelajari bagaimana merancang antarmuka dinamis dan modular menggunakan **Blade Templating dan Reusable Components**.

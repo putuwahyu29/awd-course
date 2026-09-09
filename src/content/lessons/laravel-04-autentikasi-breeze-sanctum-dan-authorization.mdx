@@ -1,0 +1,108 @@
+---
+title: "Autentikasi Modern: Laravel Breeze, Sanctum & Policies"
+courseSlug: "laravel-modern-mastery"
+chapter: "Bab 2: Database & Pemodelan Data Eloquent"
+order: 4
+duration: "30 Menit"
+contentType: "text"
+---
+
+import Callout from '../../components/mdx/Callout.astro';
+
+Keamanan akun dan hak otorisasi pengguna di Laravel ditangani melalui ekosistem paket resmi: **Laravel Breeze** (untuk autentikasi berbasis sesi web), **Laravel Sanctum** (untuk penerbitan token API SPA & Mobile), serta **Policies & Gates** (untuk otorisasi granular).
+
+---
+
+## 1. Autentikasi Web Cepat dengan Laravel Breeze
+
+```bash
+# Instalasi starter kit autentikasi Laravel Breeze dengan Blade & Tailwind
+composer require laravel/breeze --dev
+php artisan breeze:install blade
+php artisan migrate
+npm install && npm run dev
+```
+
+Perintah di atas secara otomatis menyediakan:
+* Halaman Login, Registrasi, Lupa Password, dan Reset Password.
+* Verifikasi Alamat Email dan Konfirmasi Password.
+* Dasbor Profil Pengguna yang aman dan terlindungi dari CSRF.
+
+---
+
+## 2. Autentikasi API Berbasis Token dengan Laravel Sanctum
+
+Untuk aplikasi mobile atau frontend decoupled (Next.js / Vue), **Laravel Sanctum** menerbitkan token API ringan:
+
+```php
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+
+// Endpoint Login API: POST /api/login
+Route::post('/api/login', function (Request $request) {
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (! $user || ! Hash::check($request->password, $user->password)) {
+        throw ValidationException::withMessages([
+            'email' => ['Kredensial yang Anda berikan tidak cocok.'],
+        ]);
+    }
+
+    // Terbitkan token personal access
+    $token = $user->createToken('auth_token')->plainTextToken;
+
+    return response()->json([
+        'status' => 'success',
+        'token' => $token,
+        'user' => $user
+    ]);
+});
+```
+
+---
+
+## 3. Otorisasi Granular dengan Laravel Policies
+
+Buat Policy untuk membatasi siapa yang boleh mengubah atau menghapus data kursus:
+
+```php
+namespace App\Policies;
+
+use App\Models\Course;
+use App\Models\User;
+
+class CoursePolicy
+{
+    // Hanya pembuat kursus atau Admin yang boleh mengubah
+    public function update(User $user, Course $course): bool
+    {
+        return $user->role === 'admin' || $user->id === $course->user_id;
+    }
+
+    public function delete(User $user, Course $course): bool
+    {
+        return $user->role === 'admin';
+    }
+}
+```
+
+```php
+// Penggunaan di Controller
+public function edit(Course $course)
+{
+    $this->authorize('update', $course);
+    return view('courses.edit', compact('course'));
+}
+```
+
+<Callout type="tip" title="Direktif Blade @can">
+  Di dalam template Blade, Anda dapat menyembunyikan tombol edit/hapus jika pengguna tidak berhak:
+  `@can('update', $course) <button>Edit Kursus</button> @endcan`
+</Callout>
