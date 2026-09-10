@@ -552,26 +552,26 @@ function parseNotebookToHtml(nbPath, title, subtitle, chapterNumber) {
       <div class="brand-logo-icon">A</div>
       <div class="brand-text">
         <span class="brand-name">AWD COURSE</span>
-        <span class="brand-tagline">Platform Pembelajaran Pemrograman & Analisis Data</span>
+        <span class="brand-tagline">Pemrograman & Analisis Data</span>
       </div>
     </div>
 
     <div class="cover-main">
-      <div class="cover-badge-chip">Modul Referensi Resmi • Bab ${chapterNumber}</div>
+      <div class="cover-badge-chip">Modul Bab ${chapterNumber}</div>
       <h1 class="cover-title">${title}</h1>
       <p class="cover-subtitle">${subtitle}</p>
 
       <div class="cover-highlights">
         <div class="highlight-card">
-          <div class="hl-title">Kategori Materi</div>
-          <div class="hl-value">Dasar Python & Analisis Data</div>
+          <div class="hl-title">Kategori</div>
+          <div class="hl-value">Python & Data Science</div>
         </div>
         <div class="highlight-card">
           <div class="hl-title">Format Dokumen</div>
-          <div class="hl-value">PDF Interaktif Siap Cetak</div>
+          <div class="hl-value">PDF</div>
         </div>
         <div class="highlight-card">
-          <div class="hl-title">Tingkat Kesulitan</div>
+          <div class="hl-title">Tingkat</div>
           <div class="hl-value">Pemula s/d Menengah</div>
         </div>
         <div class="highlight-card">
@@ -583,12 +583,12 @@ function parseNotebookToHtml(nbPath, title, subtitle, chapterNumber) {
 
     <div class="cover-footer">
       <div class="instructor-info">
-        <span class="inst-label">Pemateri & Penyusun Materi</span>
+        <span class="inst-label">Pemateri</span>
         <span class="inst-name">I Putu Agus Wahyu Dupayana</span>
-        <span class="pub-date">Dipublikasikan secara resmi di AWD Course Platform</span>
+        <span class="pub-date">AWD Course</span>
       </div>
       <div class="pub-date">
-        Edisi Pembaruan: <strong>September 2026</strong>
+        Pembaruan: <strong>September 2026</strong>
       </div>
     </div>
   </div>

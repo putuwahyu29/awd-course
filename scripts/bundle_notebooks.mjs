@@ -21,21 +21,21 @@ const CHAPTER_CONFIGS = [
   {
     chapterId: 'bab-1',
     title: 'Bab 1: Dasar Pemrograman Python & Algoritma',
-    description: 'Notebook kompilasi lengkap untuk Bab 1 yang mencakup Komentar, Tipe Data & Variabel, Operator, Percabangan, Perulangan, Fungsi, serta Studi Kasus Praktik Kalkulator Interaktif.',
+    description: 'Modul Bab 1: Komentar, Tipe Data, Variabel, Operator, Percabangan, Perulangan, Fungsi, dan Latihan Kalkulator.',
     sourceDir: path.join(rootDir, 'public/notebooks/python-data-science/bab-1-dasar-python'),
     targetFile: path.join(rootDir, 'public/notebooks/python-data-science/bab-1-dasar-pemrograman-python-lengkap.ipynb'),
   },
   {
     chapterId: 'bab-2',
     title: 'Bab 2: Ekosistem Paket & Sains Data Python',
-    description: 'Notebook kompilasi lengkap untuk Bab 2 yang mencakup Pip, NumPy, Pandas, Matplotlib, Seaborn, Impor/Ekspor Data CSV, dan Mini Proyek Analisis Inventaris.',
+    description: 'Modul Bab 2: Pip, NumPy, Pandas, Matplotlib, Seaborn, Impor/Ekspor CSV, dan Latihan Inventaris.',
     sourceDir: path.join(rootDir, 'public/notebooks/python-data-science/bab-2-package-python'),
     targetFile: path.join(rootDir, 'public/notebooks/python-data-science/bab-2-package-data-science-lengkap.ipynb'),
   },
   {
     chapterId: 'bab-3',
     title: 'Bab 3: Analisis Data Eksploratif (EDA)',
-    description: 'Notebook kompilasi lengkap untuk Bab 3 yang mencakup Inspeksi Struktur Dataframe, Statistik Deskriptif, Visualisasi Distribusi, dan Seleksi Data Boolean.',
+    description: 'Modul Bab 3: Inspeksi Dataframe, Statistik Deskriptif, Visualisasi Distribusi, dan Boolean Indexing.',
     sourceDir: path.join(rootDir, 'public/notebooks/python-data-science/bab-3-analisis-data-eksploratif'),
     targetFile: path.join(rootDir, 'public/notebooks/python-data-science/bab-3-analisis-data-eksploratif-lengkap.ipynb'),
   },
@@ -63,7 +63,7 @@ function bundleChapter(cfg) {
     source: [
       `# ${cfg.title}\n`,
       '\n',
-      '**Awd Course - Buku Modul Praktik Komprehensif**\n',
+      '**Awd Course**\n',
       '\n',
       `${cfg.description}\n`,
       '\n',

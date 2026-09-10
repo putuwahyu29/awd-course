@@ -142,7 +142,7 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
             <!-- Chapter Main Title -->
             <h1 class="chapter-title lesson-title">{chapter.title}</h1>
             <p class="chapter-description">
-              Halaman khusus Bab {chapter.index + 1}. Akses silabus lengkap submateri, jalankan notebook kompilasi interaktif di Google Colab, buka Mode Presentasi satu bab penuh dengan eksekusi kode live, dan ekspor slide ke PDF.
+              Daftar submateri, materi praktik, dan dokumen referensi untuk Bab {chapter.index + 1}.
             </p>
 
             <!-- Unified Clean Chapter Actions Cluster -->
@@ -153,19 +153,19 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
                   <a
                     href={`/courses/${course.id}/${firstLesson.id}`}
                     class="btn btn-primary btn-md start-learning-btn"
-                    title={`Mulai Belajar Submateri 1: ${firstLesson.data.title}`}
+                    title={`Mulai: ${firstLesson.data.title}`}
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true">
                       <polygon points="5 3 19 12 5 21 5 3"></polygon>
                     </svg>
-                    <span>Mulai Belajar Bab Ini</span>
+                    <span>Mulai Belajar</span>
                   </a>
                 )}
 
                 <button
                   type="button"
                   class="btn btn-secondary btn-md btn-trigger-presentation pres-launch-btn"
-                  title="Buka Mode Presentasi Layar Penuh (Shortcut: Tekan P)"
+                  title="Mode Presentasi (Shortcut: P)"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
@@ -179,7 +179,7 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
 
               <!-- Tier 2: Compact Secondary Resource Pills -->
               <div class="resource-pills-bar">
-                <span class="resource-pills-label">Akses Cepat:</span>
+                <span class="resource-pills-label">Akses Materi:</span>
 
                 {chapter.notebookInfo && (
                   <a
@@ -187,7 +187,7 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
                     target="_blank"
                     rel="noopener noreferrer"
                     class="resource-chip"
-                    title="Buka Seluruh Materi Bab di Google Colab"
+                    title="Buka di Google Colab"
                   >
                     <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" aria-hidden="true">
                       <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -201,7 +201,7 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
                     href={chapter.notebookInfo.url}
                     download
                     class="resource-chip"
-                    title="Unduh Seluruh Kode Praktik Bab Ini (.ipynb)"
+                    title="Unduh Notebook (.ipynb)"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -215,7 +215,7 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
                 <button
                   type="button"
                   class="resource-chip btn-trigger-export-pdf"
-                  title="Ekspor Seluruh Slide Presentasi Bab ke Format PDF Siap Cetak (Shortcut: Tekan E)"
+                  title="Ekspor Slide ke PDF (Shortcut: E)"
                 >
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -231,13 +231,13 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
                     href={chapter.notebookInfo.pdfUrl}
                     target="_blank"
                     class="resource-chip"
-                    title="Buka Dokumen Modul Bacaan Teknis PDF Resmi"
+                    title="Unduh Modul PDF"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                       <polyline points="14 2 14 8 20 8"></polyline>
                     </svg>
-                    <span>Modul Bacaan (PDF)</span>
+                    <span>Modul PDF</span>
                   </a>
                 )}
               </div>
@@ -248,7 +248,7 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
           <div class="chapter-hero-meta">
             <div class="card meta-info-card">
               <div class="instructor-box">
-                <span class="instructor-label">Pemateri & Penyusun:</span>
+                <span class="instructor-label">Pemateri:</span>
                 <strong class="instructor-name inst-name">{course.data.instructor || 'I Putu Agus Wahyu Dupayana'}</strong>
                 <span class="instructor-role">{course.data.instructorRole || 'Software Engineer'}</span>
               </div>
@@ -264,18 +264,18 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
                 </div>
                 <div class="spec-tile">
                   <span class="spec-tile-label">Format Materi</span>
-                  <strong class="spec-tile-value">{hasDedicatedNotebook ? 'Jupyter & Slide' : 'Modul Web & Slide'}</strong>
+                  <strong class="spec-tile-value">{hasDedicatedNotebook ? 'Notebook & Slide' : 'Web & Slide'}</strong>
                 </div>
                 <div class="spec-tile">
                   <span class="spec-tile-label">Status Bab</span>
-                  <strong class="spec-tile-value text-emerald">Aktif & Lengkap</strong>
+                  <strong class="spec-tile-value text-emerald">Tersedia</strong>
                 </div>
               </div>
 
               <!-- Chapter Progress Widget -->
               <div class="chapter-progress-box">
                 <div class="progress-box-top">
-                  <span class="progress-box-label">Progres Anda di Bab Ini</span>
+                  <span class="progress-box-label">Progres Belajar</span>
                   <span class="progress-box-percent" id="chapter-progress-text">0%</span>
                 </div>
                 <div class="progress-box-track">
@@ -294,9 +294,9 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
         <!-- Section 1: Submateri Curriculum Grid -->
         <section class="chapter-section curriculum-section" id="submateri">
           <div class="section-title-wrap">
-            <div class="section-badge-chip">Silabus Bab</div>
+            <div class="section-badge-chip">Submateri</div>
             <h2 class="section-title">Daftar Submateri Bab {chapter.index + 1}</h2>
-            <p class="section-sub">Pelajari setiap konsep, panduan sintaksis, modul teori, serta studi kasus praktik secara bertahap.</p>
+            <p class="section-sub">Daftar modul pembelajaran dan latihan pada bab ini.</p>
           </div>
 
           <div class="lessons-grid">
@@ -364,12 +364,12 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
         <!-- Section 2: Full Chapter Content & Interactive Stream (Data Source for Presentation Mode) -->
         <section class="chapter-section interactive-stream-section" id="materi-lengkap">
           <div class="section-title-wrap">
-            <div class="section-badge-chip">Pratinjau Komprehensif</div>
-            <h2 class="section-title">Konten & Kode Praktik Bab Penuh</h2>
+            <div class="section-badge-chip">Pratinjau Materi</div>
+            <h2 class="section-title">Konten Materi Bab</h2>
             <p class="section-sub">
               {hasDedicatedNotebook
-                ? 'Notebook kompilasi interaktif yang mencakup seluruh konsep, sintaksis, dan blok kode pada Bab ini. Anda dapat mencoba mengeksekusi kode secara live atau menekan tombol Mode Presentasi di atas.'
-                : 'Kumpulan submateri Bab terintegrasi untuk membaca dan mempresentasikan seluruh materi bab secara utuh.'}
+                ? 'Materi dan latihan kode pada bab ini.'
+                : 'Kumpulan materi pada bab ini.'}
             </p>
           </div>
 

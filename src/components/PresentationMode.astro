@@ -553,7 +553,7 @@ const { course, currentLesson } = Astro.props;
               <line x1="8" y1="21" x2="16" y2="21"></line>
               <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
-            <span>Total Materi: <strong class="cover-total-num">...</strong> Slide Interaktif</span>
+            <span>Total: <strong class="cover-total-num">...</strong> Slide</span>
           </div>
           <div class="cover-footer">
             <div class="cover-instructor">
@@ -732,9 +732,9 @@ const { course, currentLesson } = Astro.props;
       endSlide.className = 'pres-slide end-qa-slide';
       endSlide.innerHTML = `
         <div class="cover-container text-center">
-          <div class="cover-badge">Sesi Pembelajaran Selesai</div>
+          <div class="cover-badge">Selesai</div>
           <h1 class="cover-title">Tanya Jawab & Diskusi</h1>
-          <p class="end-subtitle">Silakan ajukan pertanyaan atau coba jalankan kembali latihan kode interaktif.</p>
+          <p class="end-subtitle">Silakan ajukan pertanyaan atau diskusi terkait materi ini.</p>
         </div>
       `;
       generated.push(endSlide);

@@ -44,25 +44,25 @@ const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-sc
 ---
 
 <BaseLayout
-  title="Platform Pembelajaran Teknis"
-  description="Platform pembelajaran terstruktur untuk pemrograman dan analisis data dengan modul bacaan teknis dan lingkungan eksekusi kode interaktif."
+  title="Belajar Pemrograman & Analisis Data"
+  description="Platform pembelajaran pemrograman dan analisis data dengan modul materi, latihan kode langsung di peramban, dan presentasi interaktif."
 >
   <!-- Hero Section -->
   <section class="hero-section">
     <div class="container">
       <div class="hero-inner">
         <h1 class="hero-title">
-          Platform Pembelajaran Teknis Terstruktur
+          Belajar Pemrograman & Analisis Data
         </h1>
 
         <p class="hero-subtitle">
-          Kuasai fondasi rekayasa perangkat lunak, sistem komputasi, dan analisis data melalui modul sistematis dengan lingkungan eksekusi kode interaktif langsung di peramban.
+          Kuasai dasar pemrograman Python, analisis data, dan rekayasa perangkat lunak melalui materi terstruktur dengan latihan kode langsung di peramban.
         </p>
 
         <div class="hero-actions">
           {pythonCourse && (
             <a href={`/courses/${pythonCourse.id}`} class="btn btn-primary btn-lg hero-cta">
-              <span>Mulai Belajar Sekarang</span>
+              <span>Mulai Belajar</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
@@ -70,7 +70,7 @@ const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-sc
             </a>
           )}
           <a href="/courses" class="btn btn-outline btn-lg">
-            Jelajahi Katalog Kursus
+            Katalog Kursus
           </a>
         </div>
       </div>
@@ -84,7 +84,7 @@ const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-sc
         <div class="spotlight-card card">
           <div class="spotlight-header">
             <div>
-              <span class="badge badge-primary">Materi Unggulan Aktif</span>
+              <span class="badge badge-primary">Kursus Utama</span>
               <h2 class="spotlight-course-title">{pythonCourse.data.title}</h2>
               <p class="spotlight-course-desc">{pythonCourse.data.description}</p>
             </div>
@@ -115,19 +115,19 @@ const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-sc
               <a
                 href={`/courses/${pythonCourse.id}/chapters/${ch.fullSlug}`}
                 class="spotlight-curriculum-item"
-                title={`Buka Halaman Khusus & Mode Presentasi: ${ch.title}`}
+                title={`Buka: ${ch.title}`}
               >
                 <span class="curriculum-num">{ch.index + 1}</span>
                 <div class="curriculum-info">
                   <div class="curriculum-top">
                     <strong class="curriculum-title">{ch.title}</strong>
-                    <span class="curriculum-count">{ch.lessons.length} Modul Materi</span>
+                    <span class="curriculum-count">{ch.lessons.length} Materi</span>
                   </div>
                   <span class="curriculum-desc">
-                    {ch.index === 0 && 'Sintaksis dasar, tipe data, variabel, operator, percabangan kondisional, perulangan loop, pembuatan fungsi, modul PDF, dan tugas praktik kalkulator interaktif.'}
-                    {ch.index === 1 && 'Manajemen paket dengan pip, komputasi array multidimensi NumPy, struktur DataFrame Pandas, visualisasi Matplotlib & Seaborn, modul PDF, dan tugas praktik mandiri.'}
-                    {ch.index === 2 && 'Persiapan & inspeksi struktur awal dataframe, ringkasan statistik deskriptif dan plot sebaran, serta seleksi kolom dan filtering baris dengan Boolean indexing.'}
-                    {ch.index > 2 && `${ch.lessons.length} modul submateri lengkap.`}
+                    {ch.index === 0 && 'Sintaksis dasar, tipe data, variabel, operator, percabangan, perulangan, fungsi, dan latihan kalkulator.'}
+                    {ch.index === 1 && 'Manajemen paket pip, komputasi NumPy, DataFrame Pandas, visualisasi Matplotlib & Seaborn, dan latihan data.'}
+                    {ch.index === 2 && 'Inspeksi awal dataframe, statistik deskriptif, visualisasi sebaran, dan pemfilteran data.'}
+                    {ch.index > 2 && `${ch.lessons.length} modul submateri.`}
                   </span>
                 </div>
                 <div class="curriculum-action-arrow" aria-hidden="true">
@@ -146,14 +146,14 @@ const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-sc
                   <strong class="curriculum-title">Bab 3: Analisis Data Eksploratif (EDA)</strong>
                   <span class="curriculum-badge-soon">Segera Hadir</span>
                 </div>
-                <span class="curriculum-desc">Persiapan & inspeksi struktur awal dataframe, ringkasan statistik deskriptif dan plot sebaran, serta seleksi kolom dan filtering baris dengan Boolean indexing.</span>
+                <span class="curriculum-desc">Inspeksi struktur awal dataframe, statistik deskriptif, visualisasi sebaran, dan pemfilteran data.</span>
               </div>
             </div>
           </div>
 
           <div class="spotlight-footer">
             <a href={`/courses/${pythonCourse.id}`} class="btn btn-primary btn-lg">
-              <span>Buka Materi Pembelajaran</span>
+              <span>Buka Materi</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
@@ -178,9 +178,9 @@ const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-sc
               <line x1="12" y1="19" x2="20" y2="19"></line>
             </svg>
           </div>
-          <h3 class="highlight-title">Lingkungan Latihan Kode Interaktif</h3>
+          <h3 class="highlight-title">Latihan Kode Langsung</h3>
           <p class="highlight-desc">
-            Jalankan latihan praktikum kode langsung di peramban tanpa konfigurasi server yang rumit, lengkap dengan editor interaktif dan keluaran instan.
+            Tulis dan jalankan kode langsung di peramban tanpa konfigurasi lokal yang rumit.
           </p>
         </div>
 
@@ -192,9 +192,9 @@ const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-sc
               <line x1="12" y1="17" x2="12" y2="21"></line>
             </svg>
           </div>
-          <h3 class="highlight-title">Mode Slide Presentasi Lengkap</h3>
+          <h3 class="highlight-title">Mode Presentasi</h3>
           <p class="highlight-desc">
-            Tekan tombol <strong>P</strong> di setiap materi untuk mengaktifkan slide tayangan proyektor kelas dengan laser virtual dan tema Dark/Light.
+            Gunakan mode slide dengan menekan tombol <strong>P</strong> di setiap materi untuk tampilan proyektor.
           </p>
         </div>
 
@@ -205,9 +205,9 @@ const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-sc
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
           </div>
-          <h3 class="highlight-title">Dasbor & Pelacakan Progres</h3>
+          <h3 class="highlight-title">Pelacakan Progres</h3>
           <p class="highlight-desc">
-            Masuk dengan 1-klik akun Google untuk memantau modul yang telah diselesaikan dan melanjutkan pembelajaran kapan saja.
+            Pantau materi yang telah dipelajari dan lanjutkan pembelajaran kapan saja.
           </p>
         </div>
       </div>
