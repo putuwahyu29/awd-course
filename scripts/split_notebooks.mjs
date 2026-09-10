@@ -54,19 +54,33 @@ export function splitChapter(cfg) {
   const groupedCells = new Map();
   existingFiles.forEach((f) => groupedCells.set(f, []));
 
-  let currentTargetFile = existingFiles[0] || '01-materi.ipynb';
+  let fileIndex = -1;
 
   cells.forEach((cell, idx) => {
     // Skip the top banner cell if it matches the chapter title header
     if (idx === 0 && cell.cell_type === 'markdown') {
       const srcText = Array.isArray(cell.source) ? cell.source.join('') : cell.source || '';
-      if (srcText.includes(cfg.title) && srcText.includes('Buku Modul Praktik')) {
+      if (srcText.includes(cfg.title) || srcText.includes('Buku Modul Praktik') || srcText.includes('Awd Course')) {
         return; // skip banner
       }
     }
 
+    // Check if markdown cell starts with H1 heading (# ) indicating a new sublesson
+    let isHeadingStart = false;
+    if (cell.cell_type === 'markdown') {
+      const srcText = Array.isArray(cell.source) ? cell.source.join('') : cell.source || '';
+      if (srcText.trim().startsWith('# ')) {
+        fileIndex++;
+        isHeadingStart = true;
+      }
+    }
+
+    let currentTargetFile;
     if (cell.metadata?.sublesson_file) {
       currentTargetFile = cell.metadata.sublesson_file;
+    } else {
+      const safeIdx = Math.min(Math.max(fileIndex, 0), existingFiles.length - 1);
+      currentTargetFile = existingFiles[safeIdx] || '01-materi.ipynb';
     }
 
     if (!groupedCells.has(currentTargetFile)) {

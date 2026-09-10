@@ -16,12 +16,25 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 import { CHAPTER_CONFIGS, bundleChapter } from './bundle_notebooks.mjs';
 import { splitChapter } from './split_notebooks.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
+
+function getGitCommitTime(filePath) {
+  try {
+    const out = execSync(`git log -1 --format="%ct" -- "${filePath}"`, {
+      cwd: rootDir,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'ignore'],
+    }).trim();
+    if (out) return parseInt(out, 10) * 1000;
+  } catch (e) {}
+  return 0;
+}
 
 export function smartSyncChapter(cfg) {
   const targetExists = fs.existsSync(cfg.targetFile);
@@ -45,24 +58,41 @@ export function smartSyncChapter(cfg) {
     return null;
   }
 
-  const targetMtime = fs.statSync(cfg.targetFile).mtimeMs;
-  let latestSourceMtime = 0;
+  const targetFsMtime = fs.statSync(cfg.targetFile).mtimeMs;
+  let latestSourceFsMtime = 0;
   sourceFiles.forEach((file) => {
     const fPath = path.join(cfg.sourceDir, file);
     const mtime = fs.statSync(fPath).mtimeMs;
-    if (mtime > latestSourceMtime) latestSourceMtime = mtime;
+    if (mtime > latestSourceFsMtime) latestSourceFsMtime = mtime;
   });
 
-  const diffMs = targetMtime - latestSourceMtime;
+  const fsDiffMs = targetFsMtime - latestSourceFsMtime;
+  let syncDirection = 0; // 0 = in sync, 1 = split (target is newer), -1 = bundle (source is newer)
+  let reason = '';
 
-  // Threshold 1.5 detik toleransi
-  if (diffMs > 1500) {
-    console.log(`[SYNC] ${cfg.chapterId}: File Bab Lengkap lebih baru (${Math.round(diffMs / 1000)}s) -> Memperbarui Submateri (Split)...`);
+  // 1. Cek perubahan di file system lokal (misal sedang coding di VS Code/Jupyter)
+  if (Math.abs(fsDiffMs) > 1500) {
+    syncDirection = fsDiffMs > 0 ? 1 : -1;
+    reason = `File system mtime (${Math.round(Math.abs(fsDiffMs) / 1000)}s)`;
+  } else {
+    // 2. Cek riwayat Git Commit (krusial untuk Vercel CI/CD & Colab direct push ke GitHub)
+    const targetGitTime = getGitCommitTime(cfg.targetFile);
+    const sourceGitTime = getGitCommitTime(cfg.sourceDir);
+    const gitDiffMs = targetGitTime - sourceGitTime;
+
+    if (Math.abs(gitDiffMs) > 2000) {
+      syncDirection = gitDiffMs > 0 ? 1 : -1;
+      reason = `Git commit timestamp (${Math.round(Math.abs(gitDiffMs) / 1000)}s)`;
+    }
+  }
+
+  if (syncDirection === 1) {
+    console.log(`[SYNC] ${cfg.chapterId}: File Bab Lengkap lebih baru [${reason}] -> Memperbarui Submateri (Split)...`);
     const res = splitChapter(cfg);
     alignTimestamps(cfg);
     return res;
-  } else if (diffMs < -1500) {
-    console.log(`[SYNC] ${cfg.chapterId}: File Submateri lebih baru (${Math.round(Math.abs(diffMs) / 1000)}s) -> Memperbarui Bab Lengkap (Bundle)...`);
+  } else if (syncDirection === -1) {
+    console.log(`[SYNC] ${cfg.chapterId}: File Submateri lebih baru [${reason}] -> Memperbarui Bab Lengkap (Bundle)...`);
     const res = bundleChapter(cfg);
     alignTimestamps(cfg);
     return res;

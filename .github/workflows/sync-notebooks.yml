@@ -1,0 +1,44 @@
+name: Auto-Sync Jupyter Notebooks
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'public/notebooks/**'
+
+permissions:
+  contents: write
+
+jobs:
+  sync-notebooks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run Smart Notebook Sync
+        run: node scripts/sync_notebooks.mjs
+
+      - name: Generate Updated Chapter PDF Modules
+        run: node scripts/generate_module_pdfs.mjs
+
+      - name: Commit and push changes if sublessons or PDFs updated
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          if [[ -n $(git status -s public/notebooks/ public/docs/) ]]; then
+            git add public/notebooks/ public/docs/
+            git commit -m "chore(sync): auto-sync notebook sublessons and module PDFs [skip ci]"
+            git push
+          else
+            echo "Notebooks and PDF modules already in sync."
+          fi
+

@@ -8,7 +8,40 @@ const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 
-const EDGE_PATH = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
+function getBrowserExecutable() {
+  if (process.platform === 'win32') {
+    const winPaths = [
+      'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    ];
+    for (const p of winPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+  } else if (process.platform === 'darwin') {
+    const macPaths = [
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    ];
+    for (const p of macPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+  } else {
+    // Linux / Ubuntu (GitHub Actions runner)
+    const linuxPaths = [
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/snap/bin/chromium',
+    ];
+    for (const p of linuxPaths) {
+      if (fs.existsSync(p)) return p;
+    }
+  }
+  return null;
+}
 
 function renderMarkdownText(text) {
   if (!text) return '';
@@ -572,17 +605,25 @@ function parseNotebookToHtml(nbPath, title, subtitle, chapterNumber) {
 }
 
 async function exportHtmlToPdf(htmlFilePath, pdfOutputPath) {
+  const browserPath = getBrowserExecutable();
+  if (!browserPath) {
+    console.warn(`[WARN] Browser headless (Chrome/Edge) tidak ditemukan di sistem ini. Melewati ekspor: ${path.basename(pdfOutputPath)}`);
+    return;
+  }
+
   const fileUrl = 'file:///' + htmlFilePath.replace(/\\/g, '/');
   const args = [
     '--headless=new',
     '--disable-gpu',
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
     '--no-pdf-header-footer',
     `--print-to-pdf=${pdfOutputPath}`,
     fileUrl,
   ];
 
-  console.log(`Mengompilasi PDF via Edge headless: ${path.basename(pdfOutputPath)}...`);
-  await execFileAsync(EDGE_PATH, args);
+  console.log(`Mengompilasi PDF via browser headless (${path.basename(browserPath)}): ${path.basename(pdfOutputPath)}...`);
+  await execFileAsync(browserPath, args);
 }
 
 async function main() {
