@@ -92,6 +92,8 @@ function bundleChapter(cfg) {
       cells.forEach((cell) => {
         // Deep clone cell object
         const clonedCell = JSON.parse(JSON.stringify(cell));
+        clonedCell.metadata = clonedCell.metadata || {};
+        clonedCell.metadata.sublesson_file = file;
         combinedCells.push(clonedCell);
       });
     } catch (err) {
@@ -124,13 +126,26 @@ function bundleChapter(cfg) {
   };
 }
 
-console.log('🚀 Memulai Sinkronisasi dan Penggabungan Notebook per Bab...\n');
+export function bundleAll(verbose = true) {
+  if (verbose) console.log('🚀 Memulai Sinkronisasi dan Penggabungan Notebook per Bab...\n');
 
-const results = [];
-for (const cfg of CHAPTER_CONFIGS) {
-  const res = bundleChapter(cfg);
-  if (res) results.push(res);
+  const results = [];
+  for (const cfg of CHAPTER_CONFIGS) {
+    const res = bundleChapter(cfg);
+    if (res) results.push(res);
+  }
+
+  if (verbose) {
+    console.table(results);
+    console.log('\n✨ Semua file notebook bab lengkap berhasil disinkronkan 100% dari submateri!');
+  }
+  return results;
 }
 
-console.table(results);
-console.log('\n✨ Semua file notebook bab lengkap berhasil disinkronkan 100% dari submateri!');
+export { CHAPTER_CONFIGS, bundleChapter };
+
+// Run if called directly
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  bundleAll(true);
+}
+

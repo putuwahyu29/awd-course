@@ -7,12 +7,16 @@
   },
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "node scripts/sync_notebooks.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "notebooks:sync": "node scripts/sync_notebooks.mjs",
+    "notebooks:bundle": "node scripts/bundle_notebooks.mjs",
+    "notebooks:split": "node scripts/split_notebooks.mjs",
+    "notebooks:watch": "node scripts/watch_notebooks.mjs",
     "notebooks:run": "node scripts/execute_notebooks.mjs",
     "notebooks:clear": "node scripts/execute_notebooks.mjs --clear",
-    "notebooks:bundle": "node scripts/bundle_notebooks.mjs",
     "generate:docs": "node scripts/generate_module_pdfs.mjs"
   },
   "dependencies": {
