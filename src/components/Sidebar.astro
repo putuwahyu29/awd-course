@@ -1,4 +1,6 @@
 ---
+import { getChapterSlugs } from '../lib/chapters';
+
 interface LessonItem {
   id: string;
   data: {
@@ -42,24 +44,6 @@ lessons
 
 const chapters = Array.from(chaptersMap.entries());
 
-const chapterNotebookMap: Record<string, Record<number, string>> = {
-  'python-data-science': {
-    0: '/notebooks/python-data-science/bab-1-dasar-pemrograman-python-lengkap.ipynb',
-    1: '/notebooks/python-data-science/bab-2-package-data-science-lengkap.ipynb',
-    2: '/notebooks/python-data-science/bab-3-analisis-data-eksploratif-lengkap.ipynb',
-  }
-};
-
-function getChapterNotebook(chIdx: number, chLessons: LessonItem[]): string | null {
-  if (chapterNotebookMap[course.id]?.[chIdx]) {
-    return chapterNotebookMap[course.id][chIdx];
-  }
-  const lessonWithNotebook = chLessons.find((l) => l.data.ipynbFile);
-  if (lessonWithNotebook?.data.ipynbFile) {
-    return lessonWithNotebook.data.ipynbFile;
-  }
-  return null;
-}
 ---
 
 <!-- Backdrop overlay for mobile drawer -->
@@ -99,48 +83,26 @@ function getChapterNotebook(chIdx: number, chLessons: LessonItem[]): string | nu
   </div>
 
   <div class="sidebar-nav-content">
-    {chapters.map(([chapterTitle, chapterLessons], chIdx) => (
-      <div class="chapter-group">
-        <div class="chapter-title">
-          <div class="chapter-title-left">
-            <span class="chapter-num">{chIdx + 1}</span>
-            <span class="chapter-text">{chapterTitle}</span>
+    {chapters.map(([chapterTitle, chapterLessons], chIdx) => {
+      const { fullSlug } = getChapterSlugs(chapterTitle, chIdx);
+      const chapterUrl = `/courses/${course.id}/chapters/${fullSlug}`;
+      const isChapterActive = chapterLessons.some((l) => l.id === activeLessonSlug);
+
+      return (
+        <div class="chapter-group">
+          <div class={`chapter-header ${isChapterActive ? 'is-active-chapter' : ''}`}>
+            <a
+              href={chapterUrl}
+              class="chapter-title-link"
+              title={`Buka Rangkuman & Sumber Daya: ${chapterTitle}`}
+            >
+              <span class="chapter-num">{chIdx + 1}</span>
+              <span class="chapter-text">{chapterTitle}</span>
+              <svg class="chapter-arrow" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                <polyline points="9 18 15 12 9 6"></polyline>
+              </svg>
+            </a>
           </div>
-          {(() => {
-            const nbUrl = getChapterNotebook(chIdx, chapterLessons);
-            if (!nbUrl) return null;
-            const colabUrl = `https://colab.research.google.com/github/putuwahyu29/awd-course/blob/main/public${nbUrl}`;
-            return (
-              <div class="chapter-actions-right">
-                <a
-                  href={colabUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="chapter-action-badge chapter-colab-icon-btn"
-                  title={`Buka Seluruh Materi Bab ${chIdx + 1} di Google Colab`}
-                >
-                  <svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor" aria-hidden="true">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                  </svg>
-                  <span>Colab</span>
-                </a>
-                <a
-                  href={nbUrl}
-                  download
-                  class="chapter-action-badge chapter-download-icon-btn"
-                  title={`Unduh Seluruh Kode Bab ${chIdx + 1} (.ipynb)`}
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="10" height="10" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  <span>.ipynb</span>
-                </a>
-              </div>
-            );
-          })()}
-        </div>
 
         <ul class="lesson-list">
           {chapterLessons.map((lesson) => {
@@ -197,8 +159,9 @@ function getChapterNotebook(chIdx: number, chLessons: LessonItem[]): string | nu
           })}
         </ul>
       </div>
-    ))}
-  </div>
+    );
+  })}
+</div>
 </aside>
 
 <script>
@@ -453,93 +416,89 @@ function getChapterNotebook(chIdx: number, chLessons: LessonItem[]): string | nu
   }
 
   .chapter-group {
-    margin-bottom: 1rem;
+    margin-bottom: 1.15rem;
   }
 
-  .chapter-title {
+  .chapter-header {
+    padding: 0.2rem 0.65rem;
+  }
+
+  .chapter-title-link {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.4rem 1rem 0.4rem 1.25rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-subtle);
-    gap: 0.5rem;
-  }
-
-  .chapter-title-left {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    overflow: hidden;
-    flex: 1;
-    min-width: 0;
-  }
-
-  .chapter-text {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .chapter-actions-right {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    flex-shrink: 0;
-  }
-
-  .chapter-action-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.15rem 0.42rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.65rem;
-    font-weight: 700;
+    align-items: flex-start;
+    gap: 0.55rem;
+    padding: 0.45rem 0.6rem;
+    border-radius: var(--radius-md);
     text-decoration: none;
-    text-transform: none;
-    letter-spacing: normal;
+    color: var(--text-muted);
     transition: all 0.15s ease;
   }
 
-  .chapter-colab-icon-btn {
-    background-color: rgba(245, 158, 11, 0.12);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #f59e0b;
-  }
-
-  .chapter-colab-icon-btn:hover {
-    background-color: #f59e0b;
-    border-color: #f59e0b;
-    color: #ffffff;
-    box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
-  }
-
-  .chapter-download-icon-btn {
+  .chapter-title-link:hover {
     background-color: var(--bg-surface-elevated);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-muted);
-  }
-
-  .chapter-download-icon-btn:hover {
-    background-color: var(--primary);
-    color: #ffffff;
-    border-color: var(--primary);
+    color: var(--primary);
   }
 
   .chapter-num {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
     background-color: var(--bg-surface-elevated);
-    font-size: 0.68rem;
+    border: 1px solid var(--border-subtle);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-subtle);
     flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.15s ease;
+  }
+
+  .chapter-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  .chapter-arrow {
+    flex-shrink: 0;
+    margin-top: 2px;
+    opacity: 0.35;
+    transition: transform 0.15s ease, opacity 0.15s ease, color 0.15s ease;
+  }
+
+  .chapter-title-link:hover .chapter-arrow {
+    opacity: 1;
+    transform: translateX(2px);
+    color: var(--primary);
+  }
+
+  .chapter-title-link:hover .chapter-num {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: #ffffff;
+  }
+
+  .is-active-chapter .chapter-title-link {
+    color: var(--primary);
+  }
+
+  .is-active-chapter .chapter-num {
+    background-color: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: var(--primary);
+  }
+
+  .is-active-chapter .chapter-arrow {
+    opacity: 0.8;
+    color: var(--primary);
   }
 
   .lesson-list {

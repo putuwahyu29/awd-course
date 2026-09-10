@@ -647,6 +647,33 @@ async function main() {
     console.warn('Notebook Bab 2 tidak ditemukan di:', bab2NbPath);
   }
 
+  // 3. Bab 3: Analisis Data Eksploratif (EDA)
+  const bab3NbPath = path.join(
+    rootDir,
+    'public',
+    'notebooks',
+    'python-data-science',
+    'bab-3-analisis-data-eksploratif-lengkap.ipynb'
+  );
+  if (fs.existsSync(bab3NbPath)) {
+    console.log('\n[3/3] Menyusun Dokumen Bab 3: Analisis Data Eksploratif (EDA)...');
+    const bab3Html = parseNotebookToHtml(
+      bab3NbPath,
+      'Analisis Data Eksploratif (EDA) dengan Python',
+      'Panduan komprehensif inspeksi struktur data (head, tail, info), kalkulasi statistik deskriptif mean/median/std, visualisasi distribusi histogram dan scatter plot, serta teknik seleksi data dan boolean indexing.',
+      3
+    );
+    const bab3HtmlFile = path.join(scratchDir, 'modul_bab3_rendered.html');
+    fs.writeFileSync(bab3HtmlFile, bab3Html, 'utf8');
+
+    const bab3PdfOut = path.join(docsDir, 'analisis-data-eksploratif.pdf');
+    await exportHtmlToPdf(bab3HtmlFile, bab3PdfOut);
+    const size3 = (fs.statSync(bab3PdfOut).size / 1024).toFixed(1);
+    console.log(`✓ Berhasil dibuat: ${bab3PdfOut} (${size3} KB)`);
+  } else {
+    console.warn('Notebook Bab 3 tidak ditemukan di:', bab3NbPath);
+  }
+
   console.log('\n=== Semua Modul Dokumen PDF Berhasil Dibuat Secara Otomatis! ===');
 }
 

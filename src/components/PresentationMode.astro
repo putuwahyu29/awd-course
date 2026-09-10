@@ -306,8 +306,12 @@ const { course, currentLesson } = Astro.props;
     const helpBtn = document.getElementById('pres-help-btn');
     const closeHelpBtn = document.getElementById('pres-close-help-btn');
     const fsBtn = document.getElementById('pres-fullscreen-btn');
-
     if (!modal || !track) return;
+
+    // Ensure modal is attached directly to document.body so print and fullscreen styling never get blocked by parent containers
+    if (modal.parentElement !== document.body) {
+      document.body.appendChild(modal);
+    }
 
     let slides: HTMLElement[] = [];
     let currentIndex = 0;
@@ -880,6 +884,9 @@ const { course, currentLesson } = Astro.props;
 
     // 4. Open and Close Presentation Mode
     function openPresentation() {
+      if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
       syncInitialTheme();
       generateSlides();
       modal?.classList.remove('hidden');
@@ -1019,6 +1026,9 @@ const { course, currentLesson } = Astro.props;
 
     function exportPresentationToPdf() {
       if (!modal || !track) return;
+      if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
       if (slides.length === 0) {
         generateSlides();
       }
@@ -1101,6 +1111,9 @@ const { course, currentLesson } = Astro.props;
 
     // Global print listeners: ensures presentation slides print cleanly whether via button, Ctrl+P, or browser menu
     window.addEventListener('beforeprint', () => {
+      if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
       if (slides.length === 0) {
         generateSlides();
       }
@@ -1280,6 +1293,10 @@ const { course, currentLesson } = Astro.props;
     // Global trigger button listener from page
     document.querySelectorAll('.btn-trigger-presentation').forEach((btn) => {
       btn.addEventListener('click', openPresentation);
+    });
+
+    document.querySelectorAll('.btn-trigger-export-pdf').forEach((btn) => {
+      btn.addEventListener('click', exportPresentationToPdf);
     });
   }
 
@@ -2228,12 +2245,22 @@ const { course, currentLesson } = Astro.props;
     }
 
     /* Hide outer site elements when exporting presentation */
-    :global(body > *:not(#presentation-mode-modal)) {
+    :global(body > *:not(#presentation-mode-modal):not(:has(#presentation-mode-modal))) {
       display: none !important;
     }
 
-    :global(.reader-body > *:not(#presentation-mode-modal)) {
+    :global(.reader-body > *:not(#presentation-mode-modal):not(:has(#presentation-mode-modal))) {
       display: none !important;
+    }
+
+    :global(main:has(#presentation-mode-modal)),
+    :global(.chapter-page-root:has(#presentation-mode-modal)) {
+      display: block !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
     }
 
     :global(#presentation-mode-modal),

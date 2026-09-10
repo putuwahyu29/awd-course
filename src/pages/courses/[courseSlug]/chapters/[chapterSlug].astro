@@ -1,0 +1,1148 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import PresentationMode from '../../../../components/PresentationMode.astro';
+import JupyterNotebookViewer from '../../../../components/mdx/JupyterNotebookViewer.astro';
+import { getCollection, render } from 'astro:content';
+import { groupLessonsByChapter, type ChapterGroup } from '../../../../lib/chapters';
+import fs from 'node:fs';
+import path from 'node:path';
+
+export async function getStaticPaths() {
+  const allCourses = await getCollection('courses');
+  const allLessons = await getCollection('lessons');
+
+  const publishedCourses = allCourses.filter(
+    (c) => c.data.isPublished && c.data.status !== 'draft'
+  );
+  const publishedLessons = allLessons.filter((l) => l.data.isPublished !== false);
+
+  const paths: any[] = [];
+
+  publishedCourses.forEach((course) => {
+    const courseLessons = publishedLessons
+      .filter((l) => l.data.courseSlug === course.id)
+      .sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
+
+    const chapterGroups = groupLessonsByChapter(course.id, courseLessons);
+
+    chapterGroups.forEach((chapter, chIdx) => {
+      const prevChapter = chIdx > 0 ? chapterGroups[chIdx - 1] : null;
+      const nextChapter = chIdx < chapterGroups.length - 1 ? chapterGroups[chIdx + 1] : null;
+
+      // 1. Full slug path (SEO friendly)
+      paths.push({
+        params: {
+          courseSlug: course.id,
+          chapterSlug: chapter.fullSlug,
+        },
+        props: {
+          course,
+          chapter,
+          allChapters: chapterGroups,
+          prevChapter,
+          nextChapter,
+          courseLessons,
+        },
+      });
+
+      // 2. Short slug path (e.g. bab-1)
+      if (chapter.shortSlug && chapter.shortSlug !== chapter.fullSlug) {
+        paths.push({
+          params: {
+            courseSlug: course.id,
+            chapterSlug: chapter.shortSlug,
+          },
+          props: {
+            course,
+            chapter,
+            allChapters: chapterGroups,
+            prevChapter,
+            nextChapter,
+            courseLessons,
+          },
+        });
+      }
+    });
+  });
+
+  return paths;
+}
+
+interface Props {
+  course: any;
+  chapter: ChapterGroup;
+  allChapters: ChapterGroup[];
+  prevChapter: ChapterGroup | null;
+  nextChapter: ChapterGroup | null;
+  courseLessons: any[];
+}
+
+const { course, chapter, allChapters, prevChapter, nextChapter, courseLessons } = Astro.props;
+
+// Render sub-lessons if chapter does not have a dedicated notebook file
+const hasDedicatedNotebook = Boolean(
+  chapter.notebookInfo?.url && fs.existsSync(path.resolve(process.cwd(), 'public' + chapter.notebookInfo.url))
+);
+
+let renderedLessons: Array<{ lesson: any; Content: any }> = [];
+if (!hasDedicatedNotebook) {
+  renderedLessons = await Promise.all(
+    chapter.lessons.map(async (l) => {
+      const { Content } = await render(l);
+      return { lesson: l, Content };
+    })
+  );
+}
+
+const firstLesson = chapter.lessons.length > 0 ? chapter.lessons[0] : null;
+const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInfo.url}` : '';
+---
+
+<BaseLayout
+  title={`${chapter.title} - ${course.data.title}`}
+  description={`Halaman panduan lengkap ${chapter.title} dalam kursus ${course.data.title}. Pelajari seluruh submateri, buka notebook di Google Colab, jalankan mode presentasi interaktif, dan ekspor slide ke PDF.`}
+>
+  <div class="chapter-page-root">
+    <!-- Hero Header Banner -->
+    <header class="chapter-hero">
+      <div class="container">
+        <!-- Breadcrumb Navigation -->
+        <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+          <a href="/" class="crumb-link">Beranda</a>
+          <span class="crumb-sep">/</span>
+          <a href="/courses" class="crumb-link">Katalog Kursus</a>
+          <span class="crumb-sep">/</span>
+          <a href={`/courses/${course.id}`} class="crumb-link">{course.data.title}</a>
+          <span class="crumb-sep">/</span>
+          <span class="crumb-current">Bab {chapter.index + 1}</span>
+        </nav>
+
+        <div class="chapter-hero-grid">
+          <div class="chapter-hero-main">
+            <!-- Badges Row -->
+            <div class="chapter-badge-row">
+              <span class="badge badge-primary pres-course-badge">{course.data.title}</span>
+              <span class="badge badge-indigo">Bab {chapter.index + 1} dari {allChapters.length}</span>
+              <span class="badge badge-slate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                {chapter.totalDuration}
+              </span>
+              <span class="badge badge-slate">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+                {chapter.lessons.length} Submateri
+              </span>
+            </div>
+
+            <!-- Chapter Main Title -->
+            <h1 class="chapter-title lesson-title">{chapter.title}</h1>
+            <p class="chapter-description">
+              Halaman khusus Bab {chapter.index + 1}. Akses silabus lengkap submateri, jalankan notebook kompilasi interaktif di Google Colab, buka Mode Presentasi satu bab penuh dengan eksekusi kode live, dan ekspor slide ke PDF.
+            </p>
+
+            <!-- Unified Clean Chapter Actions Cluster -->
+            <div class="chapter-actions-cluster">
+              <!-- Tier 1: Primary Learning & Presentation CTAs -->
+              <div class="primary-actions-row">
+                {firstLesson && (
+                  <a
+                    href={`/courses/${course.id}/${firstLesson.id}`}
+                    class="btn btn-primary btn-md start-learning-btn"
+                    title={`Mulai Belajar Submateri 1: ${firstLesson.data.title}`}
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14" aria-hidden="true">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>Mulai Belajar Bab Ini</span>
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-md btn-trigger-presentation pres-launch-btn"
+                  title="Buka Mode Presentasi Layar Penuh (Shortcut: Tekan P)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" aria-hidden="true">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                    <line x1="8" y1="21" x2="16" y2="21"></line>
+                    <line x1="12" y1="17" x2="12" y2="21"></line>
+                  </svg>
+                  <span>Mode Presentasi</span>
+                  <kbd class="pres-key-pill">P</kbd>
+                </button>
+              </div>
+
+              <!-- Tier 2: Compact Secondary Resource Pills -->
+              <div class="resource-pills-bar">
+                <span class="resource-pills-label">Akses Cepat:</span>
+
+                {chapter.notebookInfo && (
+                  <a
+                    href={chapter.notebookInfo.colabUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="resource-chip"
+                    title="Buka Seluruh Materi Bab di Google Colab"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" aria-hidden="true">
+                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>Google Colab</span>
+                  </a>
+                )}
+
+                {chapter.notebookInfo && (
+                  <a
+                    href={chapter.notebookInfo.url}
+                    download
+                    class="resource-chip"
+                    title="Unduh Seluruh Kode Praktik Bab Ini (.ipynb)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>Unduh Notebook</span>
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  class="resource-chip btn-trigger-export-pdf"
+                  title="Ekspor Seluruh Slide Presentasi Bab ke Format PDF Siap Cetak (Shortcut: Tekan E)"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <polyline points="9 15 12 18 15 15"></polyline>
+                  </svg>
+                  <span>Ekspor Slide (PDF)</span>
+                </button>
+
+                {chapter.notebookInfo?.pdfUrl && (
+                  <a
+                    href={chapter.notebookInfo.pdfUrl}
+                    target="_blank"
+                    class="resource-chip"
+                    title="Buka Dokumen Modul Bacaan Teknis PDF Resmi"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                    </svg>
+                    <span>Modul Bacaan (PDF)</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <!-- Hero Meta Info Card -->
+          <div class="chapter-hero-meta">
+            <div class="card meta-info-card">
+              <div class="instructor-box">
+                <span class="instructor-label">Pemateri & Penyusun:</span>
+                <strong class="instructor-name inst-name">{course.data.instructor || 'I Putu Agus Wahyu Dupayana'}</strong>
+                <span class="instructor-role">{course.data.instructorRole || 'Software Engineer'}</span>
+              </div>
+
+              <div class="chapter-specs-grid">
+                <div class="spec-tile">
+                  <span class="spec-tile-label">Submateri</span>
+                  <strong class="spec-tile-value">{chapter.lessons.length} Modul</strong>
+                </div>
+                <div class="spec-tile">
+                  <span class="spec-tile-label">Estimasi Waktu</span>
+                  <strong class="spec-tile-value">{chapter.totalDuration}</strong>
+                </div>
+                <div class="spec-tile">
+                  <span class="spec-tile-label">Format Materi</span>
+                  <strong class="spec-tile-value">{hasDedicatedNotebook ? 'Jupyter & Slide' : 'Modul Web & Slide'}</strong>
+                </div>
+                <div class="spec-tile">
+                  <span class="spec-tile-label">Status Bab</span>
+                  <strong class="spec-tile-value text-emerald">Aktif & Lengkap</strong>
+                </div>
+              </div>
+
+              <!-- Chapter Progress Widget -->
+              <div class="chapter-progress-box">
+                <div class="progress-box-top">
+                  <span class="progress-box-label">Progres Anda di Bab Ini</span>
+                  <span class="progress-box-percent" id="chapter-progress-text">0%</span>
+                </div>
+                <div class="progress-box-track">
+                  <div class="progress-box-fill" id="chapter-progress-fill" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="chapter-main-container">
+      <div class="container">
+        <!-- Section 1: Submateri Curriculum Grid -->
+        <section class="chapter-section curriculum-section" id="submateri">
+          <div class="section-title-wrap">
+            <div class="section-badge-chip">Silabus Bab</div>
+            <h2 class="section-title">Daftar Submateri Bab {chapter.index + 1}</h2>
+            <p class="section-sub">Pelajari setiap konsep, panduan sintaksis, modul teori, serta studi kasus praktik secara bertahap.</p>
+          </div>
+
+          <div class="lessons-grid">
+            {chapter.lessons.map((l, lIdx) => {
+              const lessonNum = `${chapter.index + 1}.${lIdx + 1}`;
+              const isVideo = l.data.contentType === 'video';
+              const isPdf = l.data.contentType === 'pdf';
+              const isAssignment = l.data.contentType === 'assignment';
+              const isQuiz = l.data.contentType === 'quiz';
+              const isNotebook = Boolean(l.data.ipynbFile);
+
+              return (
+                <div class="card lesson-sub-card" data-lesson-id={l.id} data-course-id={course.id}>
+                  <div class="card-head">
+                    <span class="lesson-num-badge">{lessonNum}</span>
+                    <div class="card-type-tags">
+                      {isNotebook && <span class="type-tag tag-cyan">Jupyter Notebook</span>}
+                      {isVideo && <span class="type-tag tag-rose">Video Tutorial</span>}
+                      {isPdf && <span class="type-tag tag-amber">Modul PDF</span>}
+                      {isAssignment && <span class="type-tag tag-amber">Tugas Praktik</span>}
+                      {isQuiz && <span class="type-tag tag-purple">Kuis Evaluasi</span>}
+                      {!isVideo && !isPdf && !isAssignment && !isQuiz && !isNotebook && (
+                        <span class="type-tag tag-indigo">Modul Teori</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div class="card-body">
+                    <h3 class="lesson-card-title">
+                      <a href={`/courses/${course.id}/${l.id}`} class="lesson-title-link">
+                        {l.data.title}
+                      </a>
+                    </h3>
+                  </div>
+
+                  <div class="card-footer">
+                    <div class="footer-left">
+                      <span class="duration-item">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>{l.data.duration}</span>
+                      </span>
+
+                      <span class="completion-pill status-uncompleted" data-status-for={l.id}>
+                        <span class="status-dot"></span>
+                        <span class="status-text">Belum Selesai</span>
+                      </span>
+                    </div>
+
+                    <a href={`/courses/${course.id}/${l.id}`} class="btn btn-outline btn-sm enter-lesson-btn">
+                      <span>Buka</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <!-- Section 2: Full Chapter Content & Interactive Stream (Data Source for Presentation Mode) -->
+        <section class="chapter-section interactive-stream-section" id="materi-lengkap">
+          <div class="section-title-wrap">
+            <div class="section-badge-chip">Pratinjau Komprehensif</div>
+            <h2 class="section-title">Konten & Kode Praktik Bab Penuh</h2>
+            <p class="section-sub">
+              {hasDedicatedNotebook
+                ? 'Notebook kompilasi interaktif yang mencakup seluruh konsep, sintaksis, dan blok kode pada Bab ini. Anda dapat mencoba mengeksekusi kode secara live atau menekan tombol Mode Presentasi di atas.'
+                : 'Kumpulan submateri Bab terintegrasi untuk membaca dan mempresentasikan seluruh materi bab secara utuh.'}
+            </p>
+          </div>
+
+          <!-- Hidden container to bridge content with PresentationMode engine -->
+          <div class="lesson-article-wrapper">
+            <article class="prose lesson-body">
+              {hasDedicatedNotebook ? (
+                <JupyterNotebookViewer
+                  notebookPath={notebookRelPath}
+                  title={chapter.title}
+                  colabUrl={chapter.notebookInfo?.colabUrl}
+                />
+              ) : (
+                <div class="chapter-rendered-lessons">
+                  {renderedLessons.map(({ lesson, Content }, lIdx) => (
+                    <div class="sublesson-rendered-block" id={`section-${lesson.id}`}>
+                      <div class="sublesson-rendered-header">
+                        <span class="sublesson-header-pill">Submateri {chapter.index + 1}.{lIdx + 1}</span>
+                        <h2 class="sublesson-header-title">{lesson.data.title}</h2>
+                        <span class="sublesson-header-duration">{lesson.data.duration}</span>
+                      </div>
+                      <div class="sublesson-rendered-body">
+                        <Content />
+                      </div>
+                      <hr class="sublesson-divider" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 3: Chapter Navigation Footer -->
+        <nav class="chapter-bottom-nav" aria-label="Navigasi Antar Bab">
+          <div class="nav-direction-box">
+            {prevChapter ? (
+              <a href={`/courses/${course.id}/chapters/${prevChapter.fullSlug}`} class="nav-ch-card prev-ch-card">
+                <div class="nav-ch-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </div>
+                <div class="nav-ch-info">
+                  <span class="nav-ch-sub">Bab Sebelumnya (Bab {prevChapter.index + 1})</span>
+                  <strong class="nav-ch-title">{prevChapter.title}</strong>
+                </div>
+              </a>
+            ) : (
+              <a href={`/courses/${course.id}`} class="nav-ch-card prev-ch-card back-syllabus">
+                <div class="nav-ch-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </div>
+                <div class="nav-ch-info">
+                  <span class="nav-ch-sub">Kembali ke Menu Utama</span>
+                  <strong class="nav-ch-title">Silabus Lengkap Kursus</strong>
+                </div>
+              </a>
+            )}
+          </div>
+
+          <div class="nav-direction-box">
+            {nextChapter ? (
+              <a href={`/courses/${course.id}/chapters/${nextChapter.fullSlug}`} class="nav-ch-card next-ch-card">
+                <div class="nav-ch-info text-right">
+                  <span class="nav-ch-sub">Bab Selanjutnya (Bab {nextChapter.index + 1})</span>
+                  <strong class="nav-ch-title">{nextChapter.title}</strong>
+                </div>
+                <div class="nav-ch-icon icon-primary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </div>
+              </a>
+            ) : (
+              <a href={`/courses/${course.id}`} class="nav-ch-card next-ch-card finish-ch">
+                <div class="nav-ch-info text-right">
+                  <span class="nav-ch-sub">Selesai Bab Ini</span>
+                  <strong class="nav-ch-title">Kembali ke Silabus Kursus</strong>
+                </div>
+                <div class="nav-ch-icon icon-emerald">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+              </a>
+            )}
+          </div>
+        </nav>
+      </div>
+    </main>
+
+    <!-- Presentation Mode Interactive Engine -->
+    <PresentationMode
+      course={course}
+      currentLesson={{
+        id: chapter.shortSlug,
+        data: {
+          title: chapter.title,
+          chapter: `Bab ${chapter.index + 1}`,
+          duration: chapter.totalDuration,
+          contentType: 'text',
+        },
+      }}
+    />
+  </div>
+
+  <!-- Client-Side Progress & Interactivity Script -->
+  <script is:inline define:vars={{ lessonIds: chapter.lessons.map((l: any) => l.id), courseId: course.id }}>
+    function syncChapterProgress() {
+      try {
+        const raw = localStorage.getItem('awd_course_progress');
+        const progressMap = raw ? JSON.parse(raw) : {};
+        const courseMap = progressMap[courseId] || {};
+
+        let completedCount = 0;
+
+        lessonIds.forEach((id) => {
+          const isDone = Boolean(courseMap[id]);
+          if (isDone) completedCount++;
+
+          const pill = document.querySelector(`[data-status-for="${id}"]`);
+          if (pill) {
+            if (isDone) {
+              pill.classList.remove('status-uncompleted');
+              pill.classList.add('status-completed');
+              const textEl = pill.querySelector('.status-text');
+              if (textEl) textEl.textContent = 'Selesai';
+            } else {
+              pill.classList.remove('status-completed');
+              pill.classList.add('status-uncompleted');
+              const textEl = pill.querySelector('.status-text');
+              if (textEl) textEl.textContent = 'Belum Selesai';
+            }
+          }
+        });
+
+        const total = lessonIds.length;
+        const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+        const textEl = document.getElementById('chapter-progress-text');
+        const fillEl = document.getElementById('chapter-progress-fill');
+
+        if (textEl) textEl.textContent = `${pct}% (${completedCount}/${total} Selesai)`;
+        if (fillEl) fillEl.style.width = `${pct}%`;
+      } catch (e) {
+        console.warn('Progress sync error', e);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', syncChapterProgress);
+    document.addEventListener('astro:page-load', syncChapterProgress);
+    syncChapterProgress();
+  </script>
+</BaseLayout>
+
+<style>
+  .chapter-page-root {
+    background-color: var(--bg-main);
+    min-height: 100vh;
+  }
+
+  /* Breadcrumb Navigation */
+  .breadcrumb-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .crumb-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .crumb-link:hover {
+    color: var(--primary);
+  }
+
+  .crumb-sep {
+    color: var(--border-medium);
+  }
+
+  .crumb-current {
+    color: var(--text-main);
+    font-weight: 600;
+  }
+
+  /* Chapter Hero Section */
+  .chapter-hero {
+    background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-main) 100%);
+    border-bottom: 1px solid var(--border-light);
+    padding: 2.5rem 0 3rem 0;
+  }
+
+  .chapter-hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 992px) {
+    .chapter-hero-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .chapter-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .badge-indigo {
+    background-color: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  .chapter-title {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1.2;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .chapter-description {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    max-width: 680px;
+    margin-bottom: 2rem;
+  }
+
+  /* Unified Clean Chapter Actions Cluster */
+  .chapter-actions-cluster {
+    display: flex;
+    flex-direction: column;
+    gap: 1.15rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .primary-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+  }
+
+  .start-learning-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.25rem;
+    font-size: 0.925rem;
+    font-weight: 700;
+  }
+
+  .pres-launch-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.65rem 1.15rem;
+    font-size: 0.925rem;
+    font-weight: 600;
+  }
+
+  .pres-key-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 4px;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+  }
+
+  .resource-pills-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .resource-pills-label {
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 0.25rem;
+  }
+
+  .resource-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-main);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .resource-chip:hover {
+    background-color: var(--bg-surface-elevated);
+    border-color: var(--primary);
+    color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .resource-chip svg {
+    color: var(--text-muted);
+    transition: color 0.15s ease;
+  }
+
+  .resource-chip:hover svg {
+    color: var(--primary);
+  }
+
+  /* Hero Meta Info Card */
+  .meta-info-card {
+    padding: 1.5rem;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    border-radius: 12px;
+  }
+
+  .instructor-box {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 1.25rem;
+  }
+
+  .instructor-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+
+  .instructor-name {
+    font-size: 1.05rem;
+    color: var(--text-main);
+    font-weight: 700;
+    margin-top: 0.2rem;
+  }
+
+  .instructor-role {
+    font-size: 0.825rem;
+    color: var(--text-muted);
+  }
+
+  .chapter-specs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .spec-tile {
+    background-color: var(--bg-main);
+    padding: 0.65rem 0.85rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .spec-tile-label {
+    font-size: 0.725rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .spec-tile-value {
+    font-size: 0.885rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-top: 0.15rem;
+  }
+
+  .text-emerald {
+    color: #10b981 !important;
+  }
+
+  .text-rose {
+    color: #f43f5e !important;
+  }
+
+  /* Progress Box */
+  .chapter-progress-box {
+    margin-bottom: 1.25rem;
+  }
+
+  .progress-box-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .progress-box-label {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .progress-box-percent {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  .progress-box-track {
+    height: 6px;
+    background-color: var(--bg-main);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .progress-box-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary) 0%, #38bdf8 100%);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+  }
+
+  .start-first-btn {
+    margin-top: 0.5rem;
+  }
+
+  /* Main Content Section */
+  .chapter-main-container {
+    padding: 3rem 0;
+  }
+
+  .chapter-section {
+    margin-bottom: 4rem;
+  }
+
+  .section-title-wrap {
+    margin-bottom: 2rem;
+  }
+
+  .section-badge-chip {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    background-color: rgba(37, 99, 235, 0.1);
+    color: var(--primary);
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-main);
+    letter-spacing: -0.01em;
+    margin-bottom: 0.4rem;
+  }
+
+  .section-sub {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    max-width: 650px;
+  }
+
+  /* Curriculum Grid */
+  .lessons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .lesson-sub-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.25rem;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background-color: var(--bg-surface);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .lesson-sub-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+  }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+  }
+
+  .lesson-num-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-main);
+    font-family: var(--font-mono);
+  }
+
+  .card-type-tags {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .type-tag {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .tag-cyan {
+    background-color: rgba(6, 182, 212, 0.12);
+    color: #06b6d4;
+  }
+
+  .tag-rose {
+    background-color: rgba(244, 63, 94, 0.12);
+    color: #f43f5e;
+  }
+
+  .tag-amber {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+  }
+
+  .tag-purple {
+    background-color: rgba(168, 85, 247, 0.12);
+    color: #a855f7;
+  }
+
+  .tag-indigo {
+    background-color: rgba(99, 102, 241, 0.12);
+    color: #818cf8;
+  }
+
+  .lesson-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 1.25rem;
+  }
+
+  .lesson-title-link {
+    color: var(--text-main);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .lesson-title-link:hover {
+    color: var(--primary);
+  }
+
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border-light);
+  }
+
+  .footer-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .duration-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.785rem;
+    color: var(--text-muted);
+  }
+
+  .completion-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.725rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 99px;
+  }
+
+  .status-uncompleted {
+    background-color: var(--bg-surface-elevated);
+    color: var(--text-muted);
+  }
+
+  .status-uncompleted .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background-color: var(--border-medium);
+  }
+
+  .status-completed {
+    background-color: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+  }
+
+  .status-completed .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 99px;
+    background-color: #10b981;
+  }
+
+  .enter-lesson-btn {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  /* Sublesson Rendered Stream for non-notebook chapters */
+  .sublesson-rendered-block {
+    margin-bottom: 3rem;
+  }
+
+  .sublesson-rendered-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border-light);
+  }
+
+  .sublesson-header-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary);
+    background-color: rgba(37, 99, 235, 0.1);
+    padding: 0.2rem 0.6rem;
+    border-radius: 99px;
+  }
+
+  .sublesson-header-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-main);
+    margin: 0;
+  }
+
+  .sublesson-header-duration {
+    margin-left: auto;
+    font-size: 0.825rem;
+    color: var(--text-muted);
+  }
+
+  .sublesson-divider {
+    border: 0;
+    border-top: 1px dashed var(--border-medium);
+    margin: 3rem 0;
+  }
+
+  /* Chapter Bottom Navigation */
+  .chapter-bottom-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-light);
+  }
+
+  @media (max-width: 640px) {
+    .chapter-bottom-nav {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .nav-ch-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: 10px;
+    text-decoration: none;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+
+  .nav-ch-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+  }
+
+  .next-ch-card {
+    justify-content: flex-end;
+  }
+
+  .nav-ch-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    background-color: var(--bg-surface-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .icon-primary {
+    background-color: rgba(37, 99, 235, 0.12);
+    color: var(--primary);
+  }
+
+  .icon-emerald {
+    background-color: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+  }
+
+  .nav-ch-info {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nav-ch-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .nav-ch-title {
+    font-size: 0.95rem;
+    color: var(--text-main);
+    margin-top: 0.15rem;
+  }
+
+  .text-right {
+    text-align: right;
+  }
+</style>

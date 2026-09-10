@@ -532,32 +532,50 @@ html:not([data-theme='dark']) .astro-code span {
   nav,
   aside,
   footer,
+  .site-header,
+  .site-footer,
+  .header-container,
   .global-top-progress-track,
   .mobile-reader-bar,
   .course-reader-layout,
   .reader-main,
   .reader-inner,
   .lesson-article-wrapper,
-  .site-header,
-  .header-container,
   #chat-widget-root,
   #search-modal-container,
   .scroll-to-top-btn,
-  #awd-text-ai-tooltip {
+  #awd-text-ai-tooltip,
+  .chapter-hero,
+  .chapter-main-container,
+  .chapter-specs-grid,
+  .chapter-actions-cluster,
+  .chapter-bottom-nav {
     display: none !important;
   }
 
-  body > *:not(#presentation-mode-modal) {
+  /* Do not hide ancestors of #presentation-mode-modal */
+  body > *:not(#presentation-mode-modal):not(:has(#presentation-mode-modal)) {
     display: none !important;
   }
 
-  .reader-body > *:not(#presentation-mode-modal) {
+  .reader-body > *:not(#presentation-mode-modal):not(:has(#presentation-mode-modal)) {
     display: none !important;
+  }
+
+  main:has(#presentation-mode-modal),
+  .chapter-page-root:has(#presentation-mode-modal) {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
 
   /* Make Presentation Mode Modal the sole printed element */
   #presentation-mode-modal,
-  #presentation-mode-modal.hidden {
+  #presentation-mode-modal.hidden,
+  .presentation-modal.pres-exporting-pdf {
     display: block !important;
     position: static !important;
     width: 297mm !important;

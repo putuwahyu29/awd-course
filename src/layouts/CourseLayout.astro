@@ -8,6 +8,7 @@ import PresentationMode from '../components/PresentationMode.astro';
 import ChatWidget from '../components/ChatWidget.astro';
 import SearchModal from '../components/SearchModal.astro';
 import { ClientRouter } from 'astro:transitions';
+import { getChapterSlugs } from '../lib/chapters';
 import '../styles/global.css';
 
 interface Props {
@@ -27,6 +28,8 @@ const nextLesson = currentIndex < sortedLessons.length - 1 ? sortedLessons[curre
 
 // Filter headings for ToC (depth 2 to 4)
 const tocHeadings = headings.filter((h) => h.depth >= 2 && h.depth <= 4);
+
+const { fullSlug: chapterSlug } = getChapterSlugs(currentLesson.data.chapter || 'Bab 1', 0);
 
 function formatIndonesianDate(dateStr?: string): string {
   if (!dateStr) return '20 Agu 2026';
@@ -226,7 +229,9 @@ const jsonLdBreadcrumbs = {
               <span class="crumb-sep">/</span>
               <a href={`/courses/${course.id}`}>{course.data.title}</a>
               <span class="crumb-sep">/</span>
-              <span class="current-crumb">{currentLesson.data.chapter}</span>
+              <a href={`/courses/${course.id}/chapters/${chapterSlug}`} class="crumb-link crumb-chapter-link" title={`Buka Halaman Khusus & Mode Presentasi ${currentLesson.data.chapter}`}>{currentLesson.data.chapter}</a>
+              <span class="crumb-sep">/</span>
+              <span class="current-crumb">{currentLesson.data.title}</span>
             </nav>
 
             <header class="lesson-header">
@@ -947,6 +952,35 @@ const jsonLdBreadcrumbs = {
 </html>
 
 <style>
+  .reader-breadcrumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .reader-breadcrumbs a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .reader-breadcrumbs a:hover {
+    color: var(--primary);
+  }
+
+  .reader-breadcrumbs .crumb-sep {
+    color: var(--border-medium);
+  }
+
+  .reader-breadcrumbs .current-crumb {
+    color: var(--text-main);
+    font-weight: 600;
+  }
+
   /* In-Lesson AI Assistant Box (Refined, Modern & Clean) */
   .lesson-ai-action-box {
     margin: 1.5rem 0 2rem 0;

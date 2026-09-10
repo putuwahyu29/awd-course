@@ -6,6 +6,7 @@ import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
 
 import sitemap from '@astrojs/sitemap';
+import keystatic from '@keystatic/astro';
 
 // https://astro.build/config
 export default defineConfig({
@@ -16,6 +17,7 @@ export default defineConfig({
   integrations: [
     react(),
     mdx(),
+    keystatic(),
     sitemap({
       filter: (page) => !page.includes('/keystatic') && !page.includes('/api/'),
     }),

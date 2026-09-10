@@ -59,6 +59,8 @@ export default config({
             { label: 'Menengah (Intermediate)', value: 'Menengah' },
             { label: 'Mahir (Advanced)', value: 'Mahir' },
             { label: 'Semua Tingkat (All Levels)', value: 'Semua Tingkat' },
+            { label: 'Pemula hingga Menengah', value: 'Pemula hingga Menengah' },
+            { label: 'Pemula hingga Mahir', value: 'Pemula hingga Mahir' },
           ],
           defaultValue: 'Pemula',
         }),

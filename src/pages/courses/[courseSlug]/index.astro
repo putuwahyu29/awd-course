@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { getCollection } from 'astro:content';
+import { getChapterSlugs } from '../../../lib/chapters';
 
 export async function getStaticPaths() {
   const allCourses = await getCollection('courses');
@@ -56,28 +57,6 @@ lessons.forEach((l) => {
 
 const chapters = Array.from(chaptersMap.entries());
 const firstLesson = lessons.length > 0 ? lessons[0] : null;
-
-const chapterNotebookLinks: Record<string, Record<number, { title: string; url: string }>> = {
-  'python-data-science': {
-    0: { title: 'Notebook Bab 1 Lengkap (.ipynb)', url: '/notebooks/python-data-science/bab-1-dasar-pemrograman-python-lengkap.ipynb' },
-    1: { title: 'Notebook Bab 2 Lengkap (.ipynb)', url: '/notebooks/python-data-science/bab-2-package-data-science-lengkap.ipynb' },
-    2: { title: 'Notebook Bab 3 Lengkap (.ipynb)', url: '/notebooks/python-data-science/bab-3-analisis-data-eksploratif-lengkap.ipynb' },
-  }
-};
-
-function getChapterNotebookLink(courseId: string, chIdx: number, chLessons: typeof lessons): { title: string; url: string } | null {
-  if (chapterNotebookLinks[courseId]?.[chIdx]) {
-    return chapterNotebookLinks[courseId][chIdx];
-  }
-  const lessonWithNotebook = chLessons.find((l) => l.data.ipynbFile);
-  if (lessonWithNotebook?.data.ipynbFile) {
-    return {
-      title: `Notebook Bab ${chIdx + 1} (.ipynb)`,
-      url: lessonWithNotebook.data.ipynbFile,
-    };
-  }
-  return null;
-}
 
 function formatIndonesianDate(dateStr?: string): string {
   if (!dateStr) return '20 Agustus 2026';
@@ -233,47 +212,36 @@ const formattedDate = formatIndonesianDate(updatedAt);
           {chapters.map(([chapterTitle, chapterLessons], chIdx) => (
             <div class="chapter-block card">
               <div class="chapter-bar">
-                <div class="chapter-title-group">
-                  <span class="chapter-number-pill">Bab {chIdx + 1}</span>
-                  <h3 class="chapter-heading-text">{chapterTitle}</h3>
-                </div>
-                <div class="chapter-bar-actions">
-                  {(() => {
-                    const nbInfo = getChapterNotebookLink(course.id, chIdx, chapterLessons);
-                    if (!nbInfo) return null;
-                    const colabUrl = `https://colab.research.google.com/github/putuwahyu29/awd-course/blob/main/public${nbInfo.url}`;
-                    return (
-                      <div class="chapter-actions-group">
-                        <a
-                          href={colabUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="btn btn-outline btn-sm chapter-colab-link"
-                          title={`Buka Seluruh Materi Bab ${chIdx + 1} di Google Colab`}
-                        >
-                          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" aria-hidden="true">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                          </svg>
-                          <span>Buka Bab di Colab</span>
-                        </a>
+                {(() => {
+                  const { fullSlug } = getChapterSlugs(chapterTitle, chIdx);
+                  const chapterUrl = `/courses/${course.id}/chapters/${fullSlug}`;
 
+                  return (
+                    <>
+                      <div class="chapter-title-group">
+                        <span class="chapter-number-pill">Bab {chIdx + 1}</span>
+                        <h3 class="chapter-heading-text">
+                          <a href={chapterUrl} class="chapter-heading-link" title={`Buka Halaman Bab & Mode Presentasi Bab ${chIdx + 1}`}>
+                            {chapterTitle}
+                          </a>
+                        </h3>
+                        <span class="chapter-sub-count">{chapterLessons.length} Modul</span>
+                      </div>
+                      <div class="chapter-bar-actions">
                         <a
-                          href={nbInfo.url}
-                          download
-                          class="btn btn-secondary btn-sm chapter-download-btn"
-                          title={`Unduh Seluruh Kode Praktik Bab ${chIdx + 1} (.ipynb)`}
+                          href={chapterUrl}
+                          class="chapter-enter-btn"
+                          title={`Buka Halaman Bab, Mode Presentasi, & Sumber Daya Bab ${chIdx + 1}`}
                         >
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                          <span>Buka Bab</span>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14" aria-hidden="true">
+                            <polyline points="9 18 15 12 9 6"></polyline>
                           </svg>
-                          <span>Unduh Bab {chIdx + 1} (.ipynb)</span>
                         </a>
                       </div>
-                    );
-                  })()}
-                </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <div class="lessons-table">
@@ -333,6 +301,20 @@ const formattedDate = formatIndonesianDate(updatedAt);
               </div>
             </div>
           ))}
+
+          {course.id === 'python-data-science' && (
+            <div class="chapter-block card chapter-block-upcoming">
+              <div class="chapter-bar">
+                <div class="chapter-title-group">
+                  <span class="chapter-number-pill pill-upcoming">Bab 3</span>
+                  <h3 class="chapter-heading-text chapter-heading-upcoming">
+                    Bab 3: Analisis Data Eksploratif (EDA)
+                  </h3>
+                  <span class="chapter-sub-count badge-soon">Segera Hadir</span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>
@@ -765,6 +747,80 @@ const formattedDate = formatIndonesianDate(updatedAt);
     justify-content: center;
     color: var(--text-subtle);
     transition: transform 0.15s ease, color 0.15s ease;
+  }
+
+  .chapter-heading-link {
+    color: var(--text-main);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .chapter-heading-link:hover {
+    color: var(--primary);
+  }
+
+  .chapter-sub-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background-color: var(--bg-surface-elevated);
+    padding: 0.15rem 0.5rem;
+    border-radius: 99px;
+    border: 1px solid var(--border-subtle);
+    font-weight: 500;
+  }
+
+  .chapter-enter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--primary);
+    background-color: var(--primary-light);
+    border: 1px solid var(--primary-border);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .chapter-enter-btn:hover {
+    background-color: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  }
+
+  .chapter-enter-btn svg {
+    transition: transform 0.15s ease;
+  }
+
+  .chapter-enter-btn:hover svg {
+    transform: translateX(2px);
+  }
+
+  .chapter-block-upcoming {
+    opacity: 0.72;
+    border-style: dashed;
+    background-color: var(--bg-surface-elevated);
+  }
+
+  .pill-upcoming {
+    background-color: var(--bg-surface);
+    color: var(--text-muted);
+    border-color: var(--border-medium);
+  }
+
+  .chapter-heading-upcoming {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  .badge-soon {
+    background-color: var(--bg-surface);
+    color: var(--text-muted);
+    border-color: var(--border-medium);
   }
 
   @media (max-width: 900px) {

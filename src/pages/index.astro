@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import CourseCard from '../components/CourseCard.astro';
 import { getCollection } from 'astro:content';
+import { groupLessonsByChapter } from '../lib/chapters';
 
 const allCourses = await getCollection('courses');
 const allLessons = await getCollection('lessons');
@@ -39,8 +40,7 @@ const formattedPythonDate = formatIndonesianDate(pythonCourse?.data?.updatedAt);
 const pythonLessons = allLessons.filter(
   (l) => l.data.courseSlug === (pythonCourse?.id || 'python-data-science') && l.data.isPublished !== false
 );
-const bab1Count = pythonLessons.filter((l) => l.data.chapter?.includes('Bab 1')).length;
-const bab2Count = pythonLessons.filter((l) => l.data.chapter?.includes('Bab 2')).length;
+const pythonChapters = groupLessonsByChapter(pythonCourse?.id || 'python-data-science', pythonLessons);
 ---
 
 <BaseLayout
@@ -109,36 +109,42 @@ const bab2Count = pythonLessons.filter((l) => l.data.chapter?.includes('Bab 2'))
             </div>
           </div>
 
-          <!-- 3 Structured Chapters -->
+          <!-- 3 Structured Chapters (Direct links to chapter pages) -->
           <div class="spotlight-curriculum-list">
-            <div class="spotlight-curriculum-item">
-              <span class="curriculum-num">1</span>
-              <div class="curriculum-info">
-                <div class="curriculum-top">
-                  <strong class="curriculum-title">Bab 1: Dasar Pemrograman Python</strong>
-                  <span class="curriculum-count">{bab1Count || 8} Modul Materi</span>
+            {pythonChapters.map((ch) => (
+              <a
+                href={`/courses/${pythonCourse.id}/chapters/${ch.fullSlug}`}
+                class="spotlight-curriculum-item"
+                title={`Buka Halaman Khusus & Mode Presentasi: ${ch.title}`}
+              >
+                <span class="curriculum-num">{ch.index + 1}</span>
+                <div class="curriculum-info">
+                  <div class="curriculum-top">
+                    <strong class="curriculum-title">{ch.title}</strong>
+                    <span class="curriculum-count">{ch.lessons.length} Modul Materi</span>
+                  </div>
+                  <span class="curriculum-desc">
+                    {ch.index === 0 && 'Sintaksis dasar, tipe data, variabel, operator, percabangan kondisional, perulangan loop, pembuatan fungsi, modul PDF, dan tugas praktik kalkulator interaktif.'}
+                    {ch.index === 1 && 'Manajemen paket dengan pip, komputasi array multidimensi NumPy, struktur DataFrame Pandas, visualisasi Matplotlib & Seaborn, modul PDF, dan tugas praktik mandiri.'}
+                    {ch.index === 2 && 'Persiapan & inspeksi struktur awal dataframe, ringkasan statistik deskriptif dan plot sebaran, serta seleksi kolom dan filtering baris dengan Boolean indexing.'}
+                    {ch.index > 2 && `${ch.lessons.length} modul submateri lengkap.`}
+                  </span>
                 </div>
-                <span class="curriculum-desc">Sintaksis dasar, tipe data, variabel, operator, percabangan kondisional, perulangan loop, pembuatan fungsi, modul PDF, dan tugas praktik kalkulator interaktif.</span>
-              </div>
-            </div>
-
-            <div class="spotlight-curriculum-item">
-              <span class="curriculum-num">2</span>
-              <div class="curriculum-info">
-                <div class="curriculum-top">
-                  <strong class="curriculum-title">Bab 2: Pengenalan Package Python</strong>
-                  <span class="curriculum-count">{bab2Count || 8} Modul Materi</span>
+                <div class="curriculum-action-arrow" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
                 </div>
-                <span class="curriculum-desc">Manajemen paket dengan pip, komputasi array multidimensi NumPy, struktur DataFrame Pandas, visualisasi Matplotlib & Seaborn, modul PDF, dan tugas praktik mandiri.</span>
-              </div>
-            </div>
+              </a>
+            ))}
 
-            <div class="spotlight-curriculum-item" style="opacity: 0.85;">
+            <!-- Bab 3 (Unpublished / Segera Hadir) -->
+            <div class="spotlight-curriculum-item is-coming-soon">
               <span class="curriculum-num">3</span>
               <div class="curriculum-info">
                 <div class="curriculum-top">
                   <strong class="curriculum-title">Bab 3: Analisis Data Eksploratif (EDA)</strong>
-                  <span class="curriculum-count" style="background-color: var(--bg-surface-elevated); border: 1px solid var(--border-medium); color: var(--text-muted);">Segera Hadir</span>
+                  <span class="curriculum-badge-soon">Segera Hadir</span>
                 </div>
                 <span class="curriculum-desc">Persiapan & inspeksi struktur awal dataframe, ringkasan statistik deskriptif dan plot sebaran, serta seleksi kolom dan filtering baris dengan Boolean indexing.</span>
               </div>
@@ -411,16 +417,57 @@ const bab2Count = pythonLessons.filter((l) => l.data.chapter?.includes('Bab 2'))
   .spotlight-curriculum-item {
     display: flex;
     align-items: flex-start;
-    gap: 1.15rem;
+    gap: 1.25rem;
     padding: 1.15rem 1.35rem;
     background-color: var(--bg-surface-elevated);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    transition: border-color 0.15s ease;
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
   }
 
   .spotlight-curriculum-item:hover {
     border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  }
+
+  .spotlight-curriculum-item.is-coming-soon {
+    opacity: 0.75;
+    cursor: default;
+  }
+
+  .spotlight-curriculum-item.is-coming-soon:hover {
+    border-color: var(--border-subtle);
+    transform: none;
+    box-shadow: none;
+  }
+
+  .curriculum-badge-soon {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-medium);
+    color: var(--text-muted);
+  }
+
+  .curriculum-action-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: transform 0.15s ease, color 0.15s ease;
+    margin-top: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  .spotlight-curriculum-item:hover .curriculum-action-arrow {
+    transform: translateX(3px);
+    color: var(--primary);
   }
 
   .curriculum-num {
