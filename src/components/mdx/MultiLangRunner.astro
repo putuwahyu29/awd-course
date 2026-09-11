@@ -1,4 +1,6 @@
 ---
+import { Code } from 'astro:components';
+
 interface Props {
   language?: 'javascript' | 'python' | 'html' | 'sql' | 'cpp' | 'java' | 'rust' | 'go' | 'php';
   initialCode?: string;
@@ -23,6 +25,19 @@ const langDisplayNames: Record<string, string> = {
   php: 'PHP 8',
 };
 
+const validShikiLangs: Record<string, string> = {
+  javascript: 'javascript',
+  python: 'python',
+  html: 'html',
+  sql: 'sql',
+  cpp: 'cpp',
+  java: 'java',
+  rust: 'rust',
+  go: 'go',
+  php: 'php',
+};
+
+const shikiLang = validShikiLangs[language] || 'javascript';
 const displayTitle = title || `Interactive ${langDisplayNames[language] || language} Playground`;
 const runnerId = `multi-runner-${Math.random().toString(36).substring(2, 9)}`;
 const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
@@ -56,7 +71,13 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
   </div>
 
   <div class="editor-container">
-    <textarea class="code-editor-input" spellcheck="false">{initialCode}</textarea>
+    {isRunnerEnabled ? (
+      <textarea class="code-editor-input" spellcheck="false">{initialCode}</textarea>
+    ) : (
+      <div class="code-shiki-container">
+        <Code code={initialCode} lang={shikiLang as any} themes={{ light: 'github-light', dark: 'one-dark-pro' }} wrap={false} />
+      </div>
+    )}
   </div>
 
   <!-- Output Console -->
@@ -82,8 +103,9 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
       const btnText = execBtn?.querySelector('.exec-btn-text');
 
       copyBtn?.addEventListener('click', () => {
-        if (textarea) {
-          navigator.clipboard.writeText(textarea.value);
+        const rawText = textarea ? textarea.value : (card.querySelector('.code-shiki-container pre')?.textContent || '');
+        if (rawText) {
+          navigator.clipboard.writeText(rawText);
           const s = copyBtn.querySelector('span');
           if (s) {
             s.textContent = 'Tersalin!';
@@ -296,6 +318,34 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
     overscroll-behavior-x: contain;
     max-width: 100%;
     transition: background-color 0.2s ease;
+  }
+
+  .code-shiki-container {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .code-shiki-container :global(pre.astro-code) {
+    margin: 0 !important;
+    padding: 1rem !important;
+    background-color: transparent !important;
+    font-family: var(--font-mono) !important;
+    font-size: 0.875rem !important;
+    line-height: 1.6 !important;
+    border: none !important;
+    white-space: pre !important;
+    word-break: normal !important;
+    word-wrap: normal !important;
+    tab-size: 4 !important;
+  }
+
+  .code-shiki-container :global(pre.astro-code code) {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    background: transparent !important;
   }
 
   .code-editor-input {

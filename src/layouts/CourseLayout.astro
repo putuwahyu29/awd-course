@@ -7,8 +7,9 @@ import ScrollToTop from '../components/ScrollToTop.astro';
 import PresentationMode from '../components/PresentationMode.astro';
 import ChatWidget from '../components/ChatWidget.astro';
 import SearchModal from '../components/SearchModal.astro';
+import PythonInitModal from '../components/PythonInitModal.astro';
 import { ClientRouter } from 'astro:transitions';
-import { getChapterSlugs } from '../lib/chapters';
+import { getChapterSlugs, getLessonDuration, calculateTotalDuration } from '../lib/chapters';
 import '../styles/global.css';
 
 interface Props {
@@ -53,6 +54,9 @@ const isAssignment = currentLesson?.data?.contentType === 'assignment';
 const isDocumentModule = currentLesson?.data?.contentType === 'pdf' || Boolean(currentLesson?.data?.pdfUrl);
 const showAiBox = !isAssignment && !isDocumentModule;
 
+// Durasi total kursus dihitung dinamis dari semua lesson
+const totalCourseDuration = calculateTotalDuration(lessons.map((l) => getLessonDuration(l)));
+
 const jsonLdCourse = {
   '@context': 'https://schema.org',
   '@type': 'Course',
@@ -66,7 +70,7 @@ const jsonLdCourse = {
   hasCourseInstance: {
     '@type': 'CourseInstance',
     courseMode: 'Online',
-    courseWorkload: course.data.duration || '6 Jam',
+    courseWorkload: totalCourseDuration,
   },
 };
 
@@ -117,7 +121,7 @@ const jsonLdBreadcrumbs = {
     <!-- SEO Primary Meta Tags -->
     <title>{currentLesson.data.title} | {course.data.title} | Awd Course</title>
     <meta name="title" content={`${currentLesson.data.title} | ${course.data.title} | Awd Course`} />
-    <meta name="description" content={`Pelajari ${currentLesson.data.title} (${currentLesson.data.chapter}) dalam kursus ${course.data.title}. Waktu belajar: ${currentLesson.data.duration}.`} />
+  <meta name="description" content={`Pelajari ${currentLesson.data.title} (${currentLesson.data.chapter}) dalam kursus ${course.data.title}. Waktu belajar: ${getLessonDuration(currentLesson)}.`} />
     <meta name="author" content={course.data.instructor || 'I Putu Agus Wahyu Dupayana'} />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href={canonicalURL} />
@@ -244,7 +248,7 @@ const jsonLdBreadcrumbs = {
                       <circle cx="12" cy="12" r="10"></circle>
                       <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
-                    <span>{currentLesson.data.duration}</span>
+                    <span>{getLessonDuration(currentLesson)}</span>
                   </span>
 
                   <span class="meta-dot">•</span>
@@ -547,6 +551,9 @@ const jsonLdBreadcrumbs = {
     <!-- Global Search Modal (Ctrl + K) -->
     <SearchModal />
 
+    <!-- Python WebAssembly Initialization Warning Modal -->
+    <PythonInitModal />
+
     <!-- Floating Text Selection AI Tooltip -->
     <div id="awd-text-ai-tooltip" class="text-selection-ai-tooltip hidden">
       <button id="awd-selection-ai-btn" type="button" class="selection-ai-btn">
@@ -648,10 +655,15 @@ const jsonLdBreadcrumbs = {
           }
           if (!lang) lang = 'code';
 
+          const isTerminal = ['bash', 'sh', 'shell', 'zsh', 'terminal', 'powershell', 'cmd'].includes(lang.toLowerCase());
+          if (isTerminal) {
+            pre.classList.add('is-terminal-block');
+          }
+
           const header = document.createElement('div');
           header.className = 'code-block-header';
           header.innerHTML = `
-            <span class="code-lang-badge">${lang}</span>
+            <span class="code-lang-badge ${isTerminal ? 'terminal-badge' : ''}">${isTerminal ? '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 12 4 7"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>' : ''}<span>${lang}</span></span>
             <div class="code-header-actions">
               <button type="button" class="code-ai-btn" title="Tanyakan atau minta penjelasan kode ini ke AI">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1152,6 +1164,16 @@ const jsonLdBreadcrumbs = {
     text-transform: lowercase;
   }
 
+  :global(.code-lang-badge.terminal-badge) {
+    color: #0284c7;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
   :global(.code-header-actions) {
     display: flex;
     align-items: center;
@@ -1212,6 +1234,10 @@ const jsonLdBreadcrumbs = {
 
   [data-theme='dark'] :global(.code-lang-badge) {
     color: #8b949e;
+  }
+
+  [data-theme='dark'] :global(.code-lang-badge.terminal-badge) {
+    color: #38bdf8 !important;
   }
 
   [data-theme='dark'] :global(.code-copy-btn) {

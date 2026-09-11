@@ -367,26 +367,41 @@ a {
   tab-size: 2;
 }
 
-/* Shiki Dual Theme Adaptation */
-html[data-theme='dark'] pre.astro-code {
-  color: var(--shiki-dark) !important;
+/* Shiki Dual Theme Adaptation & Code Editor Polish */
+html[data-theme='dark'] pre.astro-code,
+html[data-theme='dark'] .astro-code {
+  color: var(--shiki-dark, #abb2bf) !important;
   background-color: transparent !important;
 }
 
 html[data-theme='dark'] .astro-code span {
-  color: var(--shiki-dark) !important;
+  color: var(--shiki-dark, inherit) !important;
   background-color: transparent !important;
   font-style: var(--shiki-dark-font-style, inherit) !important;
   font-weight: var(--shiki-dark-font-weight, inherit) !important;
   text-decoration: var(--shiki-dark-text-decoration, inherit) !important;
 }
 
-html:not([data-theme='dark']) pre.astro-code {
+html:not([data-theme='dark']) pre.astro-code,
+html:not([data-theme='dark']) .astro-code {
   background-color: transparent !important;
 }
 
 html:not([data-theme='dark']) .astro-code span {
   background-color: transparent !important;
+}
+
+/* Ensure code editor blocks have crisp typography */
+.astro-code,
+.astro-code code,
+.code-shiki-container pre,
+.code-shiki-container code {
+  font-family: var(--font-mono) !important;
+  font-size: 0.875rem !important;
+  line-height: 1.6 !important;
+  tab-size: 4 !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Custom Sleek Scrollbars for Code Blocks, Outputs, and Tables */

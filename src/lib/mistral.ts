@@ -29,7 +29,7 @@ KNOWLEDGE BASE UTAMA AWD COURSE
 - Fitur Unggulan:
 ${PLATFORM_INFO.features.map((f) => `  * **${f.name}**: ${f.description}`).join('\n')}
 
-2. Profil Pemateri Resmi:
+2. Profil Pemateri:
 - Nama: **${INSTRUCTOR_INFO.name}**
 - Peran: ${INSTRUCTOR_INFO.role} (${INSTRUCTOR_INFO.organization})
 - Website Portofolio & CV: ${INSTRUCTOR_INFO.portfolioUrl}

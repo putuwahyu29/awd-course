@@ -121,6 +121,68 @@ export function calculateTotalDuration(durations: string[]): string {
   }
 }
 
+/**
+ * Menghitung estimasi waktu baca dari teks konten lesson.
+ * Kecepatan baca teknis diasumsikan 150 kata/menit.
+ * Setiap blok kode menambah ~30 detik.
+ * Hasil dibulatkan ke kelipatan 5 menit, minimum 5 menit.
+ */
+export function estimateReadingTime(body: string): string {
+  if (!body || body.trim().length === 0) return '5 Menit';
+
+  // Hitung jumlah blok kode sebelum dibersihkan
+  const codeBlocks = (body.match(/```[\s\S]*?```/g) || []).length;
+
+  // Bersihkan teks dari elemen non-kata
+  const cleaned = body
+    .replace(/```[\s\S]*?```/g, ' ') // hapus blok kode
+    .replace(/^---[\s\S]*?---/m, '')  // hapus frontmatter
+    .replace(/import\s+.*?from\s+['"].*?['"]/g, '') // hapus import
+    .replace(/export\s+\w+.*?;/g, '')
+    .replace(/<[^>]+>/g, ' ')         // hapus JSX/HTML tag
+    .replace(/\{[^}]*\}/g, ' ')       // hapus JSX expressions
+    .replace(/https?:\/\/\S+/g, '')   // hapus URL
+    .replace(/[#*_`\[\]()!|]/g, ' ')  // hapus simbol markdown
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const wordCount = cleaned.split(/\s+/).filter((w) => w.length > 1).length;
+
+  // 150 kata/menit untuk konten teknis + 0.5 menit per blok kode
+  const rawMinutes = wordCount / 150 + codeBlocks * 0.5;
+  const rounded = Math.max(5, Math.ceil(rawMinutes / 5) * 5);
+
+  if (rounded >= 60) {
+    const hours = Math.floor(rounded / 60);
+    const mins = rounded % 60;
+    return mins > 0 ? `${hours} Jam ${mins} Menit` : `${hours} Jam`;
+  }
+  return `${rounded} Menit`;
+}
+
+/**
+ * Mendapatkan durasi lesson — dihitung dinamis dari body konten jika tersedia.
+ * Pengecualian: lesson bertipe 'assignment' dan 'pdf' (modul dokumen) selalu
+ * menggunakan durasi statis dari frontmatter agar bisa dikontrol manual.
+ */
+export function getLessonDuration(lesson: { data: { duration?: string; contentType?: string }; body?: string }): string {
+  const contentType = lesson.data?.contentType || 'text';
+
+  // Tugas praktik & modul dokumen → pakai durasi statis dari frontmatter
+  if (contentType === 'assignment' || contentType === 'pdf') {
+    return lesson.data?.duration || '30 Menit';
+  }
+
+  const body = lesson.body || '';
+  // Jika body cukup panjang (bukan sekadar import statement), hitung dinamis
+  const wordCount = body.split(/\s+/).filter((w) => w.length > 2).length;
+  if (wordCount > 30) {
+    return estimateReadingTime(body);
+  }
+  return lesson.data?.duration || '5 Menit';
+}
+
+
 export function groupLessonsByChapter(courseId: string, lessons: any[]): ChapterGroup[] {
   const sortedLessons = [...lessons].sort((a, b) => (a.data.order || 0) - (b.data.order || 0));
   const map = new Map<string, any[]>();
@@ -135,7 +197,7 @@ export function groupLessonsByChapter(courseId: string, lessons: any[]): Chapter
 
   return Array.from(map.entries()).map(([title, chLessons], idx) => {
     const { fullSlug, shortSlug } = getChapterSlugs(title, idx);
-    const durations = chLessons.map((l) => l.data.duration || '10 Menit');
+    const durations = chLessons.map((l) => getLessonDuration(l));
     const totalDuration = calculateTotalDuration(durations);
     const notebookInfo = getChapterNotebook(courseId, idx, chLessons);
 

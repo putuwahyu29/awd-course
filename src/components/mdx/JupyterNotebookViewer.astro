@@ -113,14 +113,34 @@ function parseMarkdownContent(source: string[] | string): string {
   const text = Array.isArray(source) ? source.join('') : source || '';
   const lines = text.split('\n');
   const htmlParts: string[] = [];
+
   let inList = false;
+  let inOrderedList = false;
   let inTable = false;
   let tableRows: string[] = [];
+  let inCodeBlock = false;
+  let codeBlockLang = '';
+  let codeBlockLines: string[] = [];
+  let inBlockquote = false;
+  let blockquoteLines: string[] = [];
+
+  function escapeHtml(str: string): string {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   function flushList() {
     if (inList) {
       htmlParts.push('</ul>');
       inList = false;
+    }
+    if (inOrderedList) {
+      htmlParts.push('</ol>');
+      inOrderedList = false;
     }
   }
 
@@ -147,8 +167,69 @@ function parseMarkdownContent(source: string[] | string): string {
     }
   }
 
-  function formatInline(str: string): string {
+  function flushCodeBlock() {
+    if (inCodeBlock) {
+      const lang = codeBlockLang || 'text';
+      // Normalize common leading whitespace if indented inside markdown lists
+      let minIndent = Infinity;
+      for (const cl of codeBlockLines) {
+        if (cl.trim().length === 0) continue;
+        const indentMatch = cl.match(/^(\s*)/);
+        const indentLen = indentMatch ? indentMatch[1].length : 0;
+        if (indentLen < minIndent) minIndent = indentLen;
+      }
+      const cleanedLines = minIndent > 0 && minIndent !== Infinity
+        ? codeBlockLines.map(cl => cl.length >= minIndent ? cl.slice(minIndent) : cl.trimStart())
+        : codeBlockLines;
+
+      const codeText = cleanedLines.join('\n');
+      htmlParts.push(
+        `<pre data-language="${escapeHtml(lang)}" class="language-${escapeHtml(lang)}"><code class="language-${escapeHtml(lang)}">${escapeHtml(codeText)}</code></pre>`
+      );
+      codeBlockLines = [];
+      codeBlockLang = '';
+      inCodeBlock = false;
+    }
+  }
+
+  function flushBlockquote() {
+    if (inBlockquote && blockquoteLines.length > 0) {
+      htmlParts.push(
+        `<blockquote class="nb-callout">` +
+          blockquoteLines.map(l => `<p class="nb-callout-text">${formatInline(l)}</p>`).join('') +
+        `</blockquote>`
+      );
+      blockquoteLines = [];
+      inBlockquote = false;
+    }
+  }
+
+  function flushAll() {
+    flushList();
+    flushTable();
+    flushBlockquote();
+  }
+
+  function cleanLatexFormula(str: string): string {
     return str
+      .replace(/\\text\{([^}]+)\}/g, '$1')
+      .replace(/\\mathbf\{([^}]+)\}/g, '<strong>$1</strong>')
+      .replace(/\\mathit\{([^}]+)\}/g, '<em>$1</em>')
+      .replace(/\\_/g, '_')
+      .replace(/\\\s+/g, ' ')
+      .replace(/\\times/g, ' × ')
+      .replace(/\\cdot/g, ' · ')
+      .replace(/\\pm/g, ' ± ')
+      .replace(/\\le/g, ' ≤ ')
+      .replace(/\\ge/g, ' ≥ ')
+      .replace(/\\ne/g, ' ≠ ')
+      .replace(/\\approx/g, ' ≈ ')
+      .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1 / $2)');
+  }
+
+  function formatInline(str: string): string {
+    const formatted = str
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -156,11 +237,57 @@ function parseMarkdownContent(source: string[] | string): string {
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/`([^`]+)`/g, '<code class="nb-code-inline">$1</code>')
       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="nb-link">$1</a>');
+
+    // Inline math $...$
+    return formatted.replace(/\$([^\$\n]+)\$/g, (_, expr) => {
+      const clean = cleanLatexFormula(expr);
+      return `<code class="nb-math-inline">${clean}</code>`;
+    });
   }
 
   for (let i = 0; i < lines.length; i++) {
     const rawLine = lines[i];
     const line = rawLine.trim();
+
+    // Math block $$...$$
+    if (line.startsWith('$$') && line.endsWith('$$') && line.length >= 4) {
+      flushAll();
+      const mathExpr = line.slice(2, -2).trim();
+      const cleanExpr = cleanLatexFormula(mathExpr);
+      htmlParts.push(
+        `<div class="nb-math-block" title="Notasi Matematika / Sintaksis"><span class="nb-math-display">${cleanExpr}</span></div>`
+      );
+      continue;
+    }
+
+    // Fenced code blocks ```
+    if (line.startsWith('```')) {
+      if (inCodeBlock) {
+        flushCodeBlock();
+      } else {
+        flushAll();
+        inCodeBlock = true;
+        codeBlockLang = line.slice(3).trim();
+        codeBlockLines = [];
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeBlockLines.push(rawLine);
+      continue;
+    }
+
+    // Blockquote >
+    if (line.startsWith('>')) {
+      flushList();
+      flushTable();
+      inBlockquote = true;
+      blockquoteLines.push(line.replace(/^>\s?/, ''));
+      continue;
+    } else {
+      flushBlockquote();
+    }
 
     // Table line
     if (line.startsWith('|') && line.endsWith('|')) {
@@ -170,6 +297,13 @@ function parseMarkdownContent(source: string[] | string): string {
       continue;
     } else {
       flushTable();
+    }
+
+    // Horizontal Rule
+    if (/^(?:---|\*\*\*|___)$/.test(line)) {
+      flushList();
+      htmlParts.push('<hr class="nb-divider" />');
+      continue;
     }
 
     // Headings
@@ -205,9 +339,28 @@ function parseMarkdownContent(source: string[] | string): string {
       continue;
     }
 
+    // Ordered List
+    const orderedListMatch = line.match(/^(\d+)\.\s+(.+)$/);
+    if (orderedListMatch) {
+      if (inList) {
+        htmlParts.push('</ul>');
+        inList = false;
+      }
+      if (!inOrderedList) {
+        htmlParts.push('<ol class="nb-ordered-list">');
+        inOrderedList = true;
+      }
+      htmlParts.push(`<li>${formatInline(orderedListMatch[2])}</li>`);
+      continue;
+    }
+
     // Bullet List
     const listMatch = line.match(/^[\*\-]\s+(.+)$/);
     if (listMatch) {
+      if (inOrderedList) {
+        htmlParts.push('</ol>');
+        inOrderedList = false;
+      }
       if (!inList) {
         htmlParts.push('<ul class="nb-list">');
         inList = true;
@@ -227,8 +380,8 @@ function parseMarkdownContent(source: string[] | string): string {
     htmlParts.push(`<p class="nb-paragraph">${formatInline(rawLine)}</p>`);
   }
 
-  flushList();
-  flushTable();
+  flushAll();
+  flushCodeBlock();
 
   return htmlParts.join('\n');
 }
@@ -291,12 +444,14 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
   <!-- Quick Actions Bar -->
   <div class="notebook-header-card card">
     <div class="header-left">
-      <div class="colab-logo-box">
-        <svg viewBox="0 0 24 24" width="22" height="22">
-          <path fill="#F9AB00" d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.12 14.86l-3.32 3.32a.75.75 0 0 1-1.06 0l-5.6-5.6a.75.75 0 0 1 0-1.06l3.32-3.32a.75.75 0 0 1 1.06 0l5.6 5.6a.75.75 0 0 1 0 1.06z"/>
+      <div class="notebook-icon-box" title="Notebook Python 3">
+        <!-- Official Python Logo -->
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+          <path fill="#3776AB" d="M11.914 2c-5.074 0-4.75 2.2-4.75 2.2l.008 2.281h4.82v.688H5.16s-3.16.355-3.16 5.48c0 5.125 2.762 4.938 2.762 4.938h1.652v-2.313s-.09-2.762 2.719-2.762h4.672s2.625.043 2.625-2.582V4.582S16.988 2 11.914 2zm-2.6 1.48a.98.98 0 1 1 0 1.96.98.98 0 0 1 0-1.96z"/>
+          <path fill="#FFD43B" d="M12.086 22c5.074 0 4.75-2.2 4.75-2.2l-.008-2.281H12v-.688h6.832s3.16-.355 3.16-5.48c0-5.125-2.762-4.938-2.762-4.938h-1.652v2.313s.09 2.762-2.719 2.762H10.2s-2.625-.043-2.625 2.582v4.207S7.012 22 12.086 22zm2.6-1.48a.98.98 0 1 1 0-1.96.98.98 0 0 1 0 1.96z"/>
         </svg>
       </div>
-      <div>
+      <div class="header-info">
         <h3 class="header-title">{title}</h3>
         <span class="header-status">
           {cells.length} Sel • {isRunnerEnabled ? 'Python 3 (WebAssembly Kernel)' : 'Python 3 • Pratinjau Notebook'}
@@ -306,35 +461,39 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
 
     <div class="header-actions">
       {isRunnerEnabled && (
-        <button type="button" class="btn btn-secondary btn-sm run-all-cells-btn" title="Jalankan Semua Sel Kode">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+        <button type="button" class="nb-action-btn btn-run-all run-all-cells-btn" title="Jalankan Semua Sel Kode Python">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" aria-hidden="true">
             <polygon points="5 3 19 12 5 21 5 3"></polygon>
           </svg>
-          <span>Jalankan Semua</span>
+          <span class="btn-label-desktop">Jalankan Semua</span>
+          <span class="btn-label-mobile">Jalankan</span>
         </button>
       )}
 
-      <a href={downloadUrl} download class="btn btn-outline btn-sm" title="Unduh File Notebook .ipynb">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13">
+      <a href={downloadUrl} download class="nb-action-btn btn-download" title="Unduh File Notebook .ipynb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13" aria-hidden="true">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        <span>Unduh .ipynb</span>
+        <span class="btn-label-desktop">Unduh .ipynb</span>
+        <span class="btn-label-mobile">Unduh</span>
       </a>
 
-      <a href={githubBlobUrl} target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" title="Buka File Notebook di GitHub">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
+      <a href={githubBlobUrl} target="_blank" rel="noopener noreferrer" class="nb-action-btn btn-github" title="Buka File Notebook di GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13" aria-hidden="true">
           <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
         </svg>
         <span>GitHub</span>
       </a>
 
-      <a href={resolvedColabUrl} target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm colab-open-btn" title="Buka materi ini di tab baru Google Colab">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="13" height="13">
-          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+      <a href={resolvedColabUrl} target="_blank" rel="noopener noreferrer" class="nb-action-btn btn-colab" title="Buka materi ini di Google Colab">
+        <!-- Official Google Colab Logo -->
+        <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" class="colab-icon-svg">
+          <path fill="#F9AB00" d="M16.9414 4.9757a7.033 7.033 0 0 0-4.9308 2.0646 7.033 7.033 0 0 0-.1232 9.8068l2.395-2.395a3.6455 3.6455 0 0 1 5.1497-5.1478l2.397-2.3989a7.033 7.033 0 0 0-4.8877-1.9297zM7.07 4.9855a7.033 7.033 0 0 0-4.8878 1.9316l2.3911 2.3911a3.6434 3.6434 0 0 1 5.0227.1271l1.7341-2.9737-.0997-.0802A7.033 7.033 0 0 0 7.07 4.9855zm15.0093 2.1721l-2.3892 2.3911a3.6455 3.6455 0 0 1-5.1497 5.1497l-2.4067 2.4068a7.0362 7.0362 0 0 0 9.9456-9.9476zM1.932 7.1674a7.033 7.033 0 0 0-.002 9.6816l2.397-2.397a3.6434 3.6434 0 0 1-.004-4.8916zm7.664 7.4235c-1.38 1.3816-3.5863 1.411-5.0168.1134l-2.397 2.395c2.4693 2.3328 6.263 2.5753 9.0072.5455l.1368-.1115z"/>
         </svg>
-        <span>Buka di Colab</span>
+        <span class="btn-label-desktop">Buka di Colab</span>
+        <span class="btn-label-mobile">Colab</span>
       </a>
     </div>
   </div>
@@ -409,7 +568,7 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
                 >{codeText}</textarea>
               ) : (
                 <div class="code-shiki-container">
-                  <Code code={codeText} lang="python" themes={{ light: 'github-light', dark: 'github-dark' }} wrap={false} />
+                  <Code code={codeText} lang="python" themes={{ light: 'github-light', dark: 'one-dark-pro' }} wrap={false} />
                 </div>
               )}
             </div>
@@ -457,10 +616,11 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
 <script>
   let pyodidePromiseInstance: Promise<any> | null = null;
 
-  function getSharedPyodide() {
+  function getSharedPyodide(onStatus?: (status: string) => void) {
     if (!pyodidePromiseInstance) {
       pyodidePromiseInstance = new Promise(async (resolve, reject) => {
         try {
+          if (onStatus) onStatus('Mengunduh runtime Python WebAssembly (~15 MB)...');
           // @ts-ignore
           if (!window.loadPyodide) {
             const s = document.createElement('script');
@@ -468,6 +628,7 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
             document.head.appendChild(s);
             await new Promise((res) => (s.onload = res));
           }
+          if (onStatus) onStatus('Menginisialisasi kernel Python di browser...');
           // @ts-ignore
           const py = await window.loadPyodide({
             indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.2/full/',
@@ -475,6 +636,7 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
 
           resolve(py);
         } catch (e) {
+          pyodidePromiseInstance = null; // allow retry if network error
           reject(e);
         }
       });
@@ -515,6 +677,23 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
         });
       });
 
+      // Attach copy handlers to fenced code blocks inside markdown
+      nb.querySelectorAll('.nb-fenced-copy-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const box = btn.closest('.nb-fenced-code-box');
+          const code = box?.querySelector('code')?.textContent || '';
+          if (!code) return;
+          navigator.clipboard.writeText(code);
+          const originalText = btn.querySelector('span')?.textContent;
+          if (btn.querySelector('span')) {
+            btn.querySelector('span')!.textContent = 'Tersalin!';
+            setTimeout(() => {
+              btn.querySelector('span')!.textContent = originalText || 'Salin';
+            }, 1500);
+          }
+        });
+      });
+
       if (!isRunnerEnabled) return;
 
       const runAllBtn = nb.querySelector('.run-all-cells-btn');
@@ -543,7 +722,9 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
         outCode.textContent = 'Menyiapkan lingkungan eksekusi...';
 
         try {
-          const py = await getSharedPyodide();
+          const py = await getSharedPyodide((statusMsg) => {
+            outCode.textContent = statusMsg;
+          });
           outCode.textContent = '';
 
           let logs = '';
@@ -639,7 +820,25 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
       // Attach handlers to code cells (Run, Copy, Tanya AI)
       nb.querySelectorAll('.code-cell-container').forEach((cell) => {
         const runBtn = cell.querySelector('.btn-run-code');
-        runBtn?.addEventListener('click', () => runCell(cell));
+        const textareaEl = cell.querySelector('.code-input') as HTMLTextAreaElement;
+
+        const triggerRun = () => {
+          if (typeof (window as any).awdConfirmPythonRun === 'function') {
+            (window as any).awdConfirmPythonRun(() => runCell(cell));
+          } else {
+            runCell(cell);
+          }
+        };
+
+        runBtn?.addEventListener('click', triggerRun);
+
+        // Ctrl+Enter or Shift+Enter in code input
+        textareaEl?.addEventListener('keydown', (e) => {
+          if ((e.ctrlKey || e.shiftKey) && e.key === 'Enter') {
+            e.preventDefault();
+            triggerRun();
+          }
+        });
 
         const copyBtn = cell.querySelector('.btn-copy-code');
         const aiBtn = cell.querySelector('.btn-ai-explain');
@@ -701,10 +900,18 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
       });
 
       // Run All button
-      runAllBtn?.addEventListener('click', async () => {
-        const codeCells = Array.from(nb.querySelectorAll('.code-cell-container'));
-        for (const c of codeCells) {
-          await runCell(c);
+      runAllBtn?.addEventListener('click', () => {
+        const executeAll = async () => {
+          const codeCells = Array.from(nb.querySelectorAll('.code-cell-container'));
+          for (const c of codeCells) {
+            await runCell(c);
+          }
+        };
+
+        if (typeof (window as any).awdConfirmPythonRun === 'function') {
+          (window as any).awdConfirmPythonRun(executeAll);
+        } else {
+          executeAll();
         }
       });
     });
@@ -726,27 +933,42 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 1rem 1.25rem;
-    margin-bottom: 2rem;
+    padding: 0.85rem 1.15rem;
+    margin-bottom: 1.75rem;
     background-color: var(--bg-surface);
     border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .header-left {
     display: flex;
     align-items: center;
     gap: 0.85rem;
+    min-width: 0;
   }
 
-  .colab-logo-box {
+  .notebook-icon-box {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 38px;
     height: 38px;
     border-radius: var(--radius-md);
-    background-color: rgba(245, 158, 11, 0.12);
+    background: linear-gradient(135deg, rgba(55, 118, 171, 0.14) 0%, rgba(255, 212, 59, 0.14) 100%);
+    border: 1px solid rgba(55, 118, 171, 0.25);
     flex-shrink: 0;
+    transition: transform 0.2s ease;
+  }
+
+  .notebook-header-card:hover .notebook-icon-box {
+    transform: scale(1.05);
+  }
+
+  .header-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
   }
 
   .header-title {
@@ -754,12 +976,15 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
     font-weight: 800;
     margin: 0 0 0.15rem 0;
     color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .header-status {
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--accent-emerald);
+    color: #10b981;
   }
 
   .header-actions {
@@ -767,6 +992,122 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
     align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
+  }
+
+  /* Symmetrical, Modern Action Buttons */
+  .nb-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    height: 34px;
+    padding: 0 0.8rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-elevated, #1f2937);
+    color: var(--text-main);
+    transition: all 0.15s ease-in-out;
+    box-sizing: border-box;
+  }
+
+  .nb-action-btn:hover {
+    background-color: var(--border-subtle);
+    border-color: var(--border-medium);
+    color: var(--text-main);
+    transform: translateY(-1px);
+  }
+
+  .nb-action-btn:active {
+    transform: translateY(0);
+  }
+
+  .btn-label-mobile {
+    display: none;
+  }
+
+  .btn-run-all {
+    background-color: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #22c55e;
+  }
+
+  .btn-run-all:hover {
+    background-color: #22c55e;
+    border-color: #22c55e;
+    color: #ffffff;
+  }
+
+  .btn-download, .btn-github {
+    background-color: var(--bg-surface-elevated);
+    border-color: var(--border-subtle);
+    color: var(--text-muted);
+  }
+
+  .btn-download:hover, .btn-github:hover {
+    color: var(--text-main);
+    border-color: var(--border-medium);
+  }
+
+  .btn-colab {
+    background-color: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.35);
+    color: var(--text-main);
+  }
+
+  .btn-colab:hover {
+    background-color: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.6);
+    color: var(--text-main);
+  }
+
+  .colab-icon-svg {
+    transition: transform 0.2s ease;
+  }
+
+  .btn-colab:hover .colab-icon-svg {
+    transform: scale(1.12);
+  }
+
+  @media (max-width: 820px) {
+    .notebook-header-card {
+      padding: 0.85rem 1rem;
+    }
+    .header-actions {
+      gap: 0.35rem;
+    }
+    .nb-action-btn {
+      padding: 0 0.65rem;
+      font-size: 0.775rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .notebook-header-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+    .header-left {
+      width: 100%;
+    }
+    .header-actions {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 0.35rem;
+    }
+    .btn-label-desktop {
+      display: none;
+    }
+    .btn-label-mobile {
+      display: inline;
+    }
   }
 
   /* Content Flow (Natural Article Flow) */
@@ -849,6 +1190,33 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
     color: var(--primary);
   }
 
+  :global(.nb-math-block) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem 0 1.25rem 0;
+    padding: 0.85rem 1.25rem;
+    background: var(--bg-surface-elevated, rgba(255, 255, 255, 0.04));
+    border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
+    border-radius: var(--radius-md);
+    font-family: var(--font-mono);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--primary, #38bdf8);
+    overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  :global(.nb-math-inline) {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    padding: 0.15em 0.4em;
+    background-color: var(--bg-surface-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    color: var(--primary);
+  }
+
   :global(.nb-link) {
     color: var(--primary);
     text-decoration: underline;
@@ -875,6 +1243,52 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
     background-color: var(--bg-surface-elevated);
     font-weight: 700;
     color: var(--text-main);
+  }
+
+  /* Code Blocks inside Markdown Cells */
+  :global(.markdown-block pre) {
+    margin: 0.85rem 0 1.25rem 0 !important;
+  }
+
+  /* Callout / Blockquote */
+  :global(.nb-callout) {
+    margin: 1rem 0 1.25rem 0;
+    padding: 0.85rem 1.15rem;
+    background: rgba(59, 130, 246, 0.06);
+    border-left: 4px solid var(--primary);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    color: var(--text-main);
+  }
+
+  :global(.nb-callout p) {
+    margin-bottom: 0.4rem;
+    line-height: 1.6;
+    font-size: 0.925rem;
+  }
+
+  :global(.nb-callout p:last-child) {
+    margin-bottom: 0;
+  }
+
+  /* Ordered List */
+  :global(.nb-ordered-list) {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.925rem;
+    line-height: 1.65;
+    list-style-type: decimal;
+  }
+
+  :global(.nb-ordered-list li) {
+    margin-bottom: 0.35rem;
+  }
+
+  /* Divider */
+  :global(.nb-divider) {
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    margin: 1.5rem 0;
   }
 
   /* Code Cell Container */

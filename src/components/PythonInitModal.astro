@@ -1,0 +1,515 @@
+<div id="awd-py-init-modal" class="py-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="py-init-modal-title" aria-hidden="true">
+  <div class="py-modal-overlay" id="py-modal-backdrop-overlay"></div>
+
+  <div class="py-modal-dialog">
+    <!-- Header with Accent Light & Python Badge -->
+    <div class="py-modal-header">
+      <div class="py-modal-icon-badge" title="Python 3 WebAssembly">
+        <!-- Python Official Two-Tone Logo -->
+        <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+          <path fill="#3776AB" d="M11.914 2c-5.074 0-4.75 2.2-4.75 2.2l.008 2.281h4.82v.688H5.16s-3.16.355-3.16 5.48c0 5.125 2.762 4.938 2.762 4.938h1.652v-2.313s-.09-2.762 2.719-2.762h4.672s2.625.043 2.625-2.582V4.582S16.988 2 11.914 2zm-2.6 1.48a.98.98 0 1 1 0 1.96.98.98 0 0 1 0-1.96z"/>
+          <path fill="#FFD43B" d="M12.086 22c5.074 0 4.75-2.2 4.75-2.2l-.008-2.281H12v-.688h6.832s3.16-.355 3.16-5.48c0-5.125-2.762-4.938-2.762-4.938h-1.652v2.313s.09 2.762-2.719 2.762H10.2s-2.625-.043-2.625 2.582v4.207S7.012 22 12.086 22zm2.6-1.48a.98.98 0 1 1 0-1.96.98.98 0 0 1 0 1.96z"/>
+        </svg>
+      </div>
+
+      <div class="py-modal-title-group">
+        <h3 id="py-init-modal-title" class="py-modal-title">Menjalankan Python di Browser</h3>
+      </div>
+
+      <button type="button" class="py-modal-close-btn" id="py-modal-close-x" title="Tutup (Esc)">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body Information -->
+    <div class="py-modal-body">
+      <div class="py-notice-card">
+        <div class="py-notice-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+        </div>
+        <div class="py-notice-content">
+          <p class="py-notice-main">
+            Kode akan dijalankan menggunakan <strong>Python WebAssembly (Pyodide)</strong> langsung di browser Anda — tidak ada data yang dikirim ke server.
+          </p>
+          <p class="py-notice-sub">
+            Pertama kali dijalankan, browser perlu mengunduh runtime Python (sekitar <strong>15–20 MB</strong>). Proses ini hanya terjadi sekali.
+          </p>
+        </div>
+      </div>
+
+      <!-- Don't ask again checkbox -->
+      <label class="py-checkbox-label">
+        <input type="checkbox" id="py-modal-dont-ask" class="py-checkbox-input" checked />
+        <span class="py-checkbox-custom"></span>
+        <span class="py-checkbox-text">Jangan tampilkan peringatan ini lagi di browser ini</span>
+      </label>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="py-modal-footer">
+      <button type="button" class="py-btn py-btn-cancel" id="py-modal-btn-cancel">
+        Batal
+      </button>
+
+      <button type="button" class="py-btn py-btn-confirm" id="py-modal-btn-confirm">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+        <span>Lanjutkan & Jalankan</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Global Controller for Python Initialization Warning Modal
+  const STORAGE_KEY = 'awd_python_init_confirmed';
+  let pendingCallback: (() => void) | null = null;
+
+  function initPythonModal() {
+    const modal = document.getElementById('awd-py-init-modal');
+    const overlay = document.getElementById('py-modal-backdrop-overlay');
+    const closeX = document.getElementById('py-modal-close-x');
+    const btnCancel = document.getElementById('py-modal-btn-cancel');
+    const btnConfirm = document.getElementById('py-modal-btn-confirm');
+    const dontAskCheckbox = document.getElementById('py-modal-dont-ask') as HTMLInputElement | null;
+
+    if (!modal) return;
+
+    function closeModal() {
+      modal?.classList.add('hidden');
+      modal?.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('py-modal-open');
+      pendingCallback = null;
+    }
+
+    function confirmAndRun() {
+      if (dontAskCheckbox?.checked) {
+        try {
+          localStorage.setItem(STORAGE_KEY, 'true');
+        } catch {}
+      }
+      (window as any)._awdPythonInitSessionConfirmed = true;
+
+      const cb = pendingCallback;
+      closeModal();
+
+      if (typeof cb === 'function') {
+        cb();
+      }
+    }
+
+    overlay?.addEventListener('click', closeModal);
+    closeX?.addEventListener('click', closeModal);
+    btnCancel?.addEventListener('click', closeModal);
+    btnConfirm?.addEventListener('click', confirmAndRun);
+
+    // Escape & Enter key listeners
+    window.addEventListener('keydown', (e) => {
+      if (!modal || modal.classList.contains('hidden')) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeModal();
+      } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey) {
+        e.preventDefault();
+        confirmAndRun();
+      }
+    });
+
+    // Expose global execution confirmation gatekeeper
+    (window as any).awdConfirmPythonRun = function (onConfirmed: () => void) {
+      // 1. Check if user already confirmed permanently in localStorage
+      try {
+        if (localStorage.getItem(STORAGE_KEY) === 'true') {
+          onConfirmed();
+          return;
+        }
+      } catch {}
+
+      // 2. Check if user already confirmed in current tab session
+      if ((window as any)._awdPythonInitSessionConfirmed) {
+        onConfirmed();
+        return;
+      }
+
+      // 3. Otherwise show modal dialog
+      pendingCallback = onConfirmed;
+      modal.classList.remove('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('py-modal-open');
+      btnConfirm?.focus();
+    };
+  }
+
+  // Setup on page load and view transitions
+  initPythonModal();
+  document.addEventListener('astro:page-load', initPythonModal);
+</script>
+
+<style>
+  .py-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    box-sizing: border-box;
+  }
+
+  .py-modal-backdrop.hidden {
+    display: none !important;
+  }
+
+  .py-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(11, 15, 25, 0.78);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    animation: pyFadeIn 0.18s ease-out;
+  }
+
+  .py-modal-dialog {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    background: var(--bg-surface, #111827);
+    border: 1px solid var(--border-medium, #1f2937);
+    border-radius: 18px;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    animation: pySlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 10;
+    color: var(--text-main, #f3f4f6);
+    box-sizing: border-box;
+  }
+
+  @keyframes pyFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes pySlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Header */
+  .py-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1.15rem 1.35rem;
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.08) 0%, transparent 100%);
+    border-bottom: 1px solid var(--border-subtle, #1f2937);
+    position: relative;
+  }
+
+  .py-modal-icon-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(55, 118, 171, 0.18) 0%, rgba(255, 212, 59, 0.18) 100%);
+    border: 1px solid rgba(55, 118, 171, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(55, 118, 171, 0.15);
+  }
+
+  .py-modal-title-group {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .py-modal-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #38bdf8;
+    margin-bottom: 0.2rem;
+  }
+
+  .py-tag-pulse {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+    animation: pyPulse 2s infinite ease-in-out;
+  }
+
+  @keyframes pyPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  .py-modal-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--text-main, #ffffff);
+  }
+
+  .py-modal-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted, #9ca3af);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .py-modal-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-main, #ffffff);
+  }
+
+  /* Body */
+  .py-modal-body {
+    padding: 1.25rem 1.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .py-notice-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.9rem 1rem;
+    background: rgba(56, 189, 248, 0.06);
+    border: 1px solid rgba(56, 189, 248, 0.22);
+    border-radius: 12px;
+  }
+
+  .py-notice-icon {
+    color: #38bdf8;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .py-notice-content {
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--text-main, #f3f4f6);
+  }
+
+  .py-notice-main {
+    margin: 0 0 0.4rem 0;
+  }
+
+  .py-notice-sub {
+    margin: 0;
+    font-size: 0.825rem;
+    color: var(--text-muted, #9ca3af);
+    line-height: 1.5;
+  }
+
+  /* Checkbox */
+  .py-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    cursor: pointer;
+    user-select: none;
+    padding: 0.35rem 0.2rem;
+    margin-top: 0.25rem;
+  }
+
+  .py-checkbox-input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+  }
+
+  .py-checkbox-custom {
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background-color: var(--bg-surface-elevated, #1f2937);
+    border: 1.5px solid var(--border-medium, #374151);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+  }
+
+  .py-checkbox-input:checked ~ .py-checkbox-custom {
+    background-color: #2563eb;
+    border-color: #2563eb;
+  }
+
+  .py-checkbox-input:checked ~ .py-checkbox-custom::after {
+    content: '';
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-bottom: 2px;
+  }
+
+  .py-checkbox-text {
+    font-size: 0.8rem;
+    color: var(--text-muted, #9ca3af);
+    transition: color 0.15s ease;
+  }
+
+  .py-checkbox-label:hover .py-checkbox-text {
+    color: var(--text-main, #f3f4f6);
+  }
+
+  /* Footer Actions */
+  .py-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    padding: 1rem 1.35rem;
+    background: var(--bg-surface-elevated, rgba(0, 0, 0, 0.2));
+    border-top: 1px solid var(--border-subtle, #1f2937);
+  }
+
+  .py-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.55rem 1.15rem;
+    border-radius: 9px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: var(--font-sans, inherit);
+  }
+
+  .py-btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border-subtle, #374151);
+    color: var(--text-muted, #9ca3af);
+  }
+
+  .py-btn-cancel:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-main, #ffffff);
+    border-color: var(--border-medium, #4b5563);
+  }
+
+  .py-btn-confirm {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: 1px solid #10b981;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  }
+
+  .py-btn-confirm:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+    transform: translateY(-1px);
+  }
+
+  .py-btn-confirm:active {
+    transform: translateY(0);
+  }
+
+  /* Light Theme Compatibility */
+  [data-theme='light'] .py-modal-dialog {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #1e293b;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  [data-theme='light'] .py-modal-header {
+    background: linear-gradient(180deg, rgba(37, 99, 235, 0.05) 0%, transparent 100%);
+    border-bottom-color: #f1f5f9;
+  }
+
+  [data-theme='light'] .py-modal-title {
+    color: #0f172a;
+  }
+
+  [data-theme='light'] .py-notice-card {
+    background: rgba(2, 132, 199, 0.06);
+    border-color: rgba(2, 132, 199, 0.2);
+  }
+
+  [data-theme='light'] .py-notice-icon {
+    color: #0284c7;
+  }
+
+  [data-theme='light'] .py-notice-content {
+    color: #1e293b;
+  }
+
+  [data-theme='light'] .py-notice-sub {
+    color: #64748b;
+  }
+
+  [data-theme='light'] .py-modal-footer {
+    background: #f8fafc;
+    border-top-color: #e2e8f0;
+  }
+
+  [data-theme='light'] .py-btn-cancel {
+    border-color: #cbd5e1;
+    color: #475569;
+  }
+
+  [data-theme='light'] .py-btn-cancel:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+
+  @media (max-width: 640px) {
+    .py-modal-dialog {
+      border-radius: 14px;
+    }
+    .py-modal-header {
+      padding: 1rem 1.15rem;
+    }
+    .py-modal-body {
+      padding: 1rem 1.15rem;
+    }
+    .py-modal-footer {
+      padding: 0.85rem 1.15rem;
+      flex-direction: column-reverse;
+      gap: 0.5rem;
+    }
+    .py-btn {
+      width: 100%;
+    }
+  }
+</style>

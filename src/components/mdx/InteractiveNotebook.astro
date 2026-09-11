@@ -141,7 +141,7 @@ const isRunnerEnabled = import.meta.env.PUBLIC_ENABLE_CODE_RUNNER === 'true';
               <textarea class="cell-code-editor" spellcheck="false" rows={cell.code.split('\n').length + 1}>{cell.code}</textarea>
             ) : (
               <div class="code-shiki-container">
-                <Code code={cell.code} lang="python" themes={{ light: 'github-light', dark: 'github-dark' }} wrap={false} />
+                <Code code={cell.code} lang="python" themes={{ light: 'github-light', dark: 'one-dark-pro' }} wrap={false} />
               </div>
             )}
           </div>

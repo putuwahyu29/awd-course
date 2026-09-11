@@ -473,9 +473,17 @@ const { course, currentLesson } = Astro.props;
         const outWrapper = cell.querySelector('.code-output-wrapper');
         const outCode = cell.querySelector('.output-console code');
 
+        const triggerSlideRun = () => {
+          if (typeof (window as any).awdConfirmPythonRun === 'function') {
+            (window as any).awdConfirmPythonRun(() => runSlideCodeCell(cell));
+          } else {
+            runSlideCodeCell(cell);
+          }
+        };
+
         runBtn?.addEventListener('click', (e) => {
           e.stopPropagation();
-          runSlideCodeCell(cell);
+          triggerSlideRun();
         });
 
         copyBtn?.addEventListener('click', (e) => {
@@ -521,10 +529,31 @@ const { course, currentLesson } = Astro.props;
           if ((e.ctrlKey || e.shiftKey) && e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
-            runSlideCodeCell(cell);
+            triggerSlideRun();
           }
           if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
             e.stopPropagation();
+          }
+        });
+      });
+
+      // Attach copy handlers to code blocks inside slide containers
+      container.querySelectorAll('.nb-fenced-copy-btn, .code-copy-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const pre = btn.closest('pre');
+          const box = btn.closest('.nb-fenced-code-box');
+          const code = (pre || box)?.querySelector('code')?.textContent || '';
+          if (code) {
+            navigator.clipboard.writeText(code);
+            const copyLabel = btn.querySelector('span');
+            if (copyLabel) {
+              const originalText = copyLabel.textContent;
+              copyLabel.textContent = 'Tersalin!';
+              setTimeout(() => {
+                copyLabel.textContent = originalText || 'Salin';
+              }, 1500);
+            }
           }
         });
       });
@@ -573,11 +602,9 @@ const { course, currentLesson } = Astro.props;
         const notebookViewer = contentContainer.querySelector('.notebook-content-flow');
         
         if (notebookViewer) {
-          const children = Array.from(notebookViewer.children);
           let currentTopicTitle = lessonTitle;
           let currentSlide: HTMLElement | null = null;
           let currentContent: HTMLElement | null = null;
-          let slideCodeCellCount = 0;
           let slideTextLength = 0;
 
           function pushCurrentSlide() {
@@ -587,7 +614,6 @@ const { course, currentLesson } = Astro.props;
               generated.push(currentSlide);
               currentSlide = null;
               currentContent = null;
-              slideCodeCellCount = 0;
               slideTextLength = 0;
             }
           }
@@ -599,55 +625,113 @@ const { course, currentLesson } = Astro.props;
             currentContent.className = 'slide-inner-content';
           }
 
-          children.forEach((child) => {
-            const headingEl = child.querySelector('.nb-heading-1, .nb-heading-2, .nb-heading-3, .nb-heading-4, h1, h2, h3, h4');
-            const isCodeCell = child.classList.contains('code-cell-container');
-
-            if (headingEl) {
-              pushCurrentSlide();
-              currentTopicTitle = headingEl.textContent?.trim() || currentTopicTitle;
-              initSlide();
-            } else if (isCodeCell) {
-              // Code cells with runner topbar & output get their own dedicated slide if previous content exists
-              if (slideCodeCellCount >= 1 || slideTextLength > 80 || (currentContent && currentContent.children.length > 0)) {
-                pushCurrentSlide();
-                initSlide();
-                const badge = document.createElement('div');
-                badge.className = 'slide-topic-badge';
-                badge.textContent = currentTopicTitle;
-                currentContent!.appendChild(badge);
-              } else if (!currentSlide) {
-                initSlide();
-                const badge = document.createElement('div');
-                badge.className = 'slide-topic-badge';
-                badge.textContent = currentTopicTitle;
-                currentContent!.appendChild(badge);
-              }
-              slideCodeCellCount++;
-            } else {
-              // Text or explanation blocks: split if following a code cell or if text length exceeds comfortable slide limit
-              if (slideCodeCellCount >= 1 || slideTextLength > 260) {
-                pushCurrentSlide();
-                initSlide();
-                const badge = document.createElement('div');
-                badge.className = 'slide-topic-badge';
-                badge.textContent = currentTopicTitle;
-                currentContent!.appendChild(badge);
-              } else if (!currentSlide) {
-                initSlide();
-              }
-              slideTextLength += child.textContent?.trim().length || 0;
+          function addTopicBadgeIfNeeded() {
+            if (currentContent && !currentContent.querySelector('.slide-topic-badge') && currentTopicTitle) {
+              const badge = document.createElement('div');
+              badge.className = 'slide-topic-badge';
+              badge.textContent = currentTopicTitle;
+              currentContent.appendChild(badge);
             }
+          }
 
-            if (currentContent) {
-              const clone = child.cloneNode(true) as HTMLElement;
-              const origTextarea = child.querySelector('.code-input') as HTMLTextAreaElement;
+          // Flatten elements: code cells vs elements inside markdown blocks
+          const rawUnits: Array<{ type: 'code' | 'element'; node: HTMLElement; isHeading?: boolean; isCodeBox?: boolean }> = [];
+
+          Array.from(notebookViewer.children).forEach((topChild) => {
+            const elTop = topChild as HTMLElement;
+            if (elTop.classList.contains('code-cell-container')) {
+              rawUnits.push({ type: 'code', node: elTop });
+            } else if (elTop.classList.contains('markdown-block')) {
+              Array.from(elTop.children).forEach((el) => {
+                const elHtml = el as HTMLElement;
+                const tag = elHtml.tagName.toUpperCase();
+                const isHeading = ['H1', 'H2', 'H3', 'H4'].includes(tag);
+                const isCodeBox = elHtml.classList.contains('nb-fenced-code-box') || tag === 'PRE';
+                rawUnits.push({ type: 'element', node: elHtml, isHeading, isCodeBox });
+              });
+            } else {
+              rawUnits.push({ type: 'element', node: elTop });
+            }
+          });
+
+          rawUnits.forEach((unit) => {
+            if (unit.type === 'code') {
+              // Code cells with runner always get their own dedicated slide
+              pushCurrentSlide();
+              initSlide();
+              addTopicBadgeIfNeeded();
+
+              const clone = unit.node.cloneNode(true) as HTMLElement;
+              const origTextarea = unit.node.querySelector('.code-input') as HTMLTextAreaElement;
               const cloneTextarea = clone.querySelector('.code-input') as HTMLTextAreaElement;
               if (origTextarea && cloneTextarea) {
                 cloneTextarea.value = origTextarea.value || origTextarea.textContent || '';
               }
-              currentContent.appendChild(clone);
+              currentContent!.appendChild(clone);
+              pushCurrentSlide();
+              return;
             }
+
+            // Elements from markdown
+            const el = unit.node;
+            const isHeading = unit.isHeading;
+            const isCodeBox = unit.isCodeBox;
+            const isTable = el.classList.contains('table-container') || el.tagName === 'TABLE';
+            const textLen = el.textContent?.trim().length || 0;
+
+            if (isHeading) {
+              pushCurrentSlide();
+              currentTopicTitle = el.textContent?.trim() || currentTopicTitle;
+              initSlide();
+              const clone = el.cloneNode(true) as HTMLElement;
+              currentContent!.appendChild(clone);
+              return;
+            }
+
+            if (isCodeBox) {
+              // If current slide already has substantial text (>140 chars), split to fresh slide
+              if (slideTextLength > 140) {
+                pushCurrentSlide();
+                initSlide();
+                addTopicBadgeIfNeeded();
+              } else if (!currentSlide) {
+                initSlide();
+                addTopicBadgeIfNeeded();
+              }
+              const clone = el.cloneNode(true) as HTMLElement;
+              currentContent!.appendChild(clone);
+              slideTextLength += 160;
+              return;
+            }
+
+            if (isTable) {
+              if (slideTextLength > 100) {
+                pushCurrentSlide();
+                initSlide();
+                addTopicBadgeIfNeeded();
+              } else if (!currentSlide) {
+                initSlide();
+                addTopicBadgeIfNeeded();
+              }
+              const clone = el.cloneNode(true) as HTMLElement;
+              currentContent!.appendChild(clone);
+              slideTextLength += 180;
+              return;
+            }
+
+            // Paragraphs, lists, blockquotes
+            if (slideTextLength > 260) {
+              pushCurrentSlide();
+              initSlide();
+              addTopicBadgeIfNeeded();
+            } else if (!currentSlide) {
+              initSlide();
+              addTopicBadgeIfNeeded();
+            }
+
+            const clone = el.cloneNode(true) as HTMLElement;
+            currentContent!.appendChild(clone);
+            slideTextLength += textLen;
           });
 
           pushCurrentSlide();
@@ -1406,7 +1490,30 @@ const { course, currentLesson } = Astro.props;
   .presentation-modal[data-pres-theme="light"] :global(.content-slide p),
   .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-paragraph),
   .presentation-modal[data-pres-theme="light"] :global(.content-slide ul),
-  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-list) {
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide ol),
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-list),
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-ordered-list) {
+    color: #1e293b !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-fenced-code-box) {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-fenced-code-header) {
+    background-color: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-fenced-code-pre) {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.content-slide .nb-callout) {
+    background-color: rgba(30, 64, 175, 0.08) !important;
+    border-left-color: #2563eb !important;
     color: #1e293b !important;
   }
 
@@ -2002,6 +2109,127 @@ const { course, currentLesson } = Astro.props;
     color: var(--pres-btn-text) !important;
   }
 
+  :global(.content-slide ol), :global(.content-slide .nb-ordered-list) {
+    font-size: clamp(0.9rem, 1.6vw, 1.05rem) !important;
+    line-height: 1.65 !important;
+    margin-bottom: 1rem !important;
+    padding-left: 1.5rem !important;
+    color: var(--pres-btn-text) !important;
+    list-style-type: decimal !important;
+  }
+
+  :global(.content-slide .nb-callout) {
+    margin: 0.75rem 0 !important;
+    padding: 0.75rem 1.15rem !important;
+    background-color: var(--pres-badge-bg) !important;
+    border-left: 4px solid var(--pres-badge-text) !important;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0 !important;
+    color: var(--pres-btn-text) !important;
+    font-size: clamp(0.9rem, 1.5vw, 1.05rem) !important;
+  }
+
+  :global(.content-slide .nb-callout p) {
+    margin-bottom: 0.35rem !important;
+  }
+
+  :global(.content-slide .nb-callout p:last-child) {
+    margin-bottom: 0 !important;
+  }
+
+  :global(.content-slide .nb-fenced-code-box) {
+    margin: 0.75rem 0 !important;
+    background-color: var(--pres-code-bg) !important;
+    border: 1px solid var(--pres-code-border) !important;
+    border-radius: var(--radius-md) !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  :global(.content-slide .nb-fenced-code-header) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0.35rem 0.85rem !important;
+    background-color: var(--pres-bg-topbar) !important;
+    border-bottom: 1px solid var(--pres-border-subtle) !important;
+  }
+
+  :global(.content-slide .nb-fenced-code-lang) {
+    font-family: var(--font-mono) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: var(--pres-badge-text) !important;
+    text-transform: uppercase !important;
+  }
+
+  :global(.content-slide .nb-fenced-copy-btn) {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.3rem !important;
+    padding: 0.2rem 0.5rem !important;
+    background: transparent !important;
+    border: 1px solid var(--pres-border-subtle) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--pres-text-muted) !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+  }
+
+  :global(.content-slide pre:has(.code-block-header)) {
+    position: relative !important;
+    margin: 0.75rem 0 !important;
+    padding-top: 2.6rem !important;
+    background-color: var(--pres-code-bg) !important;
+    border: 1px solid var(--pres-code-border) !important;
+    border-radius: var(--radius-md) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+    overflow-x: auto !important;
+  }
+
+  :global(.content-slide pre .code-block-header) {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 2.2rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 0 0.85rem !important;
+    background-color: var(--pres-bg-topbar) !important;
+    border-bottom: 1px solid var(--pres-border-subtle) !important;
+    border-radius: var(--radius-md) var(--radius-md) 0 0 !important;
+    user-select: none !important;
+  }
+
+  :global(.content-slide pre .code-lang-badge) {
+    font-family: var(--font-mono) !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    color: var(--pres-badge-text) !important;
+  }
+
+  :global(.content-slide pre .code-copy-btn) {
+    background-color: var(--pres-btn-bg) !important;
+    color: var(--pres-btn-text) !important;
+    border: 1px solid var(--pres-border-subtle) !important;
+  }
+
+  :global(.content-slide .nb-fenced-code-pre) {
+    margin: 0 !important;
+    padding: 0.85rem 1rem !important;
+    background-color: var(--pres-code-bg) !important;
+    color: var(--pres-btn-text) !important;
+    font-family: var(--font-mono) !important;
+    font-size: clamp(0.85rem, 1.4vw, 1rem) !important;
+    line-height: 1.5 !important;
+    overflow-x: auto !important;
+  }
+
   :global(.content-slide .code-cell-container) {
     font-size: 0.95rem !important;
     margin: 0.5rem 0 !important;
@@ -2021,6 +2249,38 @@ const { course, currentLesson } = Astro.props;
     color: var(--pres-btn-text) !important;
     max-height: 48vh;
     box-sizing: border-box;
+  }
+
+  :global(.content-slide .code-shiki-container) {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  :global(.content-slide pre.astro-code) {
+    margin: 0 !important;
+    padding: 0.85rem 1rem !important;
+    background-color: transparent !important;
+    font-family: var(--font-mono) !important;
+    font-size: clamp(0.85rem, 1.4vw, 1.05rem) !important;
+    line-height: 1.6 !important;
+    border: none !important;
+  }
+
+  :global(.content-slide pre.astro-code code) {
+    font-family: inherit !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    background: transparent !important;
+  }
+
+  .presentation-modal[data-pres-theme="dark"] :global(.astro-code span) {
+    color: var(--shiki-dark, inherit) !important;
+  }
+
+  .presentation-modal[data-pres-theme="light"] :global(.astro-code span) {
+    color: inherit;
   }
 
   :global(.content-slide .code-output-wrapper) {
