@@ -361,19 +361,9 @@ const notebookRelPath = chapter.notebookInfo?.url ? `public${chapter.notebookInf
           </div>
         </section>
 
-        <!-- Section 2: Full Chapter Content & Interactive Stream (Data Source for Presentation Mode) -->
-        <section class="chapter-section interactive-stream-section" id="materi-lengkap">
-          <div class="section-title-wrap">
-            <div class="section-badge-chip">Pratinjau Materi</div>
-            <h2 class="section-title">Konten Materi Bab</h2>
-            <p class="section-sub">
-              {hasDedicatedNotebook
-                ? 'Materi dan latihan kode pada bab ini.'
-                : 'Kumpulan materi pada bab ini.'}
-            </p>
-          </div>
-
-          <!-- Hidden container to bridge content with PresentationMode engine -->
+        <!-- Section 2: Hidden data source for Presentation Mode engine -->
+        <!-- Konten ini disembunyikan secara visual, hanya digunakan oleh mesin PresentationMode -->
+        <section class="chapter-section interactive-stream-section" id="materi-lengkap" style="display: none;" aria-hidden="true">
           <div class="lesson-article-wrapper">
             <article class="prose lesson-body">
               {hasDedicatedNotebook ? (
