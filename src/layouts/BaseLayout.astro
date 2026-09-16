@@ -4,6 +4,7 @@ import Footer from '../components/Footer.astro';
 import ScrollToTop from '../components/ScrollToTop.astro';
 import ChatWidget from '../components/ChatWidget.astro';
 import SearchModal from '../components/SearchModal.astro';
+import PwaPrompt from '../components/PwaPrompt.astro';
 import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
@@ -66,6 +67,16 @@ const jsonLdWebsite = {
     <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 
+    <!-- Web App Manifest & PWA Native Settings -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Awd Course" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Awd Course" />
+    <meta name="msapplication-TileColor" content="#0b0f19" />
+
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
@@ -125,6 +136,9 @@ const jsonLdWebsite = {
 
     <!-- Global Search Modal (Ctrl + K) -->
     <SearchModal />
+
+    <!-- Global PWA Native Controller & Install Prompt -->
+    <PwaPrompt />
   </body>
 </html>
 

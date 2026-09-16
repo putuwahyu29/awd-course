@@ -8,6 +8,7 @@ import PresentationMode from '../components/PresentationMode.astro';
 import ChatWidget from '../components/ChatWidget.astro';
 import SearchModal from '../components/SearchModal.astro';
 import PythonInitModal from '../components/PythonInitModal.astro';
+import PwaPrompt from '../components/PwaPrompt.astro';
 import { ClientRouter } from 'astro:transitions';
 import { getChapterSlugs, getLessonDuration, calculateTotalDuration } from '../lib/chapters';
 import '../styles/global.css';
@@ -129,6 +130,16 @@ const jsonLdBreadcrumbs = {
     <!-- Theme Color Tags -->
     <meta name="theme-color" content="#0b0f19" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+    <!-- Web App Manifest & PWA Native Settings -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Awd Course" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Awd Course" />
+    <meta name="msapplication-TileColor" content="#0b0f19" />
 
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="article" />
@@ -553,6 +564,9 @@ const jsonLdBreadcrumbs = {
 
     <!-- Python WebAssembly Initialization Warning Modal -->
     <PythonInitModal />
+
+    <!-- Global PWA Native Controller & Install Prompt -->
+    <PwaPrompt />
 
     <!-- Floating Text Selection AI Tooltip -->
     <div id="awd-text-ai-tooltip" class="text-selection-ai-tooltip hidden">

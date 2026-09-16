@@ -17,7 +17,8 @@
     "notebooks:watch": "node scripts/watch_notebooks.mjs",
     "notebooks:run": "node scripts/execute_notebooks.mjs",
     "notebooks:clear": "node scripts/execute_notebooks.mjs --clear",
-    "generate:docs": "node scripts/generate_module_pdfs.mjs"
+    "generate:docs": "node scripts/generate_module_pdfs.mjs",
+    "pwa:icons": "node scripts/generate_pwa_icons.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.0",
